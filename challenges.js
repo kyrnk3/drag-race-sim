@@ -1,6 +1,4 @@
 // challenges.js
-// Auto-generated from challenges.json
-
 window.CHALLENGES = [
   {
     "id": "design",
