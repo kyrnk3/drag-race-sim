@@ -23,7 +23,7 @@
       <div class="control-row">
         <label>
           Queens JSON:
-          <textarea id="queensInput" rows="6" spellcheck="false"></textarea>
+          <textarea id="queensInput" rows="10" spellcheck="false"></textarea>
         </label>
       </div>
 
@@ -39,6 +39,39 @@
     </section>
   </main>
 
+  <!-- 1) Load data FIRST -->
+  <script src="challenges.js"></script>
+  <script src="queens.js"></script>
+
+  <!-- 2) Load simulator core -->
   <script src="sim.js"></script>
-</body>
-</html>
+
+  <!-- 3) UI glue -->
+  <script>
+    const queensInput = document.getElementById("queensInput");
+    const modeSelect = document.getElementById("modeSelect");
+    const loadDefaultBtn = document.getElementById("loadDefaultQueens");
+    const simulateBtn = document.getElementById("simulateButton");
+    const outputLog = document.getElementById("outputLog");
+
+    // Load default queens into the textarea
+    loadDefaultBtn.addEventListener("click", () => {
+      if (!window.DEFAULT_QUEENS) {
+        outputLog.textContent = "Error: DEFAULT_QUEENS not loaded.";
+        return;
+      }
+      queensInput.value = JSON.stringify(window.DEFAULT_QUEENS, null, 2);
+    });
+
+    // Run the simulator
+    simulateBtn.addEventListener("click", () => {
+      let queens;
+      try {
+        queens = JSON.parse(queensInput.value);
+      } catch (err) {
+        outputLog.textContent = "Invalid Queens JSON:\n\n" + err;
+        return;
+      }
+
+      const mode = modeSelect.value; // "normal" | "chaos"
+      const result = window.simulate
