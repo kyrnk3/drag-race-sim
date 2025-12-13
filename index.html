@@ -4,6 +4,141 @@
   <meta charset="UTF-8" />
   <title>Drag Race Season Simulator</title>
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Optional extra styles for cards / collapsibles -->
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #111;
+      color: #eee;
+      margin: 0;
+    }
+
+    .app {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    h1, h2 {
+      text-align: center;
+      margin-top: 0;
+    }
+
+    .controls {
+      background: #1b1b1b;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 0 0 1px #222;
+    }
+
+    .control-row {
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    label {
+      font-size: 0.9rem;
+    }
+
+    textarea {
+      width: 100%;
+      font-family: monospace;
+      font-size: 0.85rem;
+      background: #000;
+      color: #eee;
+      border-radius: 4px;
+      border: 1px solid #444;
+      padding: 0.5rem;
+      resize: vertical;
+    }
+
+    select,
+    input[type="number"] {
+      background: #000;
+      color: #eee;
+      border-radius: 4px;
+      border: 1px solid #444;
+      padding: 0.2rem 0.4rem;
+      font-size: 0.9rem;
+    }
+
+    button {
+      margin-right: 0.5rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      background: #e91e63;
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    button:hover {
+      filter: brightness(1.1);
+    }
+
+    .output {
+      margin-bottom: 1rem;
+    }
+
+    /* Episode / header / finale cards */
+
+    .episode-card {
+      background: #161616;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.75rem;
+      box-shadow: 0 0 0 1px #222;
+    }
+
+    .header-card {
+      border-left: 3px solid #e91e63;
+    }
+
+    .finale-card {
+      border-left: 3px solid #ffc107;
+    }
+
+    details.episode-card > summary {
+      cursor: pointer;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      list-style: none;
+    }
+
+    details.episode-card > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details.episode-card > summary::before {
+      content: "▶";
+      display: inline-block;
+      margin-right: 0.4rem;
+      font-size: 0.8rem;
+      transform: translateY(-1px);
+    }
+
+    details.episode-card[open] > summary::before {
+      content: "▼";
+    }
+
+    details.episode-card[open] > summary {
+      margin-bottom: 0.6rem;
+    }
+
+    .episode-card pre {
+      white-space: pre-wrap;
+      font-size: 0.8rem;
+      margin: 0;
+      font-family: "JetBrains Mono", Menlo, Monaco, Consolas, "Courier New", monospace;
+    }
+  </style>
 </head>
 <body>
   <main class="app">
@@ -21,7 +156,7 @@
       </div>
 
       <div class="control-row">
-        <label>
+        <label style="width: 100%;">
           Queens JSON:
           <textarea id="queensInput" rows="10" spellcheck="false"></textarea>
         </label>
@@ -35,45 +170,208 @@
 
     <section class="output">
       <h2>Season Output</h2>
-      <pre id="outputLog"></pre>
+      <div id="seasonContainer"></div>
     </section>
   </main>
 
-  <!-- Load data files first -->
+  <!-- Data files -->
   <script src="challenges.js"></script>
   <script src="queens.js"></script>
 
-  <!-- Simulator core -->
+  <!-- Simulator core (your JS port of sim.py) -->
   <script src="sim.js"></script>
 
-  <!-- UI glue -->
+  <!-- UI glue + parsing / rendering -->
   <script>
     const queensInput = document.getElementById("queensInput");
     const modeSelect = document.getElementById("modeSelect");
     const loadDefaultBtn = document.getElementById("loadDefaultQueens");
     const simulateBtn = document.getElementById("simulateButton");
-    const outputLog = document.getElementById("outputLog");
+    const seasonContainer = document.getElementById("seasonContainer");
 
+    // Load default queens JSON into textarea
     loadDefaultBtn.addEventListener("click", () => {
       if (!window.QUEENS) {
-        outputLog.textContent = "Error: queens.js not loaded or window.QUEENS is undefined.";
+        seasonContainer.textContent = "Error: QUEENS not available.";
         return;
       }
       queensInput.value = JSON.stringify(window.QUEENS, null, 2);
     });
 
+    // Parse the big text log from sim.js into:
+    // - headerLines (cast etc.)
+    // - episodes (title + lines)
+    // - finaleLines (Final 3 + finale + track records)
+    function parseSeasonLog(logText) {
+      const lines = logText.split("\n");
+
+      const headerLines = [];
+      const episodes = [];
+      const finaleLines = [];
+
+      let section = "header";
+      let currentEpisode = null;
+
+      for (const line of lines) {
+        if (line.startsWith("========== Episode ")) {
+          if (currentEpisode) episodes.push(currentEpisode);
+          currentEpisode = { titleLine: line, lines: [line] };
+          section = "episode";
+        } else if (line.startsWith("========== Final 3") ||
+                   line.startsWith("========== Grand Finale")) {
+          if (currentEpisode) episodes.push(currentEpisode);
+          currentEpisode = null;
+          section = "finale";
+          finaleLines.push(line);
+        } else {
+          if (section === "header") {
+            headerLines.push(line);
+          } else if (section === "episode") {
+            currentEpisode.lines.push(line);
+          } else {
+            finaleLines.push(line);
+          }
+        }
+      }
+
+      if (currentEpisode) episodes.push(currentEpisode);
+
+      return { headerLines, episodes, finaleLines };
+    }
+
+    // Remove "Planned must-have challenges:" block from header
+    function filterHeader(lines) {
+      const out = [];
+      let skipping = false;
+
+      for (const line of lines) {
+        if (line.startsWith("Planned must-have challenges:")) {
+          skipping = true;
+          continue;
+        }
+        if (skipping) {
+          if (line.trim() === "") {
+            skipping = false;
+          }
+          continue;
+        }
+        out.push(line);
+      }
+
+      // Trim leading/trailing blank lines
+      while (out.length && out[0].trim() === "") out.shift();
+      while (out.length && out[out.length - 1].trim() === "") out.pop();
+      return out;
+    }
+
+    // Remove "Scores this week" table from an episode block
+    function filterEpisodeBody(lines) {
+      const out = [];
+      let skippingScores = false;
+
+      for (const line of lines) {
+        if (line.startsWith("========== Episode ")) {
+          out.push(line);
+          continue;
+        }
+        if (line.startsWith("Scores this week:")) {
+          skippingScores = true;
+          continue;
+        }
+        if (skippingScores) {
+          if (line.trim() === "") {
+            skippingScores = false; // stop skipping after blank line
+          }
+          continue;
+        }
+        out.push(line);
+      }
+
+      // Trim leading/trailing blanks but keep title line
+      if (out.length > 0) {
+        const title = out[0];
+        const rest = out.slice(1);
+        while (rest.length && rest[0].trim() === "") rest.shift();
+        while (rest.length && rest[rest.length - 1].trim() === "") rest.pop();
+        return [title, ...rest];
+      }
+      return out;
+    }
+
+    function renderSeason(logText) {
+      const { headerLines, episodes, finaleLines } = parseSeasonLog(logText);
+      seasonContainer.innerHTML = "";
+
+      // Cast & setup card
+      const cleanHeader = filterHeader(headerLines);
+      if (cleanHeader.length) {
+        const card = document.createElement("div");
+        card.className = "episode-card header-card";
+        card.innerHTML = `
+          <h3>Cast & Setup</h3>
+          <pre>${cleanHeader.join("\n")}</pre>
+        `;
+        seasonContainer.appendChild(card);
+      }
+
+      // Episode cards with collapsible details
+      for (const ep of episodes) {
+        const cleanLines = filterEpisodeBody(ep.lines);
+        const titleLine = cleanLines[0] || ep.titleLine || "";
+        const m = titleLine.match(/Episode (\d+) — (.+?) =+/);
+        const epNum = m ? m[1] : "?";
+        const epName = m ? m[2] : "Episode " + epNum;
+
+        const details = document.createElement("details");
+        details.className = "episode-card";
+        details.open = false;
+
+        const summary = document.createElement("summary");
+        summary.textContent = `Episode ${epNum} — ${epName}`;
+        details.appendChild(summary);
+
+        const pre = document.createElement("pre");
+        pre.textContent = cleanLines.join("\n");
+        details.appendChild(pre);
+
+        seasonContainer.appendChild(details);
+      }
+
+      // Finale card
+      if (finaleLines.length) {
+        const lines = [...finaleLines];
+        while (lines.length && lines[0].trim() === "") lines.shift();
+        while (lines.length && lines[lines.length - 1].trim() === "") lines.pop();
+
+        const card = document.createElement("details");
+        card.className = "episode-card finale-card";
+        card.open = true;
+
+        const summary = document.createElement("summary");
+        summary.textContent = "Grand Finale & Track Records";
+        card.appendChild(summary);
+
+        const pre = document.createElement("pre");
+        pre.textContent = lines.join("\n");
+        card.appendChild(pre);
+
+        seasonContainer.appendChild(card);
+      }
+    }
+
+    // Single-season simulation + render
     simulateBtn.addEventListener("click", () => {
       let queens;
       try {
         queens = JSON.parse(queensInput.value);
       } catch (err) {
-        outputLog.textContent = "Invalid Queens JSON:\n\n" + err;
+        seasonContainer.textContent = "Invalid Queens JSON:\n\n" + err;
         return;
       }
 
       const mode = modeSelect.value;
       const result = window.simulateSeason(queens, { mode });
-      outputLog.textContent = result;
+      renderSeason(result);
     });
 
     // Auto-load sample cast on page load
