@@ -1,7 +1,5 @@
-// queens_default.js
-// Auto-generated from queens.json
-
-window.DEFAULT_QUEENS = [
+// queens.js
+window.QUEENS = [
   {
     "name": "Cherry Bomb",
     "stats": {
