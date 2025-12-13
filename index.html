@@ -86,14 +86,15 @@
       padding: 0.75rem 1rem;
       margin-bottom: 0.75rem;
       box-shadow: 0 0 0 1px #222;
+      border-left: 3px solid #444;
     }
 
     .header-card {
-      border-left: 3px solid #e91e63;
+      border-left-color: #e91e63;
     }
 
     .finale-card {
-      border-left: 3px solid #ffc107;
+      border-left-color: #ffc107;
     }
 
     details.episode-card > summary {
@@ -124,18 +125,72 @@
       font-family: Menlo, Consolas, monospace;
     }
 
-    /* Full-view nav row */
-    .step-nav {
-      margin-top: 0.75rem;
-      display: flex;
-      justify-content: space-between;
-      gap: 0.5rem;
+    /* Full-view step styling */
+    .step-cast {
+      border-left-color: #e91e63;
+    }
+
+    .step-episode_setup {
+      border-left-color: #9c27b0;
+    }
+
+    .step-episode_results {
+      border-left-color: #ff9800;
+    }
+
+    .step-final3 {
+      border-left-color: #03a9f4;
+    }
+
+    .step-finale {
+      border-left-color: #ffc107;
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.2);
     }
 
     .step-meta {
       font-size: 0.8rem;
       opacity: 0.8;
       margin-bottom: 0.25rem;
+    }
+
+    .episode-card h3 {
+      margin: 0.25rem 0 0.5rem;
+      text-align: left;
+    }
+
+    .episode-card p {
+      margin: 0.5rem 0 0;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .results-block {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .results-heading {
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.8rem;
+      opacity: 0.85;
+    }
+
+    .results-row {
+      margin: 0.15rem 0;
+    }
+
+    .results-row strong {
+      margin-right: 0.35rem;
+    }
+
+    .step-nav {
+      margin-top: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
     }
   </style>
 </head>
@@ -359,10 +414,8 @@
         const epNum = m ? parseInt(m[1], 10) : index + 1;
         const epName = m ? m[2] : "Unknown challenge";
 
-        // Setup step (just uses epNum + epName)
         steps.push({ type: "episode_setup", epNum, name: epName });
 
-        // Results step: everything from "Results:" onwards
         const resultsLines = [];
         let inResults = false;
         for (const line of filtered) {
@@ -402,6 +455,69 @@
       return steps;
     }
 
+    function renderResultsLines(lines, card) {
+      const block = document.createElement("div");
+      block.className = "results-block";
+
+      let headingAdded = false;
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        if (trimmed.startsWith("Results:")) {
+          const h = document.createElement("div");
+          h.className = "results-heading";
+          h.textContent = "Results";
+          block.appendChild(h);
+          headingAdded = true;
+          continue;
+        }
+
+        const row = document.createElement("div");
+        row.className = "results-row";
+
+        const colonIdx = trimmed.indexOf(":");
+        if (colonIdx !== -1) {
+          const label = trimmed.slice(0, colonIdx).trim();
+          const value = trimmed.slice(colonIdx + 1).trim();
+          const strong = document.createElement("strong");
+          strong.textContent = label + ":";
+          row.appendChild(strong);
+          row.appendChild(document.createTextNode(" " + value));
+        } else {
+          row.textContent = trimmed;
+        }
+        block.appendChild(row);
+      }
+
+      if (!headingAdded && lines.length) {
+        const h = document.createElement("div");
+        h.className = "results-heading";
+        h.textContent = "Results";
+        block.insertBefore(h, block.firstChild);
+      }
+
+      card.appendChild(block);
+    }
+
+    function getNextLabel(step, index, total) {
+      const isLast = index === total - 1;
+      if (isLast) return "Restart Season";
+
+      switch (step.type) {
+        case "cast":
+          return "Proceed to Episode 1";
+        case "episode_setup":
+          return "Proceed to Judging";
+        case "episode_results":
+          return "Next Episode";
+        case "final3":
+          return "Proceed to Grand Finale";
+        default:
+          return "Proceed";
+      }
+    }
+
     function renderCurrentStep() {
       seasonContainer.innerHTML = "";
       if (!currentSteps.length) {
@@ -411,7 +527,7 @@
       const step = currentSteps[currentStepIndex];
 
       const card = document.createElement("div");
-      card.className = "episode-card finale-card";
+      card.className = "episode-card step-" + step.type;
 
       const meta = document.createElement("div");
       meta.className = "step-meta";
@@ -421,7 +537,6 @@
 
       const h = document.createElement("h3");
       let titleText = "";
-
       let bodyLines = [];
 
       switch (step.type) {
@@ -434,7 +549,7 @@
           bodyLines = [
             `In Episode ${step.epNum}, the queens face the ${step.name}.`,
             "",
-            "Click Proceed to reveal the judging & results..."
+            "Proceed to see the judging and results."
           ];
           break;
         case "episode_results":
@@ -458,9 +573,17 @@
       card.appendChild(h);
 
       if (bodyLines.length) {
-        const p = document.createElement("pre");
-        p.textContent = bodyLines.join("\n");
-        card.appendChild(p);
+        if (step.type === "episode_setup") {
+          const p = document.createElement("p");
+          p.textContent = bodyLines.join("\n");
+          card.appendChild(p);
+        } else if (step.type === "episode_results") {
+          renderResultsLines(bodyLines, card);
+        } else {
+          const pre = document.createElement("pre");
+          pre.textContent = bodyLines.join("\n");
+          card.appendChild(pre);
+        }
       }
 
       const nav = document.createElement("div");
@@ -477,8 +600,11 @@
       });
 
       const nextBtn = document.createElement("button");
-      nextBtn.textContent =
-        currentStepIndex === currentSteps.length - 1 ? "Restart Season" : "Proceed";
+      nextBtn.textContent = getNextLabel(
+        step,
+        currentStepIndex,
+        currentSteps.length
+      );
       nextBtn.addEventListener("click", () => {
         if (currentStepIndex === currentSteps.length - 1) {
           currentStepIndex = 0;
