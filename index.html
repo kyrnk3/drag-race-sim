@@ -39,14 +39,14 @@
     </section>
   </main>
 
-  <!-- 1) Load data FIRST -->
+  <!-- Load data files first -->
   <script src="challenges.js"></script>
   <script src="queens.js"></script>
 
-  <!-- 2) Load simulator core -->
+  <!-- Simulator core -->
   <script src="sim.js"></script>
 
-  <!-- 3) UI glue -->
+  <!-- UI glue -->
   <script>
     const queensInput = document.getElementById("queensInput");
     const modeSelect = document.getElementById("modeSelect");
@@ -54,16 +54,14 @@
     const simulateBtn = document.getElementById("simulateButton");
     const outputLog = document.getElementById("outputLog");
 
-    // Load default queens into the textarea
     loadDefaultBtn.addEventListener("click", () => {
-      if (!window.DEFAULT_QUEENS) {
-        outputLog.textContent = "Error: DEFAULT_QUEENS not loaded.";
+      if (!window.QUEENS) {
+        outputLog.textContent = "Error: queens.js not loaded or window.QUEENS is undefined.";
         return;
       }
-      queensInput.value = JSON.stringify(window.DEFAULT_QUEENS, null, 2);
+      queensInput.value = JSON.stringify(window.QUEENS, null, 2);
     });
 
-    // Run the simulator
     simulateBtn.addEventListener("click", () => {
       let queens;
       try {
@@ -73,5 +71,17 @@
         return;
       }
 
-      const mode = modeSelect.value; // "normal" | "chaos"
-      const result = window.simulate
+      const mode = modeSelect.value;
+      const result = window.simulateSeason(queens, { mode });
+      outputLog.textContent = result;
+    });
+
+    // Auto-load sample cast on page load
+    window.addEventListener("DOMContentLoaded", () => {
+      if (window.QUEENS) {
+        queensInput.value = JSON.stringify(window.QUEENS, null, 2);
+      }
+    });
+  </script>
+</body>
+</html>
