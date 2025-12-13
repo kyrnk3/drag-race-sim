@@ -71,8 +71,13 @@
       font-weight: 600;
     }
 
-    button:hover {
+    button:hover:not(:disabled) {
       filter: brightness(1.1);
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: default;
     }
 
     .episode-card {
@@ -118,6 +123,20 @@
       margin: 0.5rem 0 0;
       font-family: Menlo, Consolas, monospace;
     }
+
+    /* Full-view nav row */
+    .step-nav {
+      margin-top: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .step-meta {
+      font-size: 0.8rem;
+      opacity: 0.8;
+      margin-bottom: 0.25rem;
+    }
   </style>
 </head>
 <body>
@@ -131,6 +150,14 @@
           <select id="modeSelect">
             <option value="normal">Normal</option>
             <option value="chaos">Chaos</option>
+          </select>
+        </label>
+
+        <label>
+          View:
+          <select id="viewSelect">
+            <option value="summary">Summary</option>
+            <option value="full">Full</option>
           </select>
         </label>
       </div>
@@ -165,13 +192,20 @@
   <script>
     const queensInput = document.getElementById("queensInput");
     const modeSelect = document.getElementById("modeSelect");
+    const viewSelect = document.getElementById("viewSelect");
     const loadDefaultBtn = document.getElementById("loadDefaultQueens");
     const simulateBtn = document.getElementById("simulateButton");
     const seasonContainer = document.getElementById("seasonContainer");
 
+    // For Full view
+    let currentSteps = [];
+    let currentStepIndex = 0;
+
     loadDefaultBtn.addEventListener("click", () => {
       queensInput.value = JSON.stringify(window.QUEENS, null, 2);
     });
+
+    // ---------- Parsing helpers ----------
 
     function parseSeasonLog(log) {
       const lines = log.split("\n");
@@ -256,7 +290,9 @@
       return out.filter(l => l.trim());
     }
 
-    function renderSeason(log) {
+    // ---------- Summary view rendering ----------
+
+    function renderSeasonSummary(log) {
       seasonContainer.innerHTML = "";
       const { header, episodes, finale } = parseSeasonLog(log);
 
@@ -305,13 +341,183 @@
       }
     }
 
+    // ---------- Full (step-through) view ----------
+
+    function buildStepsFromLog(log) {
+      const { header, episodes, finale } = parseSeasonLog(log);
+      const steps = [];
+
+      const castLines = filterHeader(header);
+      if (castLines.length) {
+        steps.push({ type: "cast", lines: castLines });
+      }
+
+      episodes.forEach((ep, index) => {
+        const filtered = filterEpisode(ep.lines);
+        const titleLine = filtered[0] || ep.lines[0] || "";
+        const m = titleLine.match(/Episode (\d+) — (.+?) =+/);
+        const epNum = m ? parseInt(m[1], 10) : index + 1;
+        const epName = m ? m[2] : "Unknown challenge";
+
+        // Setup step (just uses epNum + epName)
+        steps.push({ type: "episode_setup", epNum, name: epName });
+
+        // Results step: everything from "Results:" onwards
+        const resultsLines = [];
+        let inResults = false;
+        for (const line of filtered) {
+          if (line.startsWith("Results:")) {
+            inResults = true;
+            resultsLines.push(line);
+            continue;
+          }
+          if (inResults) {
+            resultsLines.push(line);
+          }
+        }
+        const cleanResults = resultsLines.filter(l => l.trim() !== "");
+        steps.push({
+          type: "episode_results",
+          epNum,
+          name: epName,
+          lines: cleanResults
+        });
+      });
+
+      const finaleLines = filterFinale(finale);
+      if (finaleLines.length) {
+        const idx = finaleLines.findIndex(l =>
+          l.startsWith("========== Grand Finale")
+        );
+        if (idx > 0) {
+          const final3Lines = finaleLines.slice(0, idx).filter(l => l.trim());
+          const finaleRest = finaleLines.slice(idx).filter(l => l.trim());
+          if (final3Lines.length) steps.push({ type: "final3", lines: final3Lines });
+          if (finaleRest.length) steps.push({ type: "finale", lines: finaleRest });
+        } else {
+          steps.push({ type: "finale", lines: finaleLines });
+        }
+      }
+
+      return steps;
+    }
+
+    function renderCurrentStep() {
+      seasonContainer.innerHTML = "";
+      if (!currentSteps.length) {
+        seasonContainer.textContent = "No steps available.";
+        return;
+      }
+      const step = currentSteps[currentStepIndex];
+
+      const card = document.createElement("div");
+      card.className = "episode-card finale-card";
+
+      const meta = document.createElement("div");
+      meta.className = "step-meta";
+      meta.textContent =
+        "Step " + (currentStepIndex + 1) + " of " + currentSteps.length;
+      card.appendChild(meta);
+
+      const h = document.createElement("h3");
+      let titleText = "";
+
+      let bodyLines = [];
+
+      switch (step.type) {
+        case "cast":
+          titleText = "Cast Reveal";
+          bodyLines = step.lines;
+          break;
+        case "episode_setup":
+          titleText = `Episode ${step.epNum} — ${step.name}`;
+          bodyLines = [
+            `In Episode ${step.epNum}, the queens face the ${step.name}.`,
+            "",
+            "Click Proceed to reveal the judging & results..."
+          ];
+          break;
+        case "episode_results":
+          titleText = `Episode ${step.epNum} — Judging & Results`;
+          bodyLines = step.lines;
+          break;
+        case "final3":
+          titleText = "Final 3 Revealed";
+          bodyLines = step.lines;
+          break;
+        case "finale":
+          titleText = "Grand Finale & Track Records";
+          bodyLines = step.lines;
+          break;
+        default:
+          titleText = "Season";
+          bodyLines = [];
+      }
+
+      h.textContent = titleText;
+      card.appendChild(h);
+
+      if (bodyLines.length) {
+        const p = document.createElement("pre");
+        p.textContent = bodyLines.join("\n");
+        card.appendChild(p);
+      }
+
+      const nav = document.createElement("div");
+      nav.className = "step-nav";
+
+      const backBtn = document.createElement("button");
+      backBtn.textContent = "Back";
+      backBtn.disabled = currentStepIndex === 0;
+      backBtn.addEventListener("click", () => {
+        if (currentStepIndex > 0) {
+          currentStepIndex--;
+          renderCurrentStep();
+        }
+      });
+
+      const nextBtn = document.createElement("button");
+      nextBtn.textContent =
+        currentStepIndex === currentSteps.length - 1 ? "Restart Season" : "Proceed";
+      nextBtn.addEventListener("click", () => {
+        if (currentStepIndex === currentSteps.length - 1) {
+          currentStepIndex = 0;
+        } else {
+          currentStepIndex++;
+        }
+        renderCurrentStep();
+      });
+
+      nav.appendChild(backBtn);
+      nav.appendChild(nextBtn);
+      card.appendChild(nav);
+
+      seasonContainer.appendChild(card);
+    }
+
+    function renderSeasonFull(log) {
+      currentSteps = buildStepsFromLog(log);
+      currentStepIndex = 0;
+      renderCurrentStep();
+    }
+
+    // ---------- Main simulate handler ----------
+
     simulateBtn.addEventListener("click", () => {
       const queens = JSON.parse(queensInput.value);
       const mode = modeSelect.value;
+      const view = viewSelect.value;
+
       const log = window.simulateSeason(queens, { mode });
-      renderSeason(log);
+
+      if (view === "summary") {
+        renderSeasonSummary(log);
+      } else {
+        renderSeasonFull(log);
+      }
     });
 
+    // Auto-load sample cast
     window.addEventListener("DOMContentLoaded", () => {
       queensInput.value = JSON.stringify(window.QUEENS, null, 2);
     });
