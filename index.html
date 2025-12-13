@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Drag Race Season Simulator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <h1>Drag Race Season Simulator</h1>
+
+    <section class="controls">
+      <div class="control-row">
+        <label>
+          Mode:
+          <select id="modeSelect">
+            <option value="normal">Normal</option>
+            <option value="chaos">Chaos</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="control-row">
+        <label>
+          Queens JSON:
+          <textarea id="queensInput" rows="6" spellcheck="false"></textarea>
+        </label>
+      </div>
+
+      <div class="control-row">
+        <button id="loadDefaultQueens">Load sample cast</button>
+        <button id="simulateButton">Simulate Season</button>
+      </div>
+    </section>
+
+    <section class="output">
+      <h2>Season Output</h2>
+      <pre id="outputLog"></pre>
+    </section>
+  </main>
+
+  <script src="sim.js"></script>
+</body>
+</html>
