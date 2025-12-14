@@ -25,9 +25,11 @@ const ALL_EDIT_FLAGS = [
 
 const STAT_NAMES = ["runway", "comedy", "acting", "dance", "singing", "improv"];
 
-// This should be defined somewhere in your page, e.g.:
-// <script>window.CHALLENGES = [ ... your challenges.json ... ]</script>
+// Main challenges from challenges.js
 const CHALLENGES = window.CHALLENGES || [];
+
+// Mini-challenges from mini-challenges.js
+const MINI_CHALLENGES = window.MINI_CHALLENGES || [];
 
 // Will store all queens for SAFE padding logic.
 let allQueensGlobal = [];
@@ -201,6 +203,13 @@ const ONE_OFF_CHALLENGES = new Set([
   "roast"
 ]);
 
+// Mini-challenges: one-off constraints
+const MINI_ONE_OFF_CHALLENGES = new Set([
+  "photoshoot", // must be first mini-challenge, once per season
+  "reading",    // mid-season, once per season
+  "puppets"     // top 5, once per season
+]);
+
 function stageOk(challengeId, queensRemaining, episodeNum) {
   if (challengeId === "ball") {
     if (episodeNum <= 3 || queensRemaining === 5) return true;
@@ -227,6 +236,27 @@ function stageOk(challengeId, queensRemaining, episodeNum) {
     return queensRemaining >= 5 && queensRemaining <= 7;
   }
 
+  return true;
+}
+
+// Mini-challenge stage rules (for constraints)
+function stageOkMini(challengeId, queensRemaining, episodeNum) {
+  // Reading can only occur mid-season, 6–9 queens left.
+  if (challengeId === "reading") {
+    return queensRemaining >= 6 && queensRemaining <= 9;
+  }
+
+  // Puppets can only occur at top 5.
+  if (challengeId === "puppets") {
+    return queensRemaining === 5;
+  }
+
+  // Photoshoot must be the first mini-challenge of the season.
+  if (challengeId === "photoshoot") {
+    return episodeNum === 1;
+  }
+
+  // All others can occur at any time.
   return true;
 }
 
@@ -324,6 +354,42 @@ function chooseChallenge(queensRemaining, episodeNum, lastChallengeId, usedOneOf
   return choice(filtered);
 }
 
+// Choose a mini-challenge for this episode.
+function chooseMiniChallenge(queensRemaining, episodeNum, usedMiniOneOffIdsSet) {
+  if (!MINI_CHALLENGES.length) return null;
+
+  // Photoshoot *must* be the first mini-challenge of the season.
+  if (episodeNum === 1) {
+    const photo = MINI_CHALLENGES.find(c => c.id === "photoshoot");
+    if (photo) {
+      return photo;
+    }
+  }
+
+  let candidates = MINI_CHALLENGES;
+
+  let filtered = [];
+  for (const c of candidates) {
+    const cid = c.id;
+    if (MINI_ONE_OFF_CHALLENGES.has(cid) && usedMiniOneOffIdsSet.has(cid)) continue;
+    if (!stageOkMini(cid, queensRemaining, episodeNum)) continue;
+    filtered.push(c);
+  }
+
+  if (!filtered.length) {
+    // Relax stage rules but still respect one-offs.
+    const relaxed = [];
+    for (const c of MINI_CHALLENGES) {
+      const cid = c.id;
+      if (MINI_ONE_OFF_CHALLENGES.has(cid) && usedMiniOneOffIdsSet.has(cid)) continue;
+      relaxed.push(c);
+    }
+    filtered = relaxed.length ? relaxed : MINI_CHALLENGES;
+  }
+
+  return choice(filtered);
+}
+
 // =========================
 // Edit modifiers & scoring
 // =========================
@@ -371,7 +437,7 @@ function applyEditModifiers(score, queen, challenge, context, phase) {
 function calculateScore(queen, challenge, phase = "early", context = "challenge") {
   let base = 0;
   for (const [stat, weight] of Object.entries(challenge.weights)) {
-    base += queen.stats[stat] * weight;
+    base += (queen.stats[stat] || 0) * weight;
   }
 
   const variance = challenge.variance;
@@ -472,7 +538,8 @@ function simulateEpisode(
   usedOneOffIdsSet,
   requiredSchedule,
   totalEpisodes,
-  log
+  log,
+  usedMiniOneOffIdsSet
 ) {
   const queensRemaining = queens.length;
   const phase = episodeNum <= totalEpisodes / 2 ? "early" : "late";
@@ -496,7 +563,31 @@ function simulateEpisode(
 
   log.push(`\n========== Episode ${episodeNum} — ${challenge.name} ==========\n`);
 
-  // Scores
+  // Mini-challenge phase (no elimination impact yet)
+  const miniChallenge = chooseMiniChallenge(queensRemaining, episodeNum, usedMiniOneOffIdsSet);
+  if (miniChallenge) {
+    if (MINI_ONE_OFF_CHALLENGES.has(miniChallenge.id)) {
+      usedMiniOneOffIdsSet.add(miniChallenge.id);
+    }
+
+    log.push(`\nMini-Challenge — ${miniChallenge.name}\n`);
+
+    const miniScores = new Map();
+    for (const q of queens) {
+      miniScores.set(q, calculateScore(q, miniChallenge, phase, "challenge"));
+    }
+
+    const miniRanked = Array.from(miniScores.entries()).sort((a, b) => b[1] - a[1]);
+    const miniWinner = miniRanked[0][0];
+
+    log.push("  Mini-challenge scores:\n");
+    for (const [queen, score] of miniRanked) {
+      log.push(`    ${queen.name.padEnd(14)} ${score.toFixed(2)}\n`);
+    }
+    log.push(`  Mini-challenge winner: ${miniWinner.name}\n`);
+  }
+
+  // Main challenge scores
   const scores = new Map();
   for (const q of queens) {
     scores.set(q, calculateScore(q, challenge, phase, "challenge"));
@@ -671,6 +762,7 @@ function simulateSeason(queenDefs, options = {}) {
   let episodeNum = 1;
   let lastChallengeId = null;
   const usedOneOffIdsSet = new Set();
+  const usedMiniOneOffIdsSet = new Set();
 
   const totalEpisodes = queens.length - 3;
   const requiredSchedule = planRequiredSchedule(queens.length);
@@ -696,14 +788,15 @@ function simulateSeason(queenDefs, options = {}) {
   }
 
   while (queens.length > 3 && episodeNum <= totalEpisodes) {
-    const [eliminated, cid, usedSet] = simulateEpisode(
+    const [eliminated, cid] = simulateEpisode(
       episodeNum,
       queens,
       lastChallengeId,
       usedOneOffIdsSet,
       requiredSchedule,
       totalEpisodes,
-      log
+      log,
+      usedMiniOneOffIdsSet
     );
     lastChallengeId = cid;
     queens.splice(queens.indexOf(eliminated), 1);
