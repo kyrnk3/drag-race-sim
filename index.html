@@ -316,18 +316,42 @@
       return out.filter(l => l.trim());
     }
 
+    // Hide main-score blocks AND mini-score blocks, keep mini header + winner.
     function filterEpisode(lines) {
       const out = [];
-      let skip = false;
+      let skipMainScores = false;
+      let skipMiniScores = false;
+
       for (const l of lines) {
-        if (l.startsWith("Scores this week:")) {
-          skip = true;
+        const trimmed = l.trim();
+
+        // Main challenge score block ("Scores this week:")
+        if (trimmed.startsWith("Scores this week:")) {
+          skipMainScores = true;
           continue;
         }
-        if (skip) {
-          if (l.trim() === "") skip = false;
+        if (skipMainScores) {
+          if (trimmed === "") {
+            skipMainScores = false;
+          }
           continue;
         }
+
+        // Mini-challenge score block ("Mini-challenge scores:")
+        if (trimmed.startsWith("Mini-challenge scores:")) {
+          skipMiniScores = true;
+          continue;
+        }
+        if (skipMiniScores) {
+          // Stop skipping and include the winner line when we hit it.
+          if (trimmed.startsWith("Mini-challenge winner:")) {
+            skipMiniScores = false;
+            out.push(l);
+          }
+          // Otherwise we're still in raw score rows, skip them.
+          continue;
+        }
+
         out.push(l);
       }
       return out;
@@ -429,6 +453,7 @@
 
         for (const line of filtered) {
           const trimmed = line.trim();
+
           if (trimmed.startsWith("Mini-Challenge —")) {
             inMini = true;
             miniLines.push(line);
@@ -436,11 +461,15 @@
             if (mm) miniName = mm[1];
             continue;
           }
+
           if (inMini) {
-            if (trimmed.startsWith("Scores this week:")) {
+            // Stop at main results
+            if (trimmed.startsWith("Results:")) {
               inMini = false;
               continue;
             }
+            // We’ve already stripped out raw mini scores in filterEpisode, so
+            // what remains here will just be blank lines + winner line.
             miniLines.push(line);
           }
         }
