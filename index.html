@@ -468,8 +468,7 @@
               inMini = false;
               continue;
             }
-            // We’ve already stripped out raw mini scores in filterEpisode, so
-            // what remains here will just be blank lines + winner line.
+            // Raw mini scores already stripped by filterEpisode; we just see header + winner
             miniLines.push(line);
           }
         }
@@ -614,6 +613,67 @@
       card.appendChild(block);
     }
 
+    function renderFinaleLines(lines, card) {
+      const block = document.createElement("div");
+      block.className = "results-block";
+
+      const heading = document.createElement("div");
+      heading.className = "results-heading";
+      heading.textContent = "Grand Finale";
+      block.appendChild(heading);
+
+      const finalists = [];
+      let winnerName = "Unknown";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+
+        // Finalists bullets: "  - Queen Name (track: ...)"
+        if (trimmed.startsWith("- ")) {
+          const noDash = trimmed.slice(2).trim();
+          const trackIdx = noDash.indexOf("(track:");
+          const name = trackIdx === -1 ? noDash : noDash.slice(0, trackIdx).trim();
+          if (name) finalists.push(name);
+        }
+
+        // Winner line: "X devours the stage and snatches the crown! 👑"
+        if (
+          trimmed.endsWith("snatches the crown! 👑") ||
+          trimmed.endsWith("snatches the crown!")
+        ) {
+          const marker = " devours the stage";
+          const crownIdx = trimmed.indexOf(marker);
+          if (crownIdx !== -1) {
+            winnerName = trimmed.slice(0, crownIdx).trim();
+          }
+        }
+      }
+
+      // Finalists row
+      if (finalists.length) {
+        const finalistsRow = document.createElement("div");
+        finalistsRow.className = "results-row";
+        const finalistsLabel = document.createElement("strong");
+        finalistsLabel.textContent = "Finalists:";
+        finalistsRow.appendChild(finalistsLabel);
+        finalistsRow.appendChild(
+          document.createTextNode(" " + finalists.join(", "))
+        );
+        block.appendChild(finalistsRow);
+      }
+
+      // Winner row
+      const winnerRow = document.createElement("div");
+      winnerRow.className = "results-row";
+      const winnerLabel = document.createElement("strong");
+      winnerLabel.textContent = "Winner:";
+      winnerRow.appendChild(winnerLabel);
+      winnerRow.appendChild(document.createTextNode(" " + winnerName));
+      block.appendChild(winnerRow);
+
+      card.appendChild(block);
+    }
+
     function getNextLabel(step, index, total) {
       const isLast = index === total - 1;
       if (isLast) return "Restart Season";
@@ -715,6 +775,8 @@
           renderResultsLines(bodyLines, card);
         } else if (step.type === "episode_mini") {
           renderMiniLines(step, card);
+        } else if (step.type === "finale") {
+          renderFinaleLines(bodyLines, card);
         } else {
           const pre = document.createElement("pre");
           pre.textContent = bodyLines.join("\n");
