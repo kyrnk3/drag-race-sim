@@ -264,13 +264,19 @@
     }
 
     .track-record-table .status-finale-winner {
-      background: #ffd54f;
+      background: #ffd54f; /* gold */
       color: #000;
       font-weight: 700;
     }
 
     .track-record-table .status-finale-runner {
-      background: #cfd8dc;
+      background: #cfd8dc; /* silver */
+      color: #000;
+      font-weight: 600;
+    }
+
+    .track-record-table .status-finale-runner-bronze {
+      background: #ffb74d; /* bronze */
       color: #000;
       font-weight: 600;
     }
@@ -339,6 +345,9 @@
     let currentSteps = [];
     let currentStepIndex = 0;
 
+    // Number of main episodes actually logged (Episode 1..N)
+    let seasonEpisodeCount = 0;
+
     loadDefaultBtn.addEventListener("click", () => {
       queensInput.value = JSON.stringify(window.QUEENS, null, 2);
     });
@@ -394,7 +403,7 @@
       return out.filter(l => l.trim());
     }
 
-    // Hide main-score blocks AND mini-score blocks, keep mini header + winner.
+    // Hide main-score blocks AND mini-score blocks in episodes, keep mini header + winner.
     function filterEpisode(lines) {
       const out = [];
       let skipMainScores = false;
@@ -431,7 +440,7 @@
       return out;
     }
 
-    // For SUMMARY view only – we still strip the raw finale performance block
+    // For SUMMARY view only – strip raw lip-sync performance block
     function filterFinale(lines) {
       const out = [];
       let skip = false;
@@ -506,6 +515,9 @@
       const { header, episodes, finale } = parseSeasonLog(log);
       const steps = [];
 
+      // Canonical number of main episodes for track-record table
+      seasonEpisodeCount = episodes.length;
+
       const castLines = filterHeader(header);
       if (castLines.length) {
         steps.push({ type: "cast", lines: castLines });
@@ -577,8 +589,8 @@
         });
       });
 
-      // IMPORTANT: for Full view we use the raw finale lines (no filter),
-      // so we can parse exact season scores from the "Final lip sync performance" block.
+      // For Full view we keep raw finale lines (no filterFinale),
+      // so we can parse actual season scores.
       const finaleLines = finale;
       if (finaleLines.length) {
         const idx = finaleLines.findIndex(l =>
@@ -813,9 +825,8 @@
         // Sort: finalists (no ELIM) at top, earliest eliminated last
         records.sort((a, b) => b.elimIndex - a.elimIndex);
 
-        // Decide finale ranking (WINNER / RUNNER-UP) from real season scores where possible
+        // Decide finale ranking (WINNER / RUNNER-UP) using real season scores where possible
         const finalistsSet = new Set(finalists);
-        const runnerUpsSet = new Set();
 
         const finalistRecords = records
           .filter(r => finalistsSet.has(r.name))
@@ -827,7 +838,7 @@
             return { ...r, seasonScore };
           });
 
-        // Sort finalists by season score, then ensure winner is first
+        // Sort finalists by season score, then ensure the actual winner is first
         finalistRecords.sort((a, b) => b.seasonScore - a.seasonScore);
         const winnerIdx = finalistRecords.findIndex(r => r.name === winnerName);
         if (winnerIdx > 0) {
@@ -835,17 +846,29 @@
           finalistRecords.unshift(w);
         }
 
-        for (let i = 1; i < finalistRecords.length; i++) {
-          runnerUpsSet.add(finalistRecords[i].name);
-        }
+        const finishOrderNames = finalistRecords.map(r => r.name);
+        const secondName = finishOrderNames[1] || null;
+        const thirdName = finishOrderNames[2] || null;
 
-        if (records.length) {
+        // Rebuild records so finalists appear in finish order at the top
+        const finalistsByName = new Set(finishOrderNames);
+        const nonFinalistsOrdered = records.filter(
+          r => !finalistsByName.has(r.name)
+        );
+        const finalRecords = [
+          ...finalistRecords.map(({ name, record, elimIndex }) => ({ name, record, elimIndex })),
+          ...nonFinalistsOrdered
+        ];
+
+        if (finalRecords.length) {
           let maxEpisodes = 0;
-          for (const r of records) {
+          for (const r of finalRecords) {
             if (r.record.length > maxEpisodes) maxEpisodes = r.record.length;
           }
 
-          const numEpisodeCols = maxEpisodes; // normal eps
+          // Use canonical episode count if we have it; fall back to max record length.
+          const numEpisodeCols = seasonEpisodeCount || maxEpisodes;
+
           const table = document.createElement("table");
           table.className = "track-record-table";
 
@@ -869,7 +892,7 @@
           table.appendChild(thead);
 
           const tbody = document.createElement("tbody");
-          for (const r of records) {
+          for (const r of finalRecords) {
             const tr = document.createElement("tr");
 
             const tdName = document.createElement("td");
@@ -887,15 +910,18 @@
                 td.className = cls;
                 td.textContent = status || "";
               } else {
-                // Finale column
+                // Finale column: 1st / 2nd / 3rd
                 let text = "";
                 let cls = "status-empty";
                 if (r.name === winnerName) {
                   text = "WINNER";
                   cls = "status-finale-winner";
-                } else if (runnerUpsSet.has(r.name)) {
+                } else if (r.name === secondName) {
                   text = "RUNNER-UP";
-                  cls = "status-finale-runner";
+                  cls = "status-finale-runner";           // silver
+                } else if (r.name === thirdName) {
+                  text = "RUNNER-UP";
+                  cls = "status-finale-runner-bronze";    // bronze
                 }
                 td.className = cls;
                 td.textContent = text;
