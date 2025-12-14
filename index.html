@@ -134,6 +134,10 @@
       border-left-color: #9c27b0;
     }
 
+    .step-episode_mini {
+      border-left-color: #4caf50;
+    }
+
     .step-episode_results {
       border-left-color: #ff9800;
     }
@@ -415,8 +419,43 @@
         const epNum = m ? parseInt(m[1], 10) : index + 1;
         const epName = m ? m[2] : "Unknown challenge";
 
+        // Setup step
         steps.push({ type: "episode_setup", epNum, name: epName });
 
+        // Mini-challenge block (if present)
+        let miniLines = [];
+        let miniName = null;
+        let inMini = false;
+
+        for (const line of filtered) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith("Mini-Challenge —")) {
+            inMini = true;
+            miniLines.push(line);
+            const mm = trimmed.match(/^Mini-Challenge — (.+)$/);
+            if (mm) miniName = mm[1];
+            continue;
+          }
+          if (inMini) {
+            if (trimmed.startsWith("Scores this week:")) {
+              inMini = false;
+              continue;
+            }
+            miniLines.push(line);
+          }
+        }
+
+        if (miniLines.length) {
+          steps.push({
+            type: "episode_mini",
+            epNum,
+            name: epName,
+            miniName,
+            lines: miniLines.filter(l => l.trim() !== "")
+          });
+        }
+
+        // Main challenge results
         const resultsLines = [];
         let inResults = false;
         for (const line of filtered) {
@@ -505,11 +544,27 @@
       const isLast = index === total - 1;
       if (isLast) return "Restart Season";
 
+      const nextStep = currentSteps[index + 1] || null;
+
       switch (step.type) {
         case "cast":
-          return "Proceed to Episode 1";
+          if (nextStep && nextStep.type === "episode_setup") {
+            return "Proceed to Episode 1";
+          }
+          return "Proceed";
         case "episode_setup":
-          return "Proceed to Judging";
+          if (nextStep && nextStep.type === "episode_mini") {
+            return "Proceed to Mini-Challenge";
+          }
+          if (nextStep && nextStep.type === "episode_results") {
+            return "Proceed to Judging";
+          }
+          return "Proceed";
+        case "episode_mini":
+          if (nextStep && nextStep.type === "episode_results") {
+            return "Proceed to Judging";
+          }
+          return "Proceed";
         case "episode_results":
           return "Next Episode";
         case "final3":
@@ -552,6 +607,10 @@
             "",
             "Proceed to see the judging and results."
           ];
+          break;
+        case "episode_mini":
+          titleText = `Episode ${step.epNum} — Mini-Challenge: ${step.miniName || "Mini-Challenge"}`;
+          bodyLines = step.lines;
           break;
         case "episode_results":
           titleText = `Episode ${step.epNum} — Judging & Results`;
