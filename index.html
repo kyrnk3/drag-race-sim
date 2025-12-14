@@ -262,6 +262,18 @@
       color: #fff;
       font-weight: 700;
     }
+
+    .track-record-table .status-finale-winner {
+      background: #ffd54f;
+      color: #000;
+      font-weight: 700;
+    }
+
+    .track-record-table .status-finale-runner {
+      background: #cfd8dc;
+      color: #000;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -391,7 +403,6 @@
       for (const l of lines) {
         const trimmed = l.trim();
 
-        // Main challenge score block ("Scores this week:")
         if (trimmed.startsWith("Scores this week:")) {
           skipMainScores = true;
           continue;
@@ -403,13 +414,11 @@
           continue;
         }
 
-        // Mini-challenge score block ("Mini-challenge scores:")
         if (trimmed.startsWith("Mini-challenge scores:")) {
           skipMiniScores = true;
           continue;
         }
         if (skipMiniScores) {
-          // Stop skipping and include the winner line when we hit it.
           if (trimmed.startsWith("Mini-challenge winner:")) {
             skipMiniScores = false;
             out.push(l);
@@ -422,6 +431,7 @@
       return out;
     }
 
+    // For SUMMARY view only – we still strip the raw finale performance block
     function filterFinale(lines) {
       const out = [];
       let skip = false;
@@ -475,7 +485,7 @@
 
       if (finale.length) {
         const d = document.createElement("details");
-          d.className = "episode-card finale-card";
+        d.className = "episode-card finale-card";
         d.open = false;
 
         const s = document.createElement("summary");
@@ -508,10 +518,9 @@
         const epNum = m ? parseInt(m[1], 10) : index + 1;
         const epName = m ? m[2] : "Unknown challenge";
 
-        // Setup step
         steps.push({ type: "episode_setup", epNum, name: epName });
 
-        // Mini-challenge block (if present)
+        // Mini-challenge block
         let miniLines = [];
         let miniName = null;
         let inMini = false;
@@ -568,7 +577,9 @@
         });
       });
 
-      const finaleLines = filterFinale(finale);
+      // IMPORTANT: for Full view we use the raw finale lines (no filter),
+      // so we can parse exact season scores from the "Final lip sync performance" block.
+      const finaleLines = finale;
       if (finaleLines.length) {
         const idx = finaleLines.findIndex(l =>
           l.startsWith("========== Grand Finale")
@@ -688,11 +699,22 @@
 
       let inTrackSection = false;
       const trackLines = [];
+      const seasonScoreMap = new Map();
 
       for (const line of lines) {
         const trimmed = line.trim();
 
-        // Split out track-record section
+        // Extract exact season scores: "Name  season=  8.0  raw_lip=..."
+        const mSeason = trimmed.match(/^(.+?)\s+season=([0-9.+-]+)/);
+        if (mSeason) {
+          const name = mSeason[1].trim();
+          const seasonScore = parseFloat(mSeason[2]);
+          if (name && !Number.isNaN(seasonScore)) {
+            seasonScoreMap.set(name, seasonScore);
+          }
+        }
+
+        // Start of track-record block
         if (trimmed === "Full track records:") {
           inTrackSection = true;
           continue;
@@ -745,7 +767,19 @@
 
       card.appendChild(block);
 
-            // Track records table
+      // Helper: fallback season score from record only (if needed)
+      function seasonScoreFromRecord(rec) {
+        let score = 0;
+        for (const r of rec) {
+          if (r === "WIN") score += 3;
+          else if (r === "HIGH") score += 1;
+          else if (r === "LOW") score -= 1;
+          else if (r === "BTM") score -= 2;
+        }
+        return score;
+      }
+
+      // Track records table
       if (trackLines.length) {
         const records = [];
         const statusSet = new Set(["WIN", "HIGH", "SAFE", "LOW", "BTM", "ELIM"]);
@@ -768,7 +802,6 @@
           const rec = parts.slice(firstStatusIdx);
           if (!name) continue;
 
-          // Detect elimination episode index (first ELIM)
           const elimIdx = rec.findIndex(s => s === "ELIM");
           records.push({
             name,
@@ -777,8 +810,34 @@
           });
         }
 
-        // Sort so finalists (no ELIM) appear first, earliest eliminated last
+        // Sort: finalists (no ELIM) at top, earliest eliminated last
         records.sort((a, b) => b.elimIndex - a.elimIndex);
+
+        // Decide finale ranking (WINNER / RUNNER-UP) from real season scores where possible
+        const finalistsSet = new Set(finalists);
+        const runnerUpsSet = new Set();
+
+        const finalistRecords = records
+          .filter(r => finalistsSet.has(r.name))
+          .map(r => {
+            const fallback = seasonScoreFromRecord(r.record);
+            const seasonScore = seasonScoreMap.has(r.name)
+              ? seasonScoreMap.get(r.name)
+              : fallback;
+            return { ...r, seasonScore };
+          });
+
+        // Sort finalists by season score, then ensure winner is first
+        finalistRecords.sort((a, b) => b.seasonScore - a.seasonScore);
+        const winnerIdx = finalistRecords.findIndex(r => r.name === winnerName);
+        if (winnerIdx > 0) {
+          const [w] = finalistRecords.splice(winnerIdx, 1);
+          finalistRecords.unshift(w);
+        }
+
+        for (let i = 1; i < finalistRecords.length; i++) {
+          runnerUpsSet.add(finalistRecords[i].name);
+        }
 
         if (records.length) {
           let maxEpisodes = 0;
@@ -786,6 +845,7 @@
             if (r.record.length > maxEpisodes) maxEpisodes = r.record.length;
           }
 
+          const numEpisodeCols = maxEpisodes; // normal eps
           const table = document.createElement("table");
           table.className = "track-record-table";
 
@@ -796,11 +856,15 @@
           thName.textContent = "Contestant";
           headRow.appendChild(thName);
 
-          for (let i = 0; i < maxEpisodes; i++) {
+          for (let i = 0; i < numEpisodeCols; i++) {
             const th = document.createElement("th");
             th.textContent = String(i + 1);
             headRow.appendChild(th);
           }
+          const thFinale = document.createElement("th");
+          thFinale.textContent = "Finale";
+          headRow.appendChild(thFinale);
+
           thead.appendChild(headRow);
           table.appendChild(thead);
 
@@ -813,13 +877,30 @@
             tdName.className = "track-name";
             tr.appendChild(tdName);
 
-            for (let i = 0; i < maxEpisodes; i++) {
-              const status = r.record[i] || "";
+            for (let i = 0; i <= numEpisodeCols; i++) {
               const td = document.createElement("td");
-              const cls =
-                "status-" + (status ? status.toLowerCase() : "empty");
-              td.className = cls;
-              td.textContent = status || "";
+
+              if (i < numEpisodeCols) {
+                const status = r.record[i] || "";
+                const cls =
+                  "status-" + (status ? status.toLowerCase() : "empty");
+                td.className = cls;
+                td.textContent = status || "";
+              } else {
+                // Finale column
+                let text = "";
+                let cls = "status-empty";
+                if (r.name === winnerName) {
+                  text = "WINNER";
+                  cls = "status-finale-winner";
+                } else if (runnerUpsSet.has(r.name)) {
+                  text = "RUNNER-UP";
+                  cls = "status-finale-runner";
+                }
+                td.className = cls;
+                td.textContent = text;
+              }
+
               tr.appendChild(td);
             }
 
