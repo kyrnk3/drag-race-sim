@@ -196,6 +196,72 @@
       justify-content: space-between;
       gap: 0.5rem;
     }
+
+    /* Track record table styling */
+    .track-record-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
+    }
+
+    .track-record-table th,
+    .track-record-table td {
+      border: 1px solid #333;
+      padding: 0.25rem 0.35rem;
+      text-align: center;
+    }
+
+    .track-record-table th {
+      background: #222;
+      font-weight: 600;
+    }
+
+    .track-record-table .track-name {
+      text-align: left;
+      white-space: nowrap;
+      background: #202020;
+      position: sticky;
+      left: 0;
+      z-index: 1;
+    }
+
+    .track-record-table .status-empty {
+      background: #181818;
+    }
+
+    .track-record-table .status-win {
+      background: #3f51b5;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .track-record-table .status-high {
+      background: #8bc6ff;
+      color: #000;
+    }
+
+    .track-record-table .status-safe {
+      background: #d0d0d0;
+      color: #000;
+    }
+
+    .track-record-table .status-low {
+      background: #ffccdf;
+      color: #000;
+    }
+
+    .track-record-table .status-btm {
+      background: #ff7043;
+      color: #000;
+      font-weight: 700;
+    }
+
+    .track-record-table .status-elim {
+      background: #424242;
+      color: #fff;
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
@@ -348,7 +414,6 @@
             skipMiniScores = false;
             out.push(l);
           }
-          // Otherwise we're still in raw score rows, skip them.
           continue;
         }
 
@@ -410,7 +475,7 @@
 
       if (finale.length) {
         const d = document.createElement("details");
-        d.className = "episode-card finale-card";
+          d.className = "episode-card finale-card";
         d.open = false;
 
         const s = document.createElement("summary");
@@ -463,12 +528,10 @@
           }
 
           if (inMini) {
-            // Stop at main results
             if (trimmed.startsWith("Results:")) {
               inMini = false;
               continue;
             }
-            // Raw mini scores already stripped by filterEpisode; we just see header + winner
             miniLines.push(line);
           }
         }
@@ -577,7 +640,6 @@
       heading.textContent = "Mini-Challenge";
       block.appendChild(heading);
 
-      // Challenge row
       const challengeRow = document.createElement("div");
       challengeRow.className = "results-row";
       const challengeLabel = document.createElement("strong");
@@ -588,7 +650,6 @@
       );
       block.appendChild(challengeRow);
 
-      // Winner row (parse from lines)
       let winnerName = "Unknown";
       for (const line of step.lines) {
         const trimmed = line.trim();
@@ -625,10 +686,23 @@
       const finalists = [];
       let winnerName = "Unknown";
 
+      let inTrackSection = false;
+      const trackLines = [];
+
       for (const line of lines) {
         const trimmed = line.trim();
 
-        // Finalists bullets: "  - Queen Name (track: ...)"
+        // Split out track-record section
+        if (trimmed === "Full track records:") {
+          inTrackSection = true;
+          continue;
+        }
+        if (inTrackSection) {
+          trackLines.push(trimmed);
+          continue;
+        }
+
+        // Finalists bullets: "- Queen Name (track: ...)"
         if (trimmed.startsWith("- ")) {
           const noDash = trimmed.slice(2).trim();
           const trackIdx = noDash.indexOf("(track:");
@@ -642,14 +716,13 @@
           trimmed.endsWith("snatches the crown!")
         ) {
           const marker = " devours the stage";
-          const crownIdx = trimmed.indexOf(marker);
-          if (crownIdx !== -1) {
-            winnerName = trimmed.slice(0, crownIdx).trim();
+          const idx = trimmed.indexOf(marker);
+          if (idx !== -1) {
+            winnerName = trimmed.slice(0, idx).trim();
           }
         }
       }
 
-      // Finalists row
       if (finalists.length) {
         const finalistsRow = document.createElement("div");
         finalistsRow.className = "results-row";
@@ -662,7 +735,6 @@
         block.appendChild(finalistsRow);
       }
 
-      // Winner row
       const winnerRow = document.createElement("div");
       winnerRow.className = "results-row";
       const winnerLabel = document.createElement("strong");
@@ -672,6 +744,83 @@
       block.appendChild(winnerRow);
 
       card.appendChild(block);
+
+      // Track records table
+      if (trackLines.length) {
+        const records = [];
+        const statusSet = new Set(["WIN", "HIGH", "SAFE", "LOW", "BTM", "ELIM"]);
+
+        for (const line of trackLines) {
+          if (!line) continue;
+          // Example: "Molly Mocktail   WIN HIGH SAFE ELIM"
+          const parts = line.split(/\s+/);
+          if (!parts.length) continue;
+
+          let firstStatusIdx = -1;
+          for (let i = 0; i < parts.length; i++) {
+            if (statusSet.has(parts[i])) {
+              firstStatusIdx = i;
+              break;
+            }
+          }
+          if (firstStatusIdx === -1) continue;
+
+          const name = parts.slice(0, firstStatusIdx).join(" ");
+          const rec = parts.slice(firstStatusIdx);
+          if (!name) continue;
+          records.push({ name, record: rec });
+        }
+
+        if (records.length) {
+          let maxEpisodes = 0;
+          for (const r of records) {
+            if (r.record.length > maxEpisodes) maxEpisodes = r.record.length;
+          }
+
+          const table = document.createElement("table");
+          table.className = "track-record-table";
+
+          const thead = document.createElement("thead");
+          const headRow = document.createElement("tr");
+
+          const thName = document.createElement("th");
+          thName.textContent = "Contestant";
+          headRow.appendChild(thName);
+
+          for (let i = 0; i < maxEpisodes; i++) {
+            const th = document.createElement("th");
+            th.textContent = String(i + 1);
+            headRow.appendChild(th);
+          }
+          thead.appendChild(headRow);
+          table.appendChild(thead);
+
+          const tbody = document.createElement("tbody");
+          for (const r of records) {
+            const tr = document.createElement("tr");
+
+            const tdName = document.createElement("td");
+            tdName.textContent = r.name;
+            tdName.className = "track-name";
+            tr.appendChild(tdName);
+
+            for (let i = 0; i < maxEpisodes; i++) {
+              const status = r.record[i] || "";
+              const td = document.createElement("td");
+              const cls =
+                "status-" + (status ? status.toLowerCase() : "empty");
+              td.className = cls;
+              td.textContent = status || "";
+              tr.appendChild(td);
+            }
+
+            tbody.appendChild(tr);
+          }
+
+          table.appendChild(tbody);
+          card.appendChild(table);
+        }
+      }
     }
 
     function getNextLabel(step, index, total) {
