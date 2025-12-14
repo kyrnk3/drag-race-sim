@@ -569,6 +569,51 @@
       card.appendChild(block);
     }
 
+    function renderMiniLines(step, card) {
+      const block = document.createElement("div");
+      block.className = "results-block";
+
+      const heading = document.createElement("div");
+      heading.className = "results-heading";
+      heading.textContent = "Mini-Challenge";
+      block.appendChild(heading);
+
+      // Challenge row
+      const challengeRow = document.createElement("div");
+      challengeRow.className = "results-row";
+      const challengeLabel = document.createElement("strong");
+      challengeLabel.textContent = "Challenge:";
+      challengeRow.appendChild(challengeLabel);
+      challengeRow.appendChild(
+        document.createTextNode(" " + (step.miniName || "Mini-Challenge"))
+      );
+      block.appendChild(challengeRow);
+
+      // Winner row (parse from lines)
+      let winnerName = "Unknown";
+      for (const line of step.lines) {
+        const trimmed = line.trim();
+        const lower = trimmed.toLowerCase();
+        if (lower.startsWith("mini-challenge winner:")) {
+          const parts = trimmed.split(":");
+          if (parts.length > 1) {
+            winnerName = parts.slice(1).join(":").trim();
+          }
+          break;
+        }
+      }
+
+      const winnerRow = document.createElement("div");
+      winnerRow.className = "results-row";
+      const winnerLabel = document.createElement("strong");
+      winnerLabel.textContent = "Winner:";
+      winnerRow.appendChild(winnerLabel);
+      winnerRow.appendChild(document.createTextNode(" " + winnerName));
+      block.appendChild(winnerRow);
+
+      card.appendChild(block);
+    }
+
     function getNextLabel(step, index, total) {
       const isLast = index === total - 1;
       if (isLast) return "Restart Season";
@@ -668,6 +713,8 @@
           card.appendChild(p);
         } else if (step.type === "episode_results") {
           renderResultsLines(bodyLines, card);
+        } else if (step.type === "episode_mini") {
+          renderMiniLines(step, card);
         } else {
           const pre = document.createElement("pre");
           pre.textContent = bodyLines.join("\n");
