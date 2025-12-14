@@ -745,16 +745,16 @@
 
       card.appendChild(block);
 
-      // Track records table
+            // Track records table
       if (trackLines.length) {
         const records = [];
         const statusSet = new Set(["WIN", "HIGH", "SAFE", "LOW", "BTM", "ELIM"]);
-      
+
         for (const line of trackLines) {
           if (!line) continue;
           const parts = line.split(/\s+/);
           if (!parts.length) continue;
-      
+
           let firstStatusIdx = -1;
           for (let i = 0; i < parts.length; i++) {
             if (statusSet.has(parts[i])) {
@@ -763,11 +763,11 @@
             }
           }
           if (firstStatusIdx === -1) continue;
-      
+
           const name = parts.slice(0, firstStatusIdx).join(" ");
           const rec = parts.slice(firstStatusIdx);
           if (!name) continue;
-      
+
           // Detect elimination episode index (first ELIM)
           const elimIdx = rec.findIndex(s => s === "ELIM");
           records.push({
@@ -775,15 +775,10 @@
             record: rec,
             elimIndex: elimIdx === -1 ? Infinity : elimIdx
           });
-          
-          // Sort so finalists (no ELIM) appear first, earliest eliminated last
-          records.sort((a, b) => b.elimIndex - a.elimIndex);
-
-          const name = parts.slice(0, firstStatusIdx).join(" ");
-          const rec = parts.slice(firstStatusIdx);
-          if (!name) continue;
-          records.push({ name, record: rec });
         }
+
+        // Sort so finalists (no ELIM) appear first, earliest eliminated last
+        records.sort((a, b) => b.elimIndex - a.elimIndex);
 
         if (records.length) {
           let maxEpisodes = 0;
