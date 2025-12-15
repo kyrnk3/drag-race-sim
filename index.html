@@ -1010,7 +1010,7 @@
             <button type="button" id="addCustomQueenBtn" class="secondary">
               Add queen
             </button>
-            <button type="button" id="updateCustomQueenBtn">
+            <button type="button" id="updateCustomQueenBtn" class="secondary">
               Update queen
             </button>
             <button type="button" id="removeCustomQueenBtn" class="danger">
@@ -1785,9 +1785,7 @@
     // =========================
 
     function parseSeasonLog(logText) {
-      const lines = (logText || "").split(/
-?
-/);
+      const lines = (logText || "").split(/\r?\n/);
       const header = [];
       const episodes = [];
       const finale = [];
@@ -2397,8 +2395,7 @@
       if (bodyLines.length) {
         if (step.type === "episode_setup") {
           const p = document.createElement("p");
-          p.textContent = bodyLines.join("
-");
+          p.textContent = bodyLines.join("\n");
           card.appendChild(p);
         } else if (step.type === "episode_mini") {
           renderMiniLines(step, card);
@@ -2416,8 +2413,7 @@
           renderFinaleLines(bodyLines, card);
         } else {
           const pre = document.createElement("pre");
-          pre.textContent = bodyLines.join("
-");
+          pre.textContent = bodyLines.join("\n");
           card.appendChild(pre);
         }
       }
@@ -2481,8 +2477,7 @@
       headerCard.appendChild(headerSummary);
 
       const pre = document.createElement("pre");
-      pre.textContent = filterHeader(header).join("
-") || "(No overview available.)";
+      pre.textContent = filterHeader(header).join("\n") || "(No overview available.)";
       headerCard.appendChild(pre);
 
       summaryEl.appendChild(headerCard);
@@ -2507,8 +2502,7 @@
         epCard.appendChild(summary);
 
         const bodyPre = document.createElement("pre");
-        bodyPre.textContent = filterEpisode(ep.lines).join("
-");
+        bodyPre.textContent = filterEpisode(ep.lines).join("\n");
         epCard.appendChild(bodyPre);
 
         summaryEl.appendChild(epCard);
@@ -2525,8 +2519,7 @@
         finaleCard.appendChild(summary);
 
         const bodyPre = document.createElement("pre");
-        bodyPre.textContent = finale.join("
-");
+        bodyPre.textContent = finale.join("\n");
         finaleCard.appendChild(bodyPre);
 
         const trackContainer = document.createElement("div");
@@ -2584,9 +2577,7 @@
     // ----------
 
     function buildTrackRecordFromLog(logText) {
-      const lines = (logText || "").split(/
-?
-/);
+      const lines = (logText || "").split(/\r?\n/);
       const queenNames = new Set();
       const episodes = [];
 
