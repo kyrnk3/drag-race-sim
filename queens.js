@@ -184,3 +184,6 @@ window.QUEENS = [
     edits: ["front_runner", "robbed"]
   }
 ];
+
+// Alias for older/newer code that expects DEFAULT_QUEENS
+window.DEFAULT_QUEENS = window.QUEENS;
