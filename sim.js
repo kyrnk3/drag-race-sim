@@ -570,8 +570,8 @@ function resolveLipSync(bottom2, challenge, phase, twistState) {
 
   let twist = "none";
 
-  const highThreshold = 8.0;
-  const lowThreshold = 4.0;
+  const highThreshold = 7.5;
+  const lowThreshold = 3.5;
 
   const bothSlay = (sWinner >= highThreshold && sLoser >= highThreshold);
   const bothBomb = (sWinner <= lowThreshold && sLoser <= lowThreshold);
