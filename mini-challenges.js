@@ -7,11 +7,11 @@ window.MINI_CHALLENGES = [
     name: "Assessment Challenge",
     weights: {
       comedy: 0.25,
-      improv: 0.3,
-      acting: 0.2,
+      improv: 0.30,
+      acting: 0.20,
       runway: 0.15,
-      dance: 0.05,
-      singing: 0.05
+      dance:  0.05,
+      singing:0.05
     },
     variance: 1.5
   },
@@ -19,10 +19,10 @@ window.MINI_CHALLENGES = [
     id: "choreography",
     name: "Choreography Challenge",
     weights: {
-      dance: 0.5,
-      improv: 0.2,
+      dance:  0.50,
+      improv: 0.20,
       runway: 0.15,
-      singing: 0.15
+      singing:0.15
     },
     variance: 1.8
   },
@@ -30,10 +30,10 @@ window.MINI_CHALLENGES = [
     id: "commercial",
     name: "Commercial Challenge",
     weights: {
-      acting: 0.4,
+      acting: 0.40,
       comedy: 0.35,
       improv: 0.15,
-      runway: 0.1
+      runway: 0.10
     },
     variance: 1.8
   },
@@ -41,11 +41,11 @@ window.MINI_CHALLENGES = [
     id: "design_mini",
     name: "Design Challenge",
     weights: {
-      runway: 0.6,
-      improv: 0.1,
-      acting: 0.1,
-      dance: 0.1,
-      singing: 0.1
+      // Mini version of the main design challenge: make a quick look & sell it
+      design: 0.60,
+      runway: 0.20,
+      improv: 0.10,
+      acting: 0.10
     },
     variance: 1.8
   },
@@ -53,9 +53,9 @@ window.MINI_CHALLENGES = [
     id: "puppets",
     name: "Everybody Loves Puppets",
     weights: {
-      comedy: 0.5,
-      improv: 0.3,
-      acting: 0.2
+      comedy: 0.50,
+      improv: 0.30,
+      acting: 0.20
     },
     variance: 1.6
   },
@@ -63,10 +63,10 @@ window.MINI_CHALLENGES = [
     id: "guessing",
     name: "Guessing Challenge",
     weights: {
-      improv: 0.4,
-      comedy: 0.3,
-      acting: 0.2,
-      runway: 0.1
+      improv: 0.40,
+      comedy: 0.30,
+      acting: 0.20,
+      runway: 0.10
     },
     variance: 1.5
   },
@@ -74,9 +74,9 @@ window.MINI_CHALLENGES = [
     id: "improvisation",
     name: "Improvisation Challenge",
     weights: {
-      improv: 0.5,
-      acting: 0.3,
-      comedy: 0.2
+      improv: 0.50,
+      acting: 0.30,
+      comedy: 0.20
     },
     variance: 1.8
   },
@@ -95,10 +95,12 @@ window.MINI_CHALLENGES = [
     id: "makeover_mini",
     name: "Makeover Challenge",
     weights: {
-      runway: 0.5,
-      improv: 0.2,
+      // Quick transformations: half styling, half construction
+      runway: 0.35,
+      design: 0.25,
+      improv: 0.15,
       acting: 0.15,
-      comedy: 0.15
+      comedy: 0.10
     },
     variance: 1.8
   },
@@ -106,10 +108,12 @@ window.MINI_CHALLENGES = [
     id: "photoshoot",
     name: "Photoshoot Challenge",
     weights: {
-      runway: 0.5,
-      improv: 0.2,
-      comedy: 0.2,
-      acting: 0.1
+      // Look still matters, but it's about posing & presence too
+      runway: 0.40,
+      design: 0.15,
+      improv: 0.15,
+      comedy: 0.20,
+      acting: 0.10
     },
     variance: 1.5
   },
@@ -117,10 +121,10 @@ window.MINI_CHALLENGES = [
     id: "physical",
     name: "Physical Challenge",
     weights: {
-      dance: 0.4,
-      improv: 0.2,
-      acting: 0.2,
-      runway: 0.2
+      dance:  0.40,
+      improv: 0.20,
+      acting: 0.20,
+      runway: 0.20
     },
     variance: 1.9
   },
@@ -129,7 +133,7 @@ window.MINI_CHALLENGES = [
     name: "Reading Challenge",
     weights: {
       comedy: 0.55,
-      improv: 0.3,
+      improv: 0.30,
       acting: 0.15
     },
     variance: 1.7
@@ -138,8 +142,10 @@ window.MINI_CHALLENGES = [
     id: "runway_mini",
     name: "Runway Challenge",
     weights: {
-      runway: 0.65,
-      improv: 0.2,
+      // Mostly about serving runway, but a bit of credit for self-made looks
+      runway: 0.55,
+      design: 0.15,
+      improv: 0.15,
       acting: 0.15
     },
     variance: 1.6
@@ -148,10 +154,10 @@ window.MINI_CHALLENGES = [
     id: "singing_mini",
     name: "Singing Challenge",
     weights: {
-      singing: 0.5,
-      dance: 0.25,
-      improv: 0.15,
-      acting: 0.1
+      singing: 0.50,
+      dance:   0.25,
+      improv:  0.15,
+      acting:  0.10
     },
     variance: 1.9
   },
@@ -161,8 +167,8 @@ window.MINI_CHALLENGES = [
     weights: {
       improv: 0.45,
       comedy: 0.25,
-      acting: 0.2,
-      runway: 0.1
+      acting: 0.20,
+      runway: 0.10
     },
     variance: 1.5
   }
