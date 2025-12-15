@@ -2864,26 +2864,34 @@
 
     document.addEventListener("DOMContentLoaded", () => {
       let sourceDefault = [];
-      if (typeof DEFAULT_QUEENS !== "undefined" && Array.isArray(DEFAULT_QUEENS)) {
-        sourceDefault = DEFAULT_QUEENS;
-      } else if (Array.isArray(window.DEFAULT_QUEENS)) {
+    
+      if (Array.isArray(window.DEFAULT_QUEENS)) {
         sourceDefault = window.DEFAULT_QUEENS;
+      } else if (Array.isArray(window.QUEENS)) {
+        // fallback to QUEENS if DEFAULT_QUEENS isn't defined
+        sourceDefault = window.QUEENS;
       } else {
-        console.warn("DEFAULT_QUEENS is not defined or not an array.");
+        console.warn(
+          "No queen list found – expected window.DEFAULT_QUEENS or window.QUEENS."
+        );
         sourceDefault = [];
       }
-
+    
       defaultQueens = sourceDefault.map(q => ({
         ...q,
-        imageUrl: (q.imageUrl && q.imageUrl.trim()) ? q.imageUrl.trim() : DEFAULT_QUEEN_IMAGE
+        imageUrl: (q.imageUrl && q.imageUrl.trim())
+          ? q.imageUrl.trim()
+          : DEFAULT_QUEEN_IMAGE
       }));
       customQueens = loadCustomQueens().map(q => ({
         ...q,
-        imageUrl: (q.imageUrl && q.imageUrl.trim()) ? q.imageUrl.trim() : DEFAULT_QUEEN_IMAGE
+        imageUrl: (q.imageUrl && q.imageUrl.trim())
+          ? q.imageUrl.trim()
+          : DEFAULT_QUEEN_IMAGE
       }));
       allQueens = [...defaultQueens, ...customQueens];
       rebuildQueenNameMap();
-
+    
       syncCastSizeLabel();
       updateCastCount();
       initEditFlagCheckboxes();
