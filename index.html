@@ -980,7 +980,7 @@
 
             <div style="flex:1; min-width:220px;">
               <label class="small-label" style="font-size:0.8rem; color:#ccc;">
-                Personality / story:
+                Traits:
               </label>
               <div class="edit-flags" style="margin-bottom:0.4rem;">
                 <label class="edit-flag-label">
@@ -1010,7 +1010,7 @@
             <button type="button" id="addCustomQueenBtn" class="secondary">
               Add queen
             </button>
-            <button type="button" id="updateCustomQueenBtn" class="secondary">
+            <button type="button" id="updateCustomQueenBtn">
               Update queen
             </button>
             <button type="button" id="removeCustomQueenBtn" class="danger">
@@ -1034,7 +1034,13 @@
     </section>
   </div>
 
-  <script>
+  
+  <script src="challenges.js"></script>
+  <script src="mini-challenges.js"></script>
+  <script src="queens.js"></script>
+  <script src="sim.js"></script>
+
+<script>
     const DEFAULT_QUEEN_IMAGE = "https://i.imgur.com/kXv2EFQ.png";
 
     const modeSelect = document.getElementById("modeSelect");
@@ -1181,7 +1187,18 @@
     }
 
     function initEditFlagCheckboxes() {
-      EDIT_FLAGS_LIST = window.ALL_EDIT_FLAGS || [];
+      EDIT_FLAGS_LIST = Array.isArray(window.ALL_EDIT_FLAGS)
+        ? window.ALL_EDIT_FLAGS
+        : [
+            "front_runner",
+            "late_bloomer",
+            "lip_sync_assassin",
+            "fan_favorite",
+            "villain",
+            "robbed",
+            "underestimated",
+            "messy"
+          ];
       editCheckboxes.clear();
       editFlagsContainer.innerHTML = "";
       EDIT_FLAGS_LIST.forEach((flag) => {
@@ -1466,7 +1483,7 @@
         const addBtn = document.createElement("button");
         addBtn.textContent = "Add to cast";
         addBtn.addEventListener("click", () => {
-          addQueenToCast(q.id, { allowDuplicate: true });
+          addQueenToCast(q.id);
         });
         actions.appendChild(addBtn);
 
@@ -1528,7 +1545,8 @@
       const opts = options || {};
       const allowDuplicate = !!opts.allowDuplicate;
       const limit = getCastLimit();
-      if (currentCast.length >= limit && !allowDuplicate) return;
+      // Always respect the cast limit, even for duplicates
+      if (currentCast.length >= limit) return;
 
       const existing = currentCast.find(q => q.id === id);
       const base = allQueens.find(q => q.id === id);
@@ -1660,8 +1678,9 @@
         meta.textContent = q.source === "custom" ? "Custom queen" : "Predefined";
         card.appendChild(meta);
 
-        card.addEventListener("click", () => {
-          addQueenToCast(q.id);
+        card.addEventListener("click", (e) => {
+          const allowDup = e.shiftKey || e.altKey;
+          addQueenToCast(q.id, { allowDuplicate: allowDup });
         });
 
         searchResultsEl.appendChild(card);
@@ -1691,22 +1710,23 @@
     });
 
     loadSampleBtn.addEventListener("click", () => {
-      const sample = window.SAMPLE_CAST || [];
-      if (!sample.length) {
-        alert("No sample cast is defined.");
-        return;
+      const sampleIds = Array.isArray(window.SAMPLE_CAST) ? window.SAMPLE_CAST : [];
+      if (sampleIds.length) {
+        currentCast = sampleIds.map((id) => {
+          const q = allQueens.find((qq) => qq.id === id);
+          return (
+            q || {
+              id,
+              name: id,
+              imageUrl: DEFAULT_QUEEN_IMAGE,
+              source: "unknown",
+            }
+          );
+        });
+      } else {
+        const limit = getCastLimit();
+        currentCast = defaultQueens.slice(0, limit);
       }
-      currentCast = sample.map((id) => {
-        const q = allQueens.find((qq) => qq.id === id);
-        return (
-          q || {
-            id,
-            name: id,
-            imageUrl: DEFAULT_QUEEN_IMAGE,
-            source: "unknown",
-          }
-        );
-      });
       updateCastCount();
       renderCastList();
       renderSearchResults(queenSearchInput.value);
@@ -1785,7 +1805,9 @@
     // =========================
 
     function parseSeasonLog(logText) {
-      const lines = (logText || "").split(/\r?\n/);
+      const lines = (logText || "").split(/
+?
+/);
       const header = [];
       const episodes = [];
       const finale = [];
@@ -2395,7 +2417,8 @@
       if (bodyLines.length) {
         if (step.type === "episode_setup") {
           const p = document.createElement("p");
-          p.textContent = bodyLines.join("\n");
+          p.textContent = bodyLines.join("
+");
           card.appendChild(p);
         } else if (step.type === "episode_mini") {
           renderMiniLines(step, card);
@@ -2413,7 +2436,8 @@
           renderFinaleLines(bodyLines, card);
         } else {
           const pre = document.createElement("pre");
-          pre.textContent = bodyLines.join("\n");
+          pre.textContent = bodyLines.join("
+");
           card.appendChild(pre);
         }
       }
@@ -2477,7 +2501,8 @@
       headerCard.appendChild(headerSummary);
 
       const pre = document.createElement("pre");
-      pre.textContent = filterHeader(header).join("\n") || "(No overview available.)";
+      pre.textContent = filterHeader(header).join("
+") || "(No overview available.)";
       headerCard.appendChild(pre);
 
       summaryEl.appendChild(headerCard);
@@ -2502,7 +2527,8 @@
         epCard.appendChild(summary);
 
         const bodyPre = document.createElement("pre");
-        bodyPre.textContent = filterEpisode(ep.lines).join("\n");
+        bodyPre.textContent = filterEpisode(ep.lines).join("
+");
         epCard.appendChild(bodyPre);
 
         summaryEl.appendChild(epCard);
@@ -2519,7 +2545,8 @@
         finaleCard.appendChild(summary);
 
         const bodyPre = document.createElement("pre");
-        bodyPre.textContent = finale.join("\n");
+        bodyPre.textContent = finale.join("
+");
         finaleCard.appendChild(bodyPre);
 
         const trackContainer = document.createElement("div");
@@ -2577,7 +2604,9 @@
     // ----------
 
     function buildTrackRecordFromLog(logText) {
-      const lines = (logText || "").split(/\r?\n/);
+      const lines = (logText || "").split(/
+?
+/);
       const queenNames = new Set();
       const episodes = [];
 
