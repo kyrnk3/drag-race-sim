@@ -2592,7 +2592,7 @@
         episodes: tableEpisodes,
       };
     }
-
+    
     function renderTrackRecordTable(container, data) {
       container.innerHTML = "";
       if (!data || !Array.isArray(data.episodes)) {
@@ -2603,47 +2603,47 @@
         container.appendChild(p);
         return;
       }
-
+    
       const table = document.createElement("table");
       table.className = "track-record-table";
-
+    
       const thead = document.createElement("thead");
       const headRow = document.createElement("tr");
-
+    
       const thName = document.createElement("th");
       thName.textContent = "Queen";
       thName.className = "track-name";
       headRow.appendChild(thName);
-
+    
       data.episodes.forEach((ep, idx) => {
         const th = document.createElement("th");
         const isFinale = idx === data.episodes.length - 1;
         th.textContent = ep.name || (isFinale ? "Finale" : "Ep " + (ep.index + 1));
         headRow.appendChild(th);
       });
-
+    
       thead.appendChild(headRow);
       table.appendChild(thead);
-
+    
       const tbody = document.createElement("tbody");
-
+    
       data.queenOrder.forEach((qName, rowIndex) => {
         const row = document.createElement("tr");
-
+    
         const nameCell = document.createElement("td");
         nameCell.textContent = qName;
         nameCell.className = "track-name";
         row.appendChild(nameCell);
-
+    
         data.episodes.forEach((ep, colIndex) => {
           const cell = document.createElement("td");
           const isFinale = colIndex === data.episodes.length - 1;
-
+    
           if (isFinale) {
-            // Finale is handled as winner / runner-up only, no BTM etc.
+            // Finale is handled as winner / runners-up only, no BTM etc.
             let finaleStatus = "";
             let finaleClass = "status-empty";
-
+    
             if (rowIndex === 0) {
               finaleStatus = "WIN";
               finaleClass = "status-final-win";
@@ -2657,17 +2657,33 @@
               finaleStatus = "";
               finaleClass = "status-empty";
             }
-
+    
             cell.textContent = finaleStatus;
             cell.className = finaleClass;
             row.appendChild(cell);
             return;
           }
-
-          const status = (ep.placements && ep.placements[qName]) || "";
+    
+          // NEW: support both string statuses and { status, immune } objects
+          const rawPlacement =
+            ep.placements && Object.prototype.hasOwnProperty.call(ep.placements, qName)
+              ? ep.placements[qName]
+              : "";
+    
+          let status = "";
+          let immune = false;
+    
+          if (rawPlacement && typeof rawPlacement === "object") {
+            status = rawPlacement.status || "";
+            immune = !!rawPlacement.immune;
+          } else {
+            status = rawPlacement || "";
+          }
+    
           const displayStatus = status === "RTRN" ? "RTRN" : status;
-
-          cell.innerHTML = displayStatus + (placement.immune ? '<br><small>(IMM)</small>' : '');
+          cell.innerHTML =
+            displayStatus + (immune ? '<br><small>(IMM)</small>' : "");
+    
           if (!status) {
             cell.className = "status-empty";
           } else {
@@ -2697,12 +2713,13 @@
                 cell.className = "status-empty";
             }
           }
+    
           row.appendChild(cell);
         });
-
+    
         tbody.appendChild(row);
       });
-
+    
       table.appendChild(tbody);
       container.appendChild(table);
     }
