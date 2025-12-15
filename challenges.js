@@ -148,15 +148,15 @@ window.CHALLENGES = [
     "variance": 2.5
   },
   {
-    "id": "lipsync",
-    "name": "Lipsync Challenge",
-    "weights": {
-      "dance": 0.45,
-      "improv": 0.25,
-      "acting": 0.15,
-      "runway": 0.15
+    id: "lipsync",
+    name: "Lipsync Challenge",
+    weights: {
+      lipsync: 0.60,
+      dance:   0.20,
+      improv:  0.10,
+      acting:  0.10
     },
-    "variance": 2.3
+    variance: 2.3
   },
   {
     "id": "runway",
