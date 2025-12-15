@@ -1599,8 +1599,9 @@
       renderSearchResults(queenSearchInput.value);
     }
 
-    function removeQueenFromCast(id) {
-      currentCast = currentCast.filter((q) => q.id !== id);
+    function removeQueenFromCastIndex(index) {
+      if (index < 0 || index >= currentCast.length) return;
+      currentCast.splice(index, 1);
       updateCastCount();
       renderCastList();
       renderSearchResults(queenSearchInput.value);
@@ -1614,40 +1615,40 @@
       }
       castEmptyHintEl.style.display = "none";
 
-      currentCast.forEach((q) => {
-        const card = document.createElement("div");
-        card.className = "cast-queen-card";
-
-        const img = document.createElement("img");
-        img.src = q.imageUrl || DEFAULT_QUEEN_IMAGE;
-        img.alt = q.name;
-        card.appendChild(img);
-
-        const name = document.createElement("div");
-        name.className = "cast-queen-name";
-        name.textContent = q.name;
-        card.appendChild(name);
-
-        const meta = document.createElement("div");
-        meta.className = "cast-queen-meta";
-        meta.textContent = q.source === "custom" ? "Custom queen" : "Predefined";
-        card.appendChild(meta);
-
-        const removeBtn = document.createElement("button");
-        removeBtn.textContent = "Remove";
-        removeBtn.style.marginTop = "0.35rem";
-        removeBtn.style.borderRadius = "999px";
-        removeBtn.style.border = "1px solid #444";
-        removeBtn.style.background = "#242424";
-        removeBtn.style.color = "#eee";
-        removeBtn.style.fontSize = "0.75rem";
-        removeBtn.style.padding = "0.2rem 0.7rem";
-        removeBtn.style.cursor = "pointer";
-        removeBtn.addEventListener("click", () => removeQueenFromCast(q.id));
-        card.appendChild(removeBtn);
-
-        castListEl.appendChild(card);
-      });
+    currentCast.forEach((q, index) => {
+      const card = document.createElement("div");
+      card.className = "cast-queen-card";
+    
+      const img = document.createElement("img");
+      img.src = q.imageUrl || DEFAULT_QUEEN_IMAGE;
+      img.alt = q.name;
+      card.appendChild(img);
+    
+      const name = document.createElement("div");
+      name.className = "cast-queen-name";
+      name.textContent = q.name;
+      card.appendChild(name);
+    
+      const meta = document.createElement("div");
+      meta.className = "cast-queen-meta";
+      meta.textContent = q.source === "custom" ? "Custom queen" : "Predefined";
+      card.appendChild(meta);
+    
+      const removeBtn = document.createElement("button");
+      removeBtn.textContent = "Remove";
+      removeBtn.style.marginTop = "0.35rem";
+      removeBtn.style.borderRadius = "999px";
+      removeBtn.style.border = "1px solid #444";
+      removeBtn.style.background = "#242424";
+      removeBtn.style.color = "#eee";
+      removeBtn.style.fontSize = "0.75rem";
+      removeBtn.style.padding = "0.2rem 0.7rem";
+      removeBtn.style.cursor = "pointer";
+      removeBtn.addEventListener("click", () => removeQueenFromCastIndex(index));
+      card.appendChild(removeBtn);
+    
+      castListEl.appendChild(card);
+    });
     }
 
     function renderSearchResults(query) {
