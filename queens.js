@@ -8,7 +8,8 @@ window.QUEENS = [
       "acting": 7,
       "dance": 5,
       "singing": 4,
-      "improv": 7
+      "improv": 7,
+      "lipsync": 7
     },
     "traits": {
       "drama_prone": true,
@@ -24,7 +25,8 @@ window.QUEENS = [
       "acting": 6,
       "dance": 6,
       "singing": 5,
-      "improv": 5
+      "improv": 5,
+      "lipsync": 6
     },
     "traits": {
       "drama_prone": false,
@@ -40,7 +42,8 @@ window.QUEENS = [
       "acting": 5,
       "dance": 7,
       "singing": 6,
-      "improv": 8
+      "improv": 8,
+      "lipsync": 8
     },
     "traits": {
       "drama_prone": true,
@@ -56,7 +59,8 @@ window.QUEENS = [
       "acting": 8,
       "dance": 4,
       "singing": 7,
-      "improv": 6
+      "improv": 6,
+      "lipsync": 7
     },
     "traits": {
       "drama_prone": false,
@@ -72,7 +76,8 @@ window.QUEENS = [
       "acting": 5,
       "dance": 9,
       "singing": 6,
-      "improv": 5
+      "improv": 5,
+      "lipsync": 10
     },
     "traits": {
       "drama_prone": false,
@@ -88,7 +93,8 @@ window.QUEENS = [
       "acting": 6,
       "dance": 6,
       "singing": 8,
-      "improv": 7
+      "improv": 7,
+      "lipsync": 8
     },
     "traits": {
       "drama_prone": false,
@@ -104,7 +110,8 @@ window.QUEENS = [
       "acting": 6,
       "dance": 5,
       "singing": 6,
-      "improv": 4
+      "improv": 4,
+      "lipsync": 6
     },
     "traits": {
       "drama_prone": false,
@@ -120,7 +127,8 @@ window.QUEENS = [
       "acting": 5,
       "dance": 9,
       "singing": 7,
-      "improv": 6
+      "improv": 6,
+      "lipsync": 9
     },
     "traits": {
       "drama_prone": true,
@@ -136,7 +144,8 @@ window.QUEENS = [
       "acting": 7,
       "dance": 5,
       "singing": 5,
-      "improv": 9
+      "improv": 9,
+      "lipsync": 8
     },
     "traits": {
       "drama_prone": true,
@@ -152,7 +161,8 @@ window.QUEENS = [
       "acting": 6,
       "dance": 6,
       "singing": 9,
-      "improv": 5
+      "improv": 5,
+      "lipsync": 7
     },
     "traits": {
       "drama_prone": false,
@@ -168,7 +178,8 @@ window.QUEENS = [
       "acting": 6,
       "dance": 6,
       "singing": 4,
-      "improv": 8
+      "improv": 8,
+      "lipsync": 8
     },
     "traits": {
       "drama_prone": true,
@@ -184,7 +195,8 @@ window.QUEENS = [
       "acting": 8,
       "dance": 7,
       "singing": 7,
-      "improv": 6
+      "improv": 6,
+      "lipsync": 8
     },
     "traits": {
       "drama_prone": false,
