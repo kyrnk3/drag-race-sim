@@ -1091,7 +1091,7 @@
       return {
         id,
         name,
-        imageUrl: customImageUrlInput.value.trim(),
+        imageUrl: (customImageUrlInput.value && customImageUrlInput.value.trim()) ? customImageUrlInput.value.trim() : DEFAULT_QUEEN_IMAGE,
         stats,
         traits,
         edits,
@@ -2071,7 +2071,10 @@
         imageUrl: q.imageUrl || DEFAULT_QUEEN_IMAGE_URL || "",
         source: "default",
       }));
-      customQueens = loadCustomQueens();
+      customQueens = loadCustomQueens().map(q => ({
+        ...q,
+        imageUrl: (q.imageUrl && q.imageUrl.trim()) ? q.imageUrl.trim() : DEFAULT_QUEEN_IMAGE
+      }));
       allQueens = [...defaultQueens, ...customQueens];
 
       syncCastSizeLabel();
