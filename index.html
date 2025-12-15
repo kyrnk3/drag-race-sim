@@ -853,6 +853,7 @@
         currentCast = currentCast.slice(0, limit);
       }
       syncCastSizeLabel();
+      updateCastCount();
       renderCastList();
     });
 
@@ -1349,7 +1350,7 @@
       for (const ep of episodes) {
         const lines = filterEpisode(ep.lines);
         const title = lines[0] || "";
-        const m = title.match(/Episode (\d+) — (.+?) =+/);
+        the m = title.match(/Episode (\d+) — (.+?) =+/);
         const label = m ? `Episode ${m[1]} — ${m[2]}` : title;
 
         const d = document.createElement("details");
@@ -1713,22 +1714,20 @@
       }
       const hasDuplicateNames = Array.from(nameCounts.values()).some((c) => c > 1);
 
-      let finalRecords;
-      let secondName = null;
-      let thirdName = null;
+      let finalRecords = [];
 
       if (!hasDuplicateNames && finalists.length) {
         // --- Normal case: unique names, use finalists list + real season scores ---
         const finalistsSet = new Set(finalists);
 
-        const finalistRecords = records
+        let finalistRecords = records
           .filter((r) => finalistsSet.has(r.name))
           .map((r) => {
             const fallback = seasonScoreFromRecord(r.record);
             const seasonScore = seasonScoreMap.has(r.name)
               ? seasonScoreMap.get(r.name)
               : fallback;
-            return { ...r, seasonScore };
+            return { ...r, seasonScore, finaleStatus: null };
           });
 
         // Sort finalists by season score, then ensure the actual winner is first
@@ -1739,32 +1738,35 @@
           finalistRecords.unshift(w);
         }
 
-        const finishOrderNames = finalistRecords.map((r) => r.name);
-        secondName = finishOrderNames[1] || null;
-        thirdName = finishOrderNames[2] || null;
+        // Tag placements for finale column (by record, not by name)
+        if (finalistRecords[0]) finalistRecords[0].finaleStatus = "winner";
+        if (finalistRecords[1]) finalistRecords[1].finaleStatus = "runner_silver";
+        if (finalistRecords[2]) finalistRecords[2].finaleStatus = "runner_bronze";
 
-        const finalistsByName = new Set(finishOrderNames);
-        const nonFinalistsOrdered = records.filter(
-          (r) => !finalistsByName.has(r.name)
-        );
+        const finalistsByName = new Set(finalistRecords.map((r) => r.name));
 
-        finalRecords = [
-          ...finalistRecords.map(({ name, record, elimIndex }) => ({
-            name,
-            record,
-            elimIndex,
-          })),
-          ...nonFinalistsOrdered,
-        ];
+        // Non-finalists ordered by elimination: later elimination = higher placement
+        const nonFinalistsOrdered = records
+          .filter((r) => !finalistsByName.has(r.name))
+          .sort((a, b) => {
+            if (a.elimIndex !== b.elimIndex) {
+              return b.elimIndex - a.elimIndex; // later ELIM => higher place
+            }
+            return a.rowIndex - b.rowIndex;
+          })
+          .map((r) => ({ ...r, finaleStatus: null }));
+
+        finalRecords = [...finalistRecords, ...nonFinalistsOrdered];
       } else {
         // --- Cursed case: duplicate names (e.g. multiple Test Queens) ---
         // Decide finalists purely by track records (no ELIM).
         const nonEliminated = records.filter((r) => r.elimIndex === Infinity);
         const eliminated = records.filter((r) => r.elimIndex !== Infinity);
 
-        const finalistRecords = nonEliminated.map((r) => ({
+        let finalistRecords = nonEliminated.map((r) => ({
           ...r,
           seasonScore: seasonScoreFromRecord(r.record),
+          finaleStatus: null,
         }));
 
         // Sort finalists by season score desc; tie-breaker: later elimIndex / rowIndex
@@ -1778,25 +1780,28 @@
           return a.rowIndex - b.rowIndex;
         });
 
-        // Winner: best of these (all share the same name string anyway)
+        // Tag placements by *record*, not name (fixes "all Test Queens = WINNER")
+        if (finalistRecords[0]) finalistRecords[0].finaleStatus = "winner";
+        if (finalistRecords[1]) finalistRecords[1].finaleStatus = "runner_silver";
+        if (finalistRecords[2]) finalistRecords[2].finaleStatus = "runner_bronze";
+
+        // Winner line summary still just uses the shared name string
         const winnerRec = finalistRecords[0] || null;
         if (winnerRec) {
           winnerName = winnerRec.name;
         }
-        secondName = finalistRecords[1]?.name || null;
-        thirdName = finalistRecords[2]?.name || null;
 
-        // Sort eliminated by elimination order (earlier ELIM first)
-        eliminated.sort((a, b) => {
-          if (a.elimIndex !== b.elimIndex) {
-            return a.elimIndex - b.elimIndex;
-          }
-          return a.rowIndex - b.rowIndex;
-        });
+        // Eliminated ordered from best to worst (later ELIM = higher placement)
+        const eliminatedOrdered = eliminated
+          .sort((a, b) => {
+            if (a.elimIndex !== b.elimIndex) {
+              return b.elimIndex - a.elimIndex;
+            }
+            return a.rowIndex - b.rowIndex;
+          })
+          .map((r) => ({ ...r, finaleStatus: null }));
 
-        finalRecords = [...finalistRecords, ...eliminated].map(
-          ({ name, record, elimIndex }) => ({ name, record, elimIndex })
-        );
+        finalRecords = [...finalistRecords, ...eliminatedOrdered];
       }
 
       if (!finalRecords.length) return;
@@ -1868,18 +1873,18 @@
               td.textContent = baseStatus;
             }
           } else {
-            // Finale column: 1st / 2nd / 3rd
+            // Finale column: use per-row finaleStatus instead of name checks
             let text = "";
             let cls = "status-empty";
-            if (r.name === winnerName) {
+            if (r.finaleStatus === "winner") {
               text = "WINNER";
               cls = "status-finale-winner";
-            } else if (r.name === secondName) {
+            } else if (r.finaleStatus === "runner_silver") {
               text = "RUNNER-UP";
-              cls = "status-finale-runner"; // silver
-            } else if (r.name === thirdName) {
+              cls = "status-finale-runner";
+            } else if (r.finaleStatus === "runner_bronze") {
               text = "RUNNER-UP";
-              cls = "status-finale-runner-bronze"; // bronze
+              cls = "status-finale-runner-bronze";
             }
             td.className = cls;
             td.textContent = text;
