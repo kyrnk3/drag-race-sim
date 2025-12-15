@@ -20,7 +20,7 @@
       padding: 1.5rem;
     }
 
-    h1, h2 {
+    h1, h2, h3 {
       text-align: center;
       margin-top: 0;
     }
@@ -302,7 +302,7 @@
       gap: 1rem;
     }
 
-    @media (min-width: 800px) {
+    @media (min-width: 900px) {
       .cast-builder-layout {
         flex-direction: row;
       }
@@ -316,13 +316,39 @@
       flex: 1.6;
     }
 
-    .queen-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 0.75rem;
+    .cast-search-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      justify-content: flex-start;
+      margin-bottom: 0.5rem;
+    }
+
+    .cast-search-row input[type="text"] {
+      min-width: 200px;
+    }
+
+    .cast-builder-buttons {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .cast-size-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
       margin-top: 0.75rem;
-      max-height: 480px;
-      overflow-y: auto;
+      justify-content: space-between;
+    }
+
+    .cast-size-inner {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
     }
 
     .queen-card {
@@ -331,8 +357,6 @@
       padding: 0.5rem;
       text-align: center;
       box-shadow: 0 0 0 1px #262626;
-      cursor: pointer;
-      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
       position: relative;
     }
 
@@ -344,12 +368,12 @@
       display: block;
       margin: 0 auto 0.35rem;
       box-shadow: 0 0 0 2px #000;
-      background: #000;
     }
 
     .queen-name {
       font-size: 0.82rem;
       font-weight: 600;
+      word-break: break-word;
     }
 
     .queen-card .custom-badge {
@@ -366,35 +390,74 @@
       text-transform: uppercase;
     }
 
-    .queen-card.selected {
-      background: #e91e63;
-      box-shadow: 0 0 0 2px #ff4081;
-      transform: translateY(-1px);
-    }
-
-    .queen-card.selected .queen-name {
-      color: #fff;
-    }
-
-    .cast-builder-header {
-      display: flex;
-      align-items: center;
+    /* Search results grid */
+    .search-results {
+      margin-top: 0.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
       gap: 0.5rem;
-      flex-wrap: wrap;
-      justify-content: space-between;
+      max-height: 220px;
+      overflow-y: auto;
     }
 
-    .cast-size-wrapper {
+    .search-result-card {
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
+    }
+
+    .search-result-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 2px #ff4081;
+    }
+
+    .search-result-card.added {
+      background: #2e7d32;
+      box-shadow: 0 0 0 2px #66bb6a;
+    }
+
+    /* Current cast list */
+    .cast-list {
+      margin-top: 0.6rem;
       display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      min-height: 88px;
+    }
+
+    .cast-queen-card {
+      display: inline-flex;
+      flex-direction: column;
       align-items: center;
-      gap: 0.4rem;
-      flex-wrap: wrap;
+      justify-content: center;
+      min-width: 120px;
     }
 
-    .cast-builder-buttons {
-      display: flex;
-      gap: 0.4rem;
-      flex-wrap: wrap;
+    .cast-remove-btn {
+      position: absolute;
+      top: 4px;
+      left: 6px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: none;
+      background: #000;
+      color: #fff;
+      font-size: 0.7rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.15rem 0.4rem;
+      border-radius: 999px;
+      background: #222;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      opacity: 0.85;
     }
 
     .custom-form {
@@ -443,19 +506,6 @@
       box-shadow: 0 0 0 2px #000;
       display: block;
       margin: 0 auto;
-      background: #000;
-    }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.15rem 0.4rem;
-      border-radius: 999px;
-      background: #222;
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      opacity: 0.85;
     }
   </style>
 </head>
@@ -495,12 +545,11 @@
 
       <div class="control-row">
         <span class="muted">
-          Build a cast using the GUI below. Use the sample cast, randomize, or create your own queens.
+          Build a cast using the GUI below. If you don't choose anyone, the default sample cast will be used.
         </span>
       </div>
 
       <div class="control-row">
-        <button id="loadSampleCast">Load sample cast</button>
         <button id="simulateButton">Simulate Season</button>
       </div>
     </section>
@@ -510,26 +559,38 @@
       <h2>Cast Builder & Custom Queens</h2>
 
       <div class="cast-builder-layout">
-        <!-- Left: cast picker -->
+        <!-- Left: cast picker (search + current cast) -->
         <div class="cast-column">
-          <div class="cast-builder-header">
-            <div class="cast-size-wrapper">
-              <label for="castSizeRange">Cast size:</label>
-              <input id="castSizeRange" type="range" min="4" max="20" value="12" />
-              <span id="castSizeLabel" class="chip">12 queens</span>
-            </div>
+          <div class="cast-search-row">
+            <label>
+              <span class="muted">Type a name…</span><br />
+              <input id="queenSearchInput" type="text" placeholder="Start typing to search queens…" />
+            </label>
+
             <div class="cast-builder-buttons">
               <button id="btnRandomAll">Random</button>
               <button id="btnRandomCustoms">Random customs</button>
+              <button id="btnLoadSampleCast">Load sample cast</button>
               <button id="btnClearCast">Clear cast</button>
             </div>
           </div>
 
-          <div class="muted" style="margin-top:0.4rem;">
-            Click queens to add/remove them from the cast. Selected queens are highlighted.
+          <div class="muted">
+            Click a queen in the search results to add her to the cast. Use the X button on a cast card to remove her.
           </div>
 
-          <div id="queenGrid" class="queen-grid"></div>
+          <div id="searchResults" class="search-results"></div>
+
+          <div class="cast-size-wrapper">
+            <div class="cast-size-inner">
+              <label for="castSizeRange">Cast size:</label>
+              <input id="castSizeRange" type="range" min="4" max="20" value="12" />
+              <span id="castSizeLabel" class="chip">12 max</span>
+            </div>
+            <span id="castCountLabel" class="chip">Current cast: 0</span>
+          </div>
+
+          <div id="castList" class="cast-list"></div>
         </div>
 
         <!-- Right: custom queen editor -->
@@ -557,8 +618,6 @@
               <input id="statImprov" type="number" min="0" max="10" />
               <label for="statRunway">Runway:</label>
               <input id="statRunway" type="number" min="0" max="10" />
-              <label for="statSinging">Singing:</label>
-              <input id="statSinging" type="number" min="0" max="10" />
               <label for="statLipsync">Lip Sync:</label>
               <input id="statLipsync" type="number" min="0" max="10" />
             </div>
@@ -615,16 +674,19 @@
     const viewSelect = document.getElementById("viewSelect");
     const immunityToggle = document.getElementById("immunityToggle");
     const doubleTwistsToggle = document.getElementById("doubleTwistsToggle");
-    const loadSampleBtn = document.getElementById("loadSampleCast");
     const simulateBtn = document.getElementById("simulateButton");
     const seasonContainer = document.getElementById("seasonContainer");
 
     // Cast builder elements
+    const queenSearchInput = document.getElementById("queenSearchInput");
+    const searchResultsEl = document.getElementById("searchResults");
     const castSizeRange = document.getElementById("castSizeRange");
     const castSizeLabel = document.getElementById("castSizeLabel");
-    const queenGrid = document.getElementById("queenGrid");
+    const castCountLabel = document.getElementById("castCountLabel");
+    const castListEl = document.getElementById("castList");
     const btnRandomAll = document.getElementById("btnRandomAll");
     const btnRandomCustoms = document.getElementById("btnRandomCustoms");
+    const btnLoadSampleCast = document.getElementById("btnLoadSampleCast");
     const btnClearCast = document.getElementById("btnClearCast");
 
     // Custom queen editor elements
@@ -635,7 +697,6 @@
     const statDesign = document.getElementById("statDesign");
     const statImprov = document.getElementById("statImprov");
     const statRunway = document.getElementById("statRunway");
-    const statSinging = document.getElementById("statSinging");
     const statLipsync = document.getElementById("statLipsync");
     const customImageUrlInput = document.getElementById("customImageUrl");
     const btnRandomizeStats = document.getElementById("btnRandomizeStats");
@@ -656,7 +717,6 @@
     // ---- Queen data for cast builder ----
     const CUSTOM_STORAGE_KEY = "drag_race_sim_custom_queens";
 
-    let baseQueenDefs = [];
     let defaultQueens = [];
     let customQueens = [];
     let allQueens = [];
@@ -698,35 +758,72 @@
 
     function syncCastSizeLabel() {
       const n = getCastLimit();
-      castSizeLabel.textContent = `${n} queens`;
+      castSizeLabel.textContent = `${n} max`;
+      castCountLabel.textContent = `Current cast: ${currentCast.length}`;
     }
 
-    castSizeRange.addEventListener("input", syncCastSizeLabel);
+    castSizeRange.addEventListener("input", () => {
+      const limit = getCastLimit();
+      if (currentCast.length > limit) {
+        currentCast = currentCast.slice(0, limit);
+      }
+      syncCastSizeLabel();
+      renderCastList();
+    });
 
-    function attachImageErrorFallback(img) {
-      if (!img) return;
-      img.addEventListener("error", () => {
-        img.src = "";
-        img.alt = "";
-      });
+    function updateCastCount() {
+      castCountLabel.textContent = `Current cast: ${currentCast.length}`;
     }
 
-    function renderCastPicker() {
-      queenGrid.innerHTML = "";
-      if (!allQueens.length) {
-        queenGrid.textContent = "No queens available.";
+    function pickRandomQueens(sourceList, n) {
+      const pool = [...sourceList];
+      const out = [];
+      while (pool.length && out.length < n) {
+        const idx = Math.floor(Math.random() * pool.length);
+        out.push(pool.splice(idx, 1)[0]);
+      }
+      return out;
+    }
+
+    function addQueenToCast(id) {
+      const limit = getCastLimit();
+      if (currentCast.length >= limit) return;
+
+      const existing = currentCast.find(q => q.id === id);
+      if (existing) return; // no accidental dupes
+
+      const q = allQueens.find(q => q.id === id);
+      if (!q) return;
+      currentCast.push(q);
+      updateCastCount();
+      renderCastList();
+      renderSearchResults(queenSearchInput.value);
+    }
+
+    function removeQueenFromCast(id) {
+      currentCast = currentCast.filter(q => q.id !== id);
+      updateCastCount();
+      renderCastList();
+      renderSearchResults(queenSearchInput.value);
+    }
+
+    function renderCastList() {
+      castListEl.innerHTML = "";
+      if (!currentCast.length) {
+        const p = document.createElement("div");
+        p.className = "muted";
+        p.textContent = "No queens in the cast yet.";
+        castListEl.appendChild(p);
         return;
       }
 
-      allQueens.forEach((q) => {
+      currentCast.forEach(q => {
         const card = document.createElement("div");
-        card.className = "queen-card";
-        card.dataset.id = q.id;
+        card.className = "queen-card cast-queen-card";
 
         const img = document.createElement("img");
         img.src = q.imageUrl || "";
         img.alt = q.name;
-        attachImageErrorFallback(img);
         card.appendChild(img);
 
         const name = document.createElement("div");
@@ -741,72 +838,130 @@
           card.appendChild(badge);
         }
 
-        if (currentCast.find((c) => c.id === q.id)) {
-          card.classList.add("selected");
-        }
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "cast-remove-btn";
+        removeBtn.type = "button";
+        removeBtn.textContent = "×";
+        removeBtn.addEventListener("click", () => removeQueenFromCast(q.id));
+        card.appendChild(removeBtn);
 
-        card.addEventListener("click", () => toggleQueenInCast(q.id, card));
-        queenGrid.appendChild(card);
+        castListEl.appendChild(card);
       });
     }
 
-    function toggleQueenInCast(id, cardEl) {
-      const existingIndex = currentCast.findIndex((q) => q.id === id);
-      const limit = getCastLimit();
+    function renderSearchResults(filterText) {
+      const text = (filterText || "").trim().toLowerCase();
+      searchResultsEl.innerHTML = "";
 
-      if (existingIndex >= 0) {
-        currentCast.splice(existingIndex, 1);
-        if (cardEl) cardEl.classList.remove("selected");
-      } else {
-        if (currentCast.length >= limit) return;
-        const q = allQueens.find((q) => q.id === id);
-        if (!q) return;
-        currentCast.push(q);
-        if (cardEl) cardEl.classList.add("selected");
+      let pool = allQueens;
+      if (text) {
+        pool = allQueens.filter(q => q.name.toLowerCase().includes(text));
       }
+
+      // don't spam with hundreds
+      pool = pool.slice(0, 40);
+
+      if (!pool.length) {
+        const p = document.createElement("div");
+        p.className = "muted";
+        p.textContent = text ? "No queens match that name." : "Start typing to search queens.";
+        searchResultsEl.appendChild(p);
+        return;
+      }
+
+      pool.forEach(q => {
+        const card = document.createElement("div");
+        card.className = "queen-card search-result-card";
+        card.dataset.id = q.id;
+
+        const img = document.createElement("img");
+        img.src = q.imageUrl || "";
+        img.alt = q.name;
+        card.appendChild(img);
+
+        const name = document.createElement("div");
+        name.className = "queen-name";
+        name.textContent = q.name;
+        card.appendChild(name);
+
+        if (q.source === "custom") {
+          const badge = document.createElement("span");
+          badge.className = "custom-badge";
+          badge.textContent = "Custom";
+          card.appendChild(badge);
+        }
+
+        if (currentCast.find(c => c.id === q.id)) {
+          card.classList.add("added");
+        }
+
+        card.addEventListener("click", () => addQueenToCast(q.id));
+        searchResultsEl.appendChild(card);
+      });
     }
 
-    function pickRandomQueens(sourceList, n) {
-      const pool = [...sourceList];
-      const out = [];
-      while (pool.length && out.length < n) {
-        const idx = Math.floor(Math.random() * pool.length);
-        out.push(pool.splice(idx, 1)[0]);
-      }
-      return out;
-    }
+    queenSearchInput.addEventListener("input", () => {
+      renderSearchResults(queenSearchInput.value);
+    });
 
     btnRandomAll.addEventListener("click", () => {
       const limit = getCastLimit();
       currentCast = pickRandomQueens(allQueens, limit);
-      renderCastPicker();
+      updateCastCount();
+      renderCastList();
+      renderSearchResults(queenSearchInput.value);
     });
 
     btnRandomCustoms.addEventListener("click", () => {
       const limit = getCastLimit();
       currentCast = pickRandomQueens(customQueens, limit);
-      renderCastPicker();
+      updateCastCount();
+      renderCastList();
+      renderSearchResults(queenSearchInput.value);
+    });
+
+    btnLoadSampleCast.addEventListener("click", () => {
+      const limit = getCastLimit();
+      currentCast = defaultQueens.slice(0, limit);
+      updateCastCount();
+      renderCastList();
+      renderSearchResults(queenSearchInput.value);
     });
 
     btnClearCast.addEventListener("click", () => {
       currentCast = [];
-      renderCastPicker();
+      updateCastCount();
+      renderCastList();
+      renderSearchResults(queenSearchInput.value);
     });
 
     // ---- Custom queen editor ----
+    function randomStat() {
+      return Math.floor(Math.random() * 11); // 0–10
+    }
+
+    btnRandomizeStats.addEventListener("click", () => {
+      statActing.value = randomStat();
+      statComedy.value = randomStat();
+      statDance.value = randomStat();
+      statDesign.value = randomStat();
+      statImprov.value = randomStat();
+      statRunway.value = randomStat();
+      statLipsync.value = randomStat();
+    });
+
     function formToQueen(idOverride) {
       const name = customNameInput.value.trim();
       if (!name) return null;
 
       const stats = {
-        acting:  Number(statActing.value)  || 0,
-        comedy:  Number(statComedy.value)  || 0,
-        dance:   Number(statDance.value)   || 0,
-        design:  Number(statDesign.value)  || 0,
-        improv:  Number(statImprov.value)  || 0,
-        runway:  Number(statRunway.value)  || 0,
-        singing: Number(statSinging.value) || 0,
-        lipsync: Number(statLipsync.value) || 0
+        acting: Number(statActing.value) || 0,
+        comedy: Number(statComedy.value) || 0,
+        dance: Number(statDance.value) || 0,
+        design: Number(statDesign.value) || 0,
+        improv: Number(statImprov.value) || 0,
+        runway: Number(statRunway.value) || 0,
+        lipsync: Number(statLipsync.value) || 0,
       };
 
       const id = idOverride || slugify(name);
@@ -818,93 +973,9 @@
         stats,
         traits: {},
         edits: [],
-        source: "custom"
+        source: "custom",
       };
     }
-
-    function randomStat() {
-      return Math.floor(Math.random() * 11); // 0–10
-    }
-
-    btnRandomizeStats.addEventListener("click", () => {
-      statActing.value  = randomStat();
-      statComedy.value  = randomStat();
-      statDance.value   = randomStat();
-      statDesign.value  = randomStat();
-      statImprov.value  = randomStat();
-      statRunway.value  = randomStat();
-      statSinging.value = randomStat();
-      statLipsync.value = randomStat();
-    });
-
-    btnAddQueen.addEventListener("click", () => {
-      const selectedId = customQueenSelect.value;
-    
-      // Easter egg: if a custom queen is selected in the dropdown,
-      // "Add queen" will CLONE her into the cast (but not the custom list).
-      if (selectedId) {
-        const base = customQueens.find((q) => q.id === selectedId);
-        if (!base) {
-          alert("Could not find that custom queen to clone.");
-          return;
-        }
-    
-        const limit = getCastLimit();
-        if (currentCast.length >= limit) {
-          // Cast is already full; silently ignore (or alert if you prefer)
-          alert("Cast is already at the selected size limit.");
-          return;
-        }
-    
-        const clone = {
-          ...base,
-          // Give each clone a unique internal id so the simulator
-          // treats them as separate contestants.
-          id: base.id + "__clone_" + Date.now() + "_" + Math.floor(Math.random() * 100000)
-        };
-    
-        allQueens.push(clone);
-        currentCast.push(clone);
-        renderCastPicker();
-        return;
-      }
-    
-      // Normal path: create a brand-new custom queen definition.
-      const q = formToQueen();
-      if (!q) {
-        alert("Please enter a name for the queen.");
-        return;
-      }
-    
-      // Prevent duplicate custom entries with the same id (same name).
-      if (customQueens.some((existing) => existing.id === q.id)) {
-        alert("A custom queen with that name already exists. Use 'Update queen' instead.");
-        return;
-      }
-    
-      customQueens.push(q);
-      saveCustomQueens(customQueens);
-      allQueens = [...defaultQueens, ...customQueens];
-      renderCustomQueenSelect();
-      renderCastPicker();
-    });
-
-    btnUpdateQueen.addEventListener("click", () => {
-      const selectedId = customQueenSelect.value;
-      if (!selectedId) {
-        alert("Select a custom queen to update.");
-        return;
-      }
-      const idx = customQueens.findIndex((q) => q.id === selectedId);
-      if (idx === -1) return;
-      const q = formToQueen(selectedId);
-      if (!q) return;
-      customQueens[idx] = q;
-      saveCustomQueens(customQueens);
-      allQueens = [...defaultQueens, ...customQueens];
-      renderCustomQueenSelect();
-      renderCastPicker();
-    });
 
     function renderCustomQueenSelect() {
       customQueenSelect.innerHTML = "";
@@ -935,8 +1006,45 @@
       }
     }
 
-    attachImageErrorFallback(customPreviewImage);
     customQueenSelect.addEventListener("change", updatePreviewFromSelect);
+
+    btnAddQueen.addEventListener("click", () => {
+      const q = formToQueen();
+      if (!q) {
+        alert("Please enter a name for the queen.");
+        return;
+      }
+
+      // avoid duplicate custom IDs by default
+      if (customQueens.find(c => c.id === q.id)) {
+        alert("A custom queen with that name/id already exists. Use Update instead.");
+        return;
+      }
+
+      customQueens.push(q);
+      saveCustomQueens(customQueens);
+      allQueens = [...defaultQueens, ...customQueens];
+      renderCustomQueenSelect();
+      renderSearchResults(queenSearchInput.value);
+    });
+
+    btnUpdateQueen.addEventListener("click", () => {
+      const selectedId = customQueenSelect.value;
+      if (!selectedId) {
+        alert("Select a custom queen to update.");
+        return;
+      }
+      const idx = customQueens.findIndex((q) => q.id === selectedId);
+      if (idx === -1) return;
+      const q = formToQueen(selectedId);
+      if (!q) return;
+      customQueens[idx] = q;
+      saveCustomQueens(customQueens);
+      allQueens = [...defaultQueens, ...customQueens];
+      renderCustomQueenSelect();
+      renderSearchResults(queenSearchInput.value);
+      renderCastList(); // in case stats or image changed
+    });
 
     btnLoadForEdit.addEventListener("click", () => {
       const id = customQueenSelect.value;
@@ -945,13 +1053,12 @@
       if (!q) return;
       customNameInput.value = q.name;
       customImageUrlInput.value = q.imageUrl || "";
-      statActing.value  = q.stats?.acting  ?? 0;
-      statComedy.value  = q.stats?.comedy  ?? 0;
-      statDance.value   = q.stats?.dance   ?? 0;
-      statDesign.value  = q.stats?.design  ?? 0;
-      statImprov.value  = q.stats?.improv  ?? 0;
-      statRunway.value  = q.stats?.runway  ?? 0;
-      statSinging.value = q.stats?.singing ?? 0;
+      statActing.value = q.stats?.acting ?? 0;
+      statComedy.value = q.stats?.comedy ?? 0;
+      statDance.value = q.stats?.dance ?? 0;
+      statDesign.value = q.stats?.design ?? 0;
+      statImprov.value = q.stats?.improv ?? 0;
+      statRunway.value = q.stats?.runway ?? 0;
       statLipsync.value = q.stats?.lipsync ?? 0;
     });
 
@@ -964,10 +1071,13 @@
       allQueens = [...defaultQueens, ...customQueens];
       currentCast = currentCast.filter((q) => q.id !== id);
       renderCustomQueenSelect();
-      renderCastPicker();
+      renderSearchResults(queenSearchInput.value);
+      renderCastList();
+      updateCastCount();
     });
 
-    // ---------- Parsing helpers ----------
+    // ---------- Parsing helpers (season log) ----------
+
     function parseSeasonLog(log) {
       const lines = log.split("\n");
       const header = [];
@@ -1073,6 +1183,7 @@
     }
 
     // ---------- Summary view rendering ----------
+
     function renderSeasonSummary(log) {
       seasonContainer.innerHTML = "";
       const { header, episodes, finale } = parseSeasonLog(log);
@@ -1123,6 +1234,7 @@
     }
 
     // ---------- Full (step-through) view ----------
+
     function buildStepsFromLog(log) {
       const { header, episodes, finale } = parseSeasonLog(log);
       const steps = [];
@@ -1318,18 +1430,17 @@
       heading.textContent = "Grand Finale";
       block.appendChild(heading);
 
-      // Parsed from the log
-      const finalistsFromText = [];
-      let winnerNameFromText = "Unknown";
+      const finalists = [];
+      let winnerName = "Unknown";
 
       let inTrackSection = false;
       const trackLines = [];
-      const seasonScoreMap = new Map(); // only safe when names are unique
+      const seasonScoreMap = new Map();
 
       for (const line of lines) {
         const trimmed = line.trim();
 
-        // Extract season scores from "Final lip sync performance" block
+        // Extract exact season scores: "Name  season=  8.0  raw_lip=..."
         const mSeason = trimmed.match(/^(.+?)\s+season=([0-9.+-]+)/);
         if (mSeason) {
           const name = mSeason[1].trim();
@@ -1354,7 +1465,7 @@
           const noDash = trimmed.slice(2).trim();
           const trackIdx = noDash.indexOf("(track:");
           const name = trackIdx === -1 ? noDash : noDash.slice(0, trackIdx).trim();
-          if (name) finalistsFromText.push(name);
+          if (name) finalists.push(name);
         }
 
         // Winner line: "X devours the stage and snatches the crown! 👑"
@@ -1365,10 +1476,32 @@
           const marker = " devours the stage";
           const idx = trimmed.indexOf(marker);
           if (idx !== -1) {
-            winnerNameFromText = trimmed.slice(0, idx).trim();
+            winnerName = trimmed.slice(0, idx).trim();
           }
         }
       }
+
+      if (finalists.length) {
+        const finalistsRow = document.createElement("div");
+        finalistsRow.className = "results-row";
+        const finalistsLabel = document.createElement("strong");
+        finalistsLabel.textContent = "Finalists:";
+        finalistsRow.appendChild(finalistsLabel);
+        finalistsRow.appendChild(
+          document.createTextNode(" " + finalists.join(", "))
+        );
+        block.appendChild(finalistsRow);
+      }
+
+      const winnerRow = document.createElement("div");
+      winnerRow.className = "results-row";
+      const winnerLabel = document.createElement("strong");
+      winnerLabel.textContent = "Winner:";
+      winnerRow.appendChild(winnerLabel);
+      winnerRow.appendChild(document.createTextNode(" " + winnerName));
+      block.appendChild(winnerRow);
+
+      card.appendChild(block);
 
       // Helper: fallback season score from record only (if needed)
       function seasonScoreFromRecord(rec) {
@@ -1383,123 +1516,47 @@
         return score;
       }
 
-      // Build track-record rows from "Full track records" block
-      const records = [];
-      const statusSet = new Set(["WIN", "HIGH", "SAFE", "LOW", "BTM", "ELIM"]);
+      // Track records table
+      if (trackLines.length) {
+        const records = [];
+        const statusSet = new Set(["WIN", "HIGH", "SAFE", "LOW", "BTM", "ELIM"]);
 
-      for (const line of trackLines) {
-        if (!line) continue;
-        const parts = line.split(/\s+/);
-        if (!parts.length) continue;
+        for (const line of trackLines) {
+          if (!line) continue;
+          const parts = line.split(/\s+/);
+          if (!parts.length) continue;
 
-        let firstStatusIdx = -1;
-        for (let i = 0; i < parts.length; i++) {
-          const base = parts[i].replace(/\(IMM\)$/, "");
-          if (statusSet.has(base)) {
-            firstStatusIdx = i;
-            break;
+          let firstStatusIdx = -1;
+          for (let i = 0; i < parts.length; i++) {
+            const base = parts[i].replace(/\(IMM\)$/, "");
+            if (statusSet.has(base)) {
+              firstStatusIdx = i;
+              break;
+            }
           }
+          if (firstStatusIdx === -1) continue;
+
+          const name = parts.slice(0, firstStatusIdx).join(" ");
+          const rec = parts.slice(firstStatusIdx);
+          if (!name) continue;
+
+          const elimIdx = rec.findIndex((s) => {
+            const base = s.replace(/\(IMM\)$/, "");
+            return base === "ELIM";
+          });
+
+          records.push({
+            name,
+            record: rec,
+            elimIndex: elimIdx === -1 ? Infinity : elimIdx,
+          });
         }
-        if (firstStatusIdx === -1) continue;
-
-        const name = parts.slice(0, firstStatusIdx).join(" ");
-        const rec = parts.slice(firstStatusIdx);
-        if (!name) continue;
-
-        const elimIdx = rec.findIndex((s) => {
-          const base = s.replace(/\(IMM\)$/, "");
-          return base === "ELIM";
-        });
-
-        records.push({
-          name,
-          record: rec,
-          elimIndex: elimIdx === -1 ? Infinity : elimIdx
-        });
-      }
-
-      // Detect duplicate names
-      const nameCounts = new Map();
-      for (const r of records) {
-        nameCounts.set(r.name, (nameCounts.get(r.name) || 0) + 1);
-      }
-      const hasDuplicateNames = Array.from(nameCounts.values()).some((c) => c > 1);
-
-      // Variables used for table + header rendering
-      let displayFinalists = finalistsFromText.slice();
-      let displayWinnerName = winnerNameFromText;
-      let finalRecords = records;
-
-      // For Finale column:
-      let useRowIdentityForFinale = false;
-      let winnerRowRef = null;
-      let secondRowRef = null;
-      let thirdRowRef = null;
-      let secondName = null;
-      let thirdName = null;
-
-      if (!records.length) {
-        // No track records parsed – fallback to simple text header.
-        if (displayFinalists.length) {
-          const finalistsRow = document.createElement("div");
-          finalistsRow.className = "results-row";
-          const finalistsLabel = document.createElement("strong");
-          finalistsLabel.textContent = "Finalists:";
-          finalistsRow.appendChild(finalistsLabel);
-          finalistsRow.appendChild(
-            document.createTextNode(" " + displayFinalists.join(", "))
-          );
-          block.appendChild(finalistsRow);
-        }
-
-        const winnerRow = document.createElement("div");
-        winnerRow.className = "results-row";
-        const winnerLabel = document.createElement("strong");
-        winnerLabel.textContent = "Winner:";
-        winnerRow.appendChild(winnerLabel);
-        winnerRow.appendChild(document.createTextNode(" " + displayWinnerName));
-        block.appendChild(winnerRow);
-
-        card.appendChild(block);
-        return;
-      }
-
-      if (hasDuplicateNames) {
-        // --- CLONE-FRIENDLY BRANCH (names not unique) ---
-        // Treat each row as a distinct contestant.
-
-        // Finalists = rows with no ELIM in their record
-        const finalistRows = records.filter((r) =>
-          !r.record.some((s) => s.replace(/\(IMM\)$/, "") === "ELIM")
-        );
-
-        // Sort finalists by record-based season score
-        const sortedFinalists = finalistRows
-          .map((r) => ({ row: r, score: seasonScoreFromRecord(r.record) }))
-          .sort((a, b) => b.score - a.score);
-
-        winnerRowRef = sortedFinalists[0]?.row || null;
-        secondRowRef = sortedFinalists[1]?.row || null;
-        thirdRowRef = sortedFinalists[2]?.row || null;
-
-        if (finalistRows.length) {
-          displayFinalists = finalistRows.map((r) => r.name);
-        }
-
-        if (winnerRowRef) {
-          displayWinnerName = winnerRowRef.name;
-        }
-
-        finalRecords = records; // keep natural order
-        useRowIdentityForFinale = true;
-      } else {
-        // --- ORIGINAL BRANCH (all names unique) ---
-        // Use logged season scores + finalists list for more accuracy.
 
         // Sort: finalists (no ELIM) at top, earliest eliminated last
         records.sort((a, b) => b.elimIndex - a.elimIndex);
 
-        const finalistsSet = new Set(displayFinalists);
+        // Decide finale ranking (WINNER / RUNNER-UP) using real season scores where possible
+        const finalistsSet = new Set(finalists);
 
         const finalistRecords = records
           .filter((r) => finalistsSet.has(r.name))
@@ -1511,167 +1568,126 @@
             return { ...r, seasonScore };
           });
 
-        // Sort finalists by season score, then ensure the actual logged winner is first
+        // Sort finalists by season score, then ensure the actual winner is first
         finalistRecords.sort((a, b) => b.seasonScore - a.seasonScore);
-        const winnerIdx = finalistRecords.findIndex((r) => r.name === displayWinnerName);
+        const winnerIdx = finalistRecords.findIndex((r) => r.name === winnerName);
         if (winnerIdx > 0) {
           const [w] = finalistRecords.splice(winnerIdx, 1);
           finalistRecords.unshift(w);
         }
 
         const finishOrderNames = finalistRecords.map((r) => r.name);
-        secondName = finishOrderNames[1] || null;
-        thirdName = finishOrderNames[2] || null;
+        const secondName = finishOrderNames[1] || null;
+        const thirdName = finishOrderNames[2] || null;
 
+        // Rebuild records so finalists appear in finish order at the top
         const finalistsByName = new Set(finishOrderNames);
         const nonFinalistsOrdered = records.filter(
           (r) => !finalistsByName.has(r.name)
         );
-        finalRecords = [
+        const finalRecords = [
           ...finalistRecords.map(({ name, record, elimIndex }) => ({
             name,
             record,
-            elimIndex
+            elimIndex,
           })),
-          ...nonFinalistsOrdered
+          ...nonFinalistsOrdered,
         ];
-      }
 
-      // --- Header text using displayFinalists / displayWinnerName ---
+        if (finalRecords.length) {
+          let maxEpisodes = 0;
+          for (const r of finalRecords) {
+            if (r.record.length > maxEpisodes) maxEpisodes = r.record.length;
+          }
 
-      if (displayFinalists.length) {
-        const finalistsRow = document.createElement("div");
-        finalistsRow.className = "results-row";
-        const finalistsLabel = document.createElement("strong");
-        finalistsLabel.textContent = "Finalists:";
-        finalistsRow.appendChild(finalistsLabel);
-        finalistsRow.appendChild(
-          document.createTextNode(" " + displayFinalists.join(", "))
-        );
-        block.appendChild(finalistsRow);
-      }
+          // Use canonical episode count if we have it; fall back to max record length.
+          const numEpisodeCols = seasonEpisodeCount || maxEpisodes;
 
-      const winnerRow = document.createElement("div");
-      winnerRow.className = "results-row";
-      const winnerLabel = document.createElement("strong");
-      winnerLabel.textContent = "Winner:";
-      winnerRow.appendChild(winnerLabel);
-      winnerRow.appendChild(document.createTextNode(" " + displayWinnerName));
-      block.appendChild(winnerRow);
+          const table = document.createElement("table");
+          table.className = "track-record-table";
 
-      card.appendChild(block);
+          const thead = document.createElement("thead");
+          const headRow = document.createElement("tr");
 
-      // --- Track-record table ---
+          const thName = document.createElement("th");
+          thName.textContent = "Contestant";
+          headRow.appendChild(thName);
 
-      if (finalRecords.length) {
-        let maxEpisodes = 0;
-        for (const r of finalRecords) {
-          if (r.record.length > maxEpisodes) maxEpisodes = r.record.length;
-        }
+          for (let i = 0; i < numEpisodeCols; i++) {
+            const th = document.createElement("th");
+            th.textContent = String(i + 1);
+            headRow.appendChild(th);
+          }
+          const thFinale = document.createElement("th");
+          thFinale.textContent = "Finale";
+          headRow.appendChild(thFinale);
 
-        const numEpisodeCols = seasonEpisodeCount || maxEpisodes;
+          thead.appendChild(headRow);
+          table.appendChild(thead);
 
-        const table = document.createElement("table");
-        table.className = "track-record-table";
+          const tbody = document.createElement("tbody");
+          for (const r of finalRecords) {
+            const tr = document.createElement("tr");
 
-        const thead = document.createElement("thead");
-        const headRow = document.createElement("tr");
+            const tdName = document.createElement("td");
+            tdName.textContent = r.name;
+            tdName.className = "track-name";
+            tr.appendChild(tdName);
 
-        const thName = document.createElement("th");
-        thName.textContent = "Contestant";
-        headRow.appendChild(thName);
+            for (let i = 0; i <= numEpisodeCols; i++) {
+              const td = document.createElement("td");
 
-        for (let i = 0; i < numEpisodeCols; i++) {
-          const th = document.createElement("th");
-          th.textContent = String(i + 1);
-          headRow.appendChild(th);
-        }
-        const thFinale = document.createElement("th");
-        thFinale.textContent = "Finale";
-        headRow.appendChild(thFinale);
+              if (i < numEpisodeCols) {
+                const rawStatus = r.record[i] || "";
+                const hasImmunity = rawStatus.endsWith("(IMM)");
+                const baseStatus = hasImmunity
+                  ? rawStatus.replace(/\(IMM\)$/, "")
+                  : rawStatus;
 
-        thead.appendChild(headRow);
-        table.appendChild(thead);
+                const cls =
+                  "status-" + (baseStatus ? baseStatus.toLowerCase() : "empty");
+                td.className = cls;
 
-        const tbody = document.createElement("tbody");
-        for (const r of finalRecords) {
-          const tr = document.createElement("tr");
-
-          const tdName = document.createElement("td");
-          tdName.textContent = r.name;
-          tdName.className = "track-name";
-          tr.appendChild(tdName);
-
-          for (let i = 0; i <= numEpisodeCols; i++) {
-            const td = document.createElement("td");
-
-            if (i < numEpisodeCols) {
-              const rawStatus = r.record[i] || "";
-              const hasImmunity = rawStatus.endsWith("(IMM)");
-              const baseStatus = hasImmunity
-                ? rawStatus.replace(/\(IMM\)$/, "")
-                : rawStatus;
-
-              const cls =
-                "status-" + (baseStatus ? baseStatus.toLowerCase() : "empty");
-              td.className = cls;
-
-              if (!baseStatus) {
-                td.textContent = "";
-              } else if (hasImmunity) {
-                const mainDiv = document.createElement("div");
-                mainDiv.textContent = baseStatus;
-                const immDiv = document.createElement("div");
-                immDiv.textContent = "(IMM)";
-                immDiv.className = "status-immunity-tag";
-                td.appendChild(mainDiv);
-                td.appendChild(immDiv);
-              } else {
-                td.textContent = baseStatus;
-              }
-            } else {
-              // Finale column
-              let text = "";
-              let cls = "status-empty";
-
-              if (useRowIdentityForFinale) {
-                // Clone-safe path: compare by row identity
-                if (r === winnerRowRef) {
-                  text = "WINNER";
-                  cls = "status-finale-winner";
-                } else if (r === secondRowRef) {
-                  text = "RUNNER-UP";
-                  cls = "status-finale-runner";
-                } else if (r === thirdRowRef) {
-                  text = "RUNNER-UP";
-                  cls = "status-finale-runner-bronze";
+                if (!baseStatus) {
+                  td.textContent = "";
+                } else if (hasImmunity) {
+                  const mainDiv = document.createElement("div");
+                  mainDiv.textContent = baseStatus;
+                  const immDiv = document.createElement("div");
+                  immDiv.textContent = "(IMM)";
+                  immDiv.className = "status-immunity-tag";
+                  td.appendChild(mainDiv);
+                  td.appendChild(immDiv);
+                } else {
+                  td.textContent = baseStatus;
                 }
               } else {
-                // Normal path: compare by name
-                if (r.name === displayWinnerName) {
+                // Finale column: 1st / 2nd / 3rd
+                let text = "";
+                let cls = "status-empty";
+                if (r.name === winnerName) {
                   text = "WINNER";
                   cls = "status-finale-winner";
                 } else if (r.name === secondName) {
                   text = "RUNNER-UP";
-                  cls = "status-finale-runner";
+                  cls = "status-finale-runner"; // silver
                 } else if (r.name === thirdName) {
                   text = "RUNNER-UP";
-                  cls = "status-finale-runner-bronze";
+                  cls = "status-finale-runner-bronze"; // bronze
                 }
+                td.className = cls;
+                td.textContent = text;
               }
 
-              td.className = cls;
-              td.textContent = text;
+              tr.appendChild(td);
             }
 
-            tr.appendChild(td);
+            tbody.appendChild(tr);
           }
 
-          tbody.appendChild(tr);
+          table.appendChild(tbody);
+          card.appendChild(table);
         }
-
-        table.appendChild(tbody);
-        card.appendChild(table);
       }
     }
 
@@ -1829,13 +1845,21 @@
     }
 
     // ---------- Main simulate handler ----------
+
     simulateBtn.addEventListener("click", () => {
-      if (currentCast.length === 0) {
-        alert("Please build a cast first (load sample cast, randomize, or select queens).");
+      let queens;
+      if (currentCast.length > 0) {
+        queens = currentCast;
+      } else {
+        // fallback to full default cast if user didn't build one
+        queens = defaultQueens;
+      }
+
+      if (!queens || !queens.length) {
+        alert("No queens available to simulate a season.");
         return;
       }
 
-      const queens = currentCast;
       const mode = modeSelect.value;
       const view = viewSelect.value;
       const immunityEnabled = immunityToggle.checked;
@@ -1854,33 +1878,23 @@
       }
     });
 
-    // ---------- Load sample cast ----------
-    loadSampleBtn.addEventListener("click", () => {
-      if (!defaultQueens.length) {
-        alert("No sample cast is defined.");
-        return;
-      }
-      currentCast = [...defaultQueens];
-      castSizeRange.value = defaultQueens.length;
-      syncCastSizeLabel();
-      renderCastPicker();
-    });
-
-    // Auto-init cast builder (no cast selected by default)
+    // Auto-load queens and initialise cast builder
     window.addEventListener("DOMContentLoaded", () => {
-      baseQueenDefs = window.QUEENS || [];
-      defaultQueens = baseQueenDefs.map((q, idx) => ({
+      const baseDefs = window.QUEENS || [];
+      defaultQueens = baseDefs.map((q, idx) => ({
         ...q,
         id: q.id || slugify(q.name || "queen-" + idx),
         imageUrl: q.imageUrl || "",
-        source: "default"
+        source: "default",
       }));
       customQueens = loadCustomQueens();
       allQueens = [...defaultQueens, ...customQueens];
 
       syncCastSizeLabel();
+      updateCastCount();
       renderCustomQueenSelect();
-      renderCastPicker();
+      renderCastList();
+      renderSearchResults("");
     });
   </script>
 </body>
