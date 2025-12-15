@@ -45,6 +45,10 @@
 
     /* ---- Layout / containers ---- */
 
+    .hidden {
+      display: none !important;
+    }
+    
     .toolbar {
       display: flex;
       flex-wrap: wrap;
@@ -906,7 +910,7 @@
       </div>
     </div>
 
-    <div class="builder-layout">
+    <div class="builder-layout" id="builderScreen">
       <section class="builder-panel">
         <h3>Cast Builder &amp; Custom Queens</h3>
         <p class="subheading">
@@ -1615,40 +1619,40 @@
       }
       castEmptyHintEl.style.display = "none";
 
-    currentCast.forEach((q, index) => {
-      const card = document.createElement("div");
-      card.className = "cast-queen-card";
-    
-      const img = document.createElement("img");
-      img.src = q.imageUrl || DEFAULT_QUEEN_IMAGE;
-      img.alt = q.name;
-      card.appendChild(img);
-    
-      const name = document.createElement("div");
-      name.className = "cast-queen-name";
-      name.textContent = q.name;
-      card.appendChild(name);
-    
-      const meta = document.createElement("div");
-      meta.className = "cast-queen-meta";
-      meta.textContent = q.source === "custom" ? "Custom queen" : "Predefined";
-      card.appendChild(meta);
-    
-      const removeBtn = document.createElement("button");
-      removeBtn.textContent = "Remove";
-      removeBtn.style.marginTop = "0.35rem";
-      removeBtn.style.borderRadius = "999px";
-      removeBtn.style.border = "1px solid #444";
-      removeBtn.style.background = "#242424";
-      removeBtn.style.color = "#eee";
-      removeBtn.style.fontSize = "0.75rem";
-      removeBtn.style.padding = "0.2rem 0.7rem";
-      removeBtn.style.cursor = "pointer";
-      removeBtn.addEventListener("click", () => removeQueenFromCastIndex(index));
-      card.appendChild(removeBtn);
-    
-      castListEl.appendChild(card);
-    });
+      currentCast.forEach((q, index) => {
+        const card = document.createElement("div");
+        card.className = "cast-queen-card";
+      
+        const img = document.createElement("img");
+        img.src = q.imageUrl || DEFAULT_QUEEN_IMAGE;
+        img.alt = q.name;
+        card.appendChild(img);
+      
+        const name = document.createElement("div");
+        name.className = "cast-queen-name";
+        name.textContent = q.name;
+        card.appendChild(name);
+      
+        const meta = document.createElement("div");
+        meta.className = "cast-queen-meta";
+        meta.textContent = q.source === "custom" ? "Custom queen" : "Predefined";
+        card.appendChild(meta);
+      
+        const removeBtn = document.createElement("button");
+        removeBtn.textContent = "Remove";
+        removeBtn.style.marginTop = "0.35rem";
+        removeBtn.style.borderRadius = "999px";
+        removeBtn.style.border = "1px solid #444";
+        removeBtn.style.background = "#242424";
+        removeBtn.style.color = "#eee";
+        removeBtn.style.fontSize = "0.75rem";
+        removeBtn.style.padding = "0.2rem 0.7rem";
+        removeBtn.style.cursor = "pointer";
+        removeBtn.addEventListener("click", () => removeQueenFromCastIndex(index));
+        card.appendChild(removeBtn);
+      
+        castListEl.appendChild(card);
+      });
     }
 
     function renderSearchResults(query) {
@@ -1786,6 +1790,30 @@
     let lastSeasonLog = "";
     let seasonEpisodeCount = 0;
     let trackRecordData = null;
+    let currentViewMode = "summary";
+
+    function enterStoryMode() {
+      const builder = document.getElementById("builderScreen");
+      if (builder) builder.classList.add("hidden");
+    }
+
+    function exitStoryMode() {
+      const builder = document.getElementById("builderScreen");
+      if (builder) builder.classList.remove("hidden");
+      seasonContainer.innerHTML = `
+        <p style="font-size:0.85rem; color:#aaa;">
+          Once you simulate a season, the results will appear here either as a summary
+          or a step-by-step storyline.
+        </p>
+      `;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function goBackToSetup() {
+      currentSteps = [];
+      currentStepIndex = 0;
+      exitStoryMode();
+    }
 
     function getOptionsFromUI() {
       return {
@@ -1817,6 +1845,7 @@
       }
 
       const options = getOptionsFromUI();
+      currentViewMode = options.view;
       const result = simFn(queens, options);
       const log = typeof result === "string" ? result : result.log || "";
       const meta = typeof result === "string" ? null : result;
@@ -1825,8 +1854,10 @@
       trackRecordData = meta && meta.trackRecord ? meta.trackRecord : null;
 
       if (options.view === "full") {
+        enterStoryMode();
         renderSeasonFull(lastSeasonLog);
       } else {
+        exitStoryMode();
         renderSeasonSummary(lastSeasonLog);
       }
 
@@ -2182,28 +2213,28 @@
         }
 
         // Maxi / judging / bring-back / lipsync / results
-      let { maxi, judging, bringBack, lipsync, results } =
-        parseEpisodeSections(filtered);
+        let { maxi, judging, bringBack, lipsync, results } =
+          parseEpisodeSections(filtered);
 
-          // If there were no explicit maxi lines but we *do* have judging/results,
-          // create a simple placeholder so the maxi step still exists.
-          if (
-            (!maxi || !maxi.length) &&
-            (judging.length || bringBack.length || lipsync.length || results.length)
-          ) {
-            maxi = [
-              `The queens give it their all in the ${epName} challenge.`,
-            ];
-          }
-    
-          if (maxi && maxi.length) {
-            steps.push({
-              type: "episode_maxi",
-              epNum,
-              name: epName,
-              lines: maxi,
-            });
-          }
+        // If there were no explicit maxi lines but we *do* have judging/results,
+        // create a simple placeholder so the maxi step still exists.
+        if (
+          (!maxi || !maxi.length) &&
+          (judging.length || bringBack.length || lipsync.length || results.length)
+        ) {
+          maxi = [
+            `The queens give it their all in the ${epName} challenge.`,
+          ];
+        }
+  
+        if (maxi && maxi.length) {
+          steps.push({
+            type: "episode_maxi",
+            epNum,
+            name: epName,
+            lines: maxi,
+          });
+        }
 
         if (judging.length) {
           steps.push({
@@ -2847,6 +2878,19 @@
         return;
       }
       const step = currentSteps[currentStepIndex];
+
+      if (currentViewMode === "full") {
+        const topBar = document.createElement("div");
+        topBar.className = "step-nav";
+        topBar.style.marginBottom = "0.75rem";
+
+        const backSetupBtn = document.createElement("button");
+        backSetupBtn.textContent = "Back to cast builder";
+        backSetupBtn.addEventListener("click", goBackToSetup);
+
+        topBar.appendChild(backSetupBtn);
+        seasonContainer.appendChild(topBar);
+      }
 
       const card = document.createElement("div");
       card.className = "episode-card step-" + step.type;
