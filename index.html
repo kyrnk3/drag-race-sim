@@ -870,20 +870,34 @@
       return out;
     }
 
-    function addQueenToCast(id) {
+    function addQueenToCast(id, options) {
+      const opts = options || {};
+      const allowDuplicate = !!opts.allowDuplicate;
       const limit = getCastLimit();
-      if (currentCast.length >= limit) return;
+      if (currentCast.length >= limit && !allowDuplicate) return;
 
-      const existing = currentCast.find((q) => q.id === id);
-      if (existing) return; // no accidental dupes
+      const existing = currentCast.find(q => q.id === id);
+      const base = allQueens.find(q => q.id === id);
+      if (!base) return;
 
-      const q = allQueens.find((q) => q.id === id);
-      if (!q) return;
+      let q;
+      if (allowDuplicate) {
+        // Clone with a new id so the cast can hold multiple copies
+        q = {
+          ...base,
+          id: base.id + "_copy_" + Date.now() + "_" + Math.floor(Math.random() * 1000)
+        };
+      } else {
+        if (existing) return;
+        q = base;
+      }
+
       currentCast.push(q);
       updateCastCount();
       renderCastList();
       renderSearchResults(queenSearchInput.value);
     }
+}
 
     function removeQueenFromCast(id) {
       currentCast = currentCast.filter((q) => q.id !== id);
@@ -986,7 +1000,10 @@
           card.classList.add("added");
         }
 
-        card.addEventListener("click", () => addQueenToCast(q.id));
+        card.addEventListener("click", (event) => {
+        const allowDuplicate = event && (event.altKey || event.shiftKey || event.ctrlKey);
+        addQueenToCast(q.id, { allowDuplicate });
+      });
         searchResultsEl.appendChild(card);
       });
     }
