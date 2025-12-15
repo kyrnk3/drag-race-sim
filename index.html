@@ -43,6 +43,22 @@
       font-family: inherit;
     }
 
+    /* ---- Full-view "page" mode ---- */
+
+    body.sim-full-mode .toolbar,
+    body.sim-full-mode .builder-layout,
+    body.sim-full-mode .season-output > h2 {
+      display: none;
+    }
+
+    body.sim-full-mode .season-output {
+      margin-top: 1rem;
+    }
+
+    body.sim-full-mode #seasonContainer {
+      margin-top: 1.5rem;
+    }
+
     /* ---- Layout / containers ---- */
 
     .toolbar {
@@ -552,7 +568,7 @@
     }
 
     .search-result-card.added {
-      /* No persistent green highlight anymore; keep styling identical to normal card */
+      /* No persistent highlight */
     }
 
     .queen-row {
@@ -986,11 +1002,11 @@
             </div>
 
             <div style="flex:1; min-width:220px;">
-              <!-- CHANGED LABEL: combined traits & edits -->
               <label class="small-label" style="font-size:0.8rem; color:#ccc;">
                 Traits &amp; edits:
               </label>
-              <div class="edit-flags" style="margin-bottom:0.4rem;">
+
+              <div class="edit-flags" style="margin-bottom:0.2rem;">
                 <label class="edit-flag-label">
                   <input id="traitDramaProne" type="checkbox" />
                   <span>drama-prone</span>
@@ -1001,7 +1017,6 @@
                 </label>
               </div>
 
-              <!-- Edits now live under the same heading -->
               <div class="edit-flags" id="editFlagsContainer"></div>
             </div>
           </div>
@@ -1039,7 +1054,7 @@
       </div>
     </section>
   </div>
-  
+
   <script src="queens.js"></script>
   <script src="challenges.js"></script>
   <script src="mini-challenges.js"></script>
@@ -1549,7 +1564,6 @@
       const opts = options || {};
       const allowDuplicate = !!opts.allowDuplicate;
       const limit = getCastLimit();
-      // Always respect the cast limit, even for duplicates
       if (currentCast.length >= limit) return;
 
       const existing = currentCast.find(q => q.id === id);
@@ -1558,7 +1572,6 @@
 
       let q;
       if (allowDuplicate) {
-        // Clone with a new id so the cast can hold multiple copies
         q = {
           ...base,
           id: base.id + "_copy_" + Date.now() + "_" + Math.floor(Math.random() * 1000)
@@ -1568,7 +1581,6 @@
       }
 
       if (existing && !allowDuplicate) {
-        // Already in the cast; do nothing
         return;
       }
 
@@ -1811,6 +1823,13 @@
 
     simulateBtn.addEventListener("click", simulateSeasonFromUI);
 
+    // If user flips from full back to summary, restore builder layout.
+    viewSelect.addEventListener("change", () => {
+      if (viewSelect.value !== "full") {
+        exitFullViewMode();
+      }
+    });
+
     // =========================
     // Parsing season logs
     // =========================
@@ -1869,15 +1888,56 @@
       });
     }
 
+    // Remove raw numeric score blocks for episodes
     function filterEpisode(lines) {
       const out = [];
+      let skippingScores = false;
       for (const line of lines || []) {
         const trimmed = line.trim();
-        if (!trimmed) continue;
-        if (trimmed.startsWith("Mini-challenge scores:")) continue;
-        if (trimmed.startsWith("Main challenge scores:")) continue;
-        if (trimmed.startsWith("Runway scores:")) continue;
-        if (trimmed.startsWith("Total scores:")) continue;
+        if (!trimmed) {
+          if (skippingScores) {
+            // blank line ends score block
+            skippingScores = false;
+            continue;
+          }
+          continue;
+        }
+
+        if (
+          trimmed.startsWith("Mini-challenge scores:") ||
+          trimmed.startsWith("Scores this week:")
+        ) {
+          skippingScores = true;
+          continue;
+        }
+
+        if (skippingScores) {
+          continue;
+        }
+
+        out.push(line);
+      }
+      return out;
+    }
+
+    // Remove raw numeric finale stats
+    function filterFinale(lines) {
+      const out = [];
+      let skippingScores = false;
+      for (const line of lines || []) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          if (skippingScores) {
+            skippingScores = false;
+            continue;
+          }
+          continue;
+        }
+        if (trimmed.startsWith("Final lip sync performance:")) {
+          skippingScores = true;
+          continue;
+        }
+        if (skippingScores) continue;
         out.push(line);
       }
       return out;
@@ -1945,7 +2005,6 @@
       if (!line) return [];
       let segment = line;
 
-      // Chop off trailing narrative phrases
       const cutMarkers = [
         " had a great performance",
         " had a good performance",
@@ -1972,6 +2031,7 @@
       }
 
       segment = segment.replace(/\band\b/gi, ",");
+      segment = segment.replace(/\bvs\.\b/gi, ",").replace(/\bvs\b/gi, ",");
       const parts = segment.split(",").map((p) => p.trim()).filter(Boolean);
       return parts;
     }
@@ -2013,7 +2073,6 @@
       const { header, episodes, finale } = parseSeasonLog(log);
       const steps = [];
 
-      // Canonical number of main episodes for track-record table
       seasonEpisodeCount = episodes.length;
 
       const castLines = filterHeader(header);
@@ -2028,7 +2087,6 @@
         const epNum = m ? parseInt(m[1], 10) : index + 1;
         const epName = m ? m[2] : "Unknown challenge";
 
-        // Basic episode intro
         steps.push({ type: "episode_setup", epNum, name: epName });
 
         // Mini-challenge
@@ -2066,7 +2124,6 @@
           });
         }
 
-        // Maxi / judging / bring-back / lipsync / results
         const { maxi, judging, bringBack, lipsync, results } =
           parseEpisodeSections(filtered);
 
@@ -2116,7 +2173,6 @@
         }
       });
 
-      // Finale / track record summary
       const finaleLines = finale;
       if (finaleLines.length) {
         const idx = finaleLines.findIndex((l) =>
@@ -2169,7 +2225,6 @@
       );
       block.appendChild(challengeRow);
 
-      // Try to find line(s) that describe the winner(s)
       let winnerLine = null;
       for (const line of step.lines || []) {
         const lower = line.trim().toLowerCase();
@@ -2186,7 +2241,6 @@
       }
 
       if (!winnerNames.length) {
-        // Fallback: old style "Mini-challenge winner: Name"
         for (const line of step.lines || []) {
           const trimmed = line.trim();
           const lower = trimmed.toLowerCase();
@@ -2209,11 +2263,12 @@
     }
 
     function renderFinaleLines(lines, card) {
+      const filteredLines = filterFinale(lines);
       const block = document.createElement("div");
       block.className = "results-block";
 
       let titlePrinted = false;
-      for (const line of lines) {
+      for (const line of filteredLines) {
         const trimmed = line.trim();
         if (!trimmed) continue;
 
@@ -2288,14 +2343,16 @@
     function renderSeasonFull(log) {
       currentSteps = buildStepsFromLog(log);
       currentStepIndex = 0;
+      enterFullViewMode();
       renderCurrentStep();
     }
 
     function renderSeasonSummary(log) {
+      exitFullViewMode();
+
       const { header, episodes, finale } = parseSeasonLog(log);
       const summaryEl = document.createElement("div");
 
-      // Header / season info
       const headerCard = document.createElement("details");
       headerCard.className = "episode-card";
       headerCard.open = true;
@@ -2310,7 +2367,6 @@
 
       summaryEl.appendChild(headerCard);
 
-      // Episodes
       episodes.forEach((ep, index) => {
         const epCard = document.createElement("details");
         epCard.className = "episode-card";
@@ -2336,7 +2392,6 @@
         summaryEl.appendChild(epCard);
       });
 
-      // Finale / track record
       if (finale.length) {
         const finaleCard = document.createElement("details");
         finaleCard.className = "episode-card summary-final finale-card";
@@ -2347,7 +2402,7 @@
         finaleCard.appendChild(summary);
 
         const bodyPre = document.createElement("pre");
-        bodyPre.textContent = finale.join("\n");
+        bodyPre.textContent = filterFinale(finale).join("\n");
         finaleCard.appendChild(bodyPre);
 
         const trackContainer = document.createElement("div");
@@ -2400,6 +2455,7 @@
       seasonContainer.appendChild(summaryEl);
     }
 
+    // Build track records directly from the log (with better parsing / ordering)
     function buildTrackRecordFromLog(logText) {
       const lines = (logText || "").split(/\r?\n/);
       const queenNames = new Set();
@@ -2416,6 +2472,7 @@
 
       for (const line of lines) {
         const trimmed = line.trim();
+        if (!trimmed) continue;
 
         if (trimmed.startsWith("========== Episode")) {
           finalizeEpisode();
@@ -2444,15 +2501,19 @@
 
         for (const ptn of patterns) {
           if (trimmed.startsWith(ptn.label)) {
-            const list = trimmed
-              .slice(ptn.label.length)
-              .split(",")
+            const tail = trimmed.slice(ptn.label.length).trim();
+            if (!tail) break;
+
+            const rawPieces = tail
+              .split(/,|\s+vs\.\s+|\s+vs\s+|\s+and\s+/i)
               .map((s) => s.trim())
               .filter(Boolean);
-            list.forEach((name) => {
+
+            rawPieces.forEach((name) => {
               queenNames.add(name);
               currentEpisode.placements[name] = ptn.key;
             });
+            break;
           }
         }
       }
@@ -2461,9 +2522,50 @@
 
       if (!episodes.length || !queenNames.size) return null;
 
-      const queenOrder = Array.from(queenNames);
+      const allQueens = Array.from(queenNames);
       const episodeCount = episodes.length;
 
+      function findElimIndex(name) {
+        for (let i = 0; i < episodeCount; i++) {
+          if (episodes[i].placements[name] === "ELIM") return i;
+        }
+        return -1;
+      }
+
+      function seasonScore(name) {
+        let wins = 0,
+          highs = 0,
+          lows = 0,
+          btms = 0;
+        for (let i = 0; i < episodeCount; i++) {
+          const st = episodes[i].placements[name];
+          if (st === "WIN") wins++;
+          else if (st === "HIGH") highs++;
+          else if (st === "LOW") lows++;
+          else if (st === "BTM") btms++;
+        }
+        return wins * 3 + highs * 1 - lows * 1 - btms * 2;
+      }
+
+      allQueens.sort((a, b) => {
+        const elimA = findElimIndex(a);
+        const elimB = findElimIndex(b);
+        const elimValA = elimA === -1 ? Infinity : elimA;
+        const elimValB = elimB === -1 ? Infinity : elimB;
+
+        if (elimValA !== elimValB) {
+          // later elimination (higher index) should rank higher
+          return elimValB - elimValA;
+        }
+
+        const scoreA = seasonScore(a);
+        const scoreB = seasonScore(b);
+        if (scoreA !== scoreB) return scoreB - scoreA;
+
+        return a.localeCompare(b);
+      });
+
+      const queenOrder = allQueens;
       const tableEpisodes = [];
       for (let i = 0; i < episodeCount; i++) {
         const ep = episodes[i] || { placements: {} };
@@ -2531,7 +2633,6 @@
         data.episodes.forEach((ep) => {
           const cell = document.createElement("td");
           const status = ep.placements[qName] || "";
-          // Keep internal code as RTU but display RTRN in the table.
           const displayStatus = status === "RTU" ? "RTRN" : status;
           cell.textContent = displayStatus;
           if (!status) {
@@ -2599,6 +2700,15 @@
         default:
           return "Next";
       }
+    }
+
+    function enterFullViewMode() {
+      document.body.classList.add("sim-full-mode");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function exitFullViewMode() {
+      document.body.classList.remove("sim-full-mode");
     }
 
     function renderCurrentStep() {
@@ -2749,11 +2859,10 @@
     // =========================
 
     function renderCustomQueenSelect() {
-      // Deprecated in this refactor; kept as a no-op placeholder
+      // Deprecated; no-op
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-      // DEFAULT_QUEENS is defined as a global const in queens.js, not on window.
       let sourceDefault = [];
       if (typeof DEFAULT_QUEENS !== "undefined" && Array.isArray(DEFAULT_QUEENS)) {
         sourceDefault = DEFAULT_QUEENS;
