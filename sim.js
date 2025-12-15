@@ -978,6 +978,16 @@ function buildTrackRecordMeta(allQueens, winner, finalists) {
 
   const finalistsSet = new Set(finalists || []);
 
+    // Ensure every non-finalist has an ELIM marker somewhere in their track record.
+  // If they never got one (due to a bookkeeping edge case), mark their last episode as ELIM.
+  for (const q of allQueens) {
+    if (finalistsSet.has(q)) continue;
+    const rec = q.track_record || [];
+    if (rec.length && !rec.includes("ELIM")) {
+      rec[rec.length - 1] = "ELIM";
+    }
+  }
+
   // Label duplicates nicely so cursed seasons don't collapse into one row.
   const nameCounts = new Map();
   for (const q of allQueens) {
