@@ -22,6 +22,8 @@ const ALL_EDIT_FLAGS = [
   "underestimated",
   "messy"
 ];
+// Expose for the UI/custom-queen editor
+window.ALL_EDIT_FLAGS = ALL_EDIT_FLAGS;
 
 // Core challenge stats (lipsync is derived / added on top of these).
 // "design" is included for ball / design-heavy challenges.
@@ -679,7 +681,7 @@ function updateTrackRecord(winner, highs, low, bottom2, eliminatedList, immuneSe
     if (lastIdx >= 0) {
       elim.track_record[lastIdx] = "ELIM";
     } else {
-      elim.track_record.push("ELIM");
+      elim.track_record.push("ELIM";
     }
     elim.eliminated = true;
   }
@@ -996,8 +998,16 @@ function simulateSeason(queenDefs, options = {}) {
   const log = [];
 
   // Immunity twist configuration
+  // Accept both old API (immunityEnabled) and UI key (enableImmunity).
+  const uiImmunity = options.enableImmunity;
+  const baseImmunity = options.immunityEnabled;
   const immunityEnabled =
-    options.immunityEnabled === undefined ? true : !!options.immunityEnabled;
+    baseImmunity !== undefined
+      ? !!baseImmunity
+      : uiImmunity !== undefined
+        ? !!uiImmunity
+        : true;
+
   const immunityCutoff = Math.random() < 0.5 ? 7 : 8;
   const immunityState = {
     enabled: immunityEnabled,
@@ -1007,11 +1017,15 @@ function simulateSeason(queenDefs, options = {}) {
   };
 
   // Double Shantay/Sashay configuration
-  // UI usually passes doubleLipSyncTwistsEnabled as a single toggle.
+  // Accept both old API (doubleLipSyncTwistsEnabled) and UI key (enableDoubleTwists).
+  const uiDouble = options.enableDoubleTwists;
+  const baseDouble = options.doubleLipSyncTwistsEnabled;
   const twistsToggle =
-    options.doubleLipSyncTwistsEnabled === undefined
-      ? true
-      : !!options.doubleLipSyncTwistsEnabled;
+    baseDouble !== undefined
+      ? !!baseDouble
+      : uiDouble !== undefined
+        ? !!uiDouble
+        : true;
 
   const twistState = {
     doubleShantayEnabled:
