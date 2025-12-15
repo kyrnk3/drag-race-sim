@@ -1945,53 +1945,100 @@
       const bringBack = [];
       const lipsync = [];
       const results = [];
-
+    
+      // --- Pass 1: try the old marker-based format (backwards compatible) ---
       let section = "none";
-
+      let sawOldMarkers = false;
+    
       for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed) continue;
-
-        // Start markers
-        if (trimmed.startsWith("The queens will")) {
+    
+        if (trimmed.startsWith("The queens will") || trimmed.startsWith("Queens' performances")) {
           section = "maxi";
           maxi.push(line);
-          continue;
-        }
-        if (trimmed.startsWith("Queens' performances")) {
-          section = "maxi";
-          maxi.push(line);
+          sawOldMarkers = true;
           continue;
         }
         if (trimmed.startsWith("Based on tonight's performances")) {
           section = "judging";
           judging.push(line);
+          sawOldMarkers = true;
           continue;
         }
         if (trimmed.startsWith("Ladies, I've made some decisions")) {
           section = "bringBack";
           bringBack.push(line);
+          sawOldMarkers = true;
           continue;
         }
         if (trimmed.startsWith("The time has come")) {
           section = "lipsync";
           lipsync.push(line);
+          sawOldMarkers = true;
           continue;
         }
         if (trimmed.startsWith("I've made my decision")) {
           section = "results";
           results.push(line);
+          sawOldMarkers = true;
           continue;
         }
-
-        // Route subsequent lines according to current section
+    
         if (section === "maxi") maxi.push(line);
         else if (section === "judging") judging.push(line);
         else if (section === "bringBack") bringBack.push(line);
         else if (section === "lipsync") lipsync.push(line);
         else if (section === "results") results.push(line);
       }
-
+    
+      if (sawOldMarkers) {
+        return { maxi, judging, bringBack, lipsync, results };
+      }
+    
+      // --- Pass 2: new-style format (current sim.js logs) ---
+      // Structure is roughly:
+      //   Results:
+      //     Winner: ...
+      //     High: ...
+      //     Low: ...
+      //     Bottom: A vs B
+      //     [SPECIAL TWIST...]
+      //     Shantay you stay: ...
+      //     Sashay away: ...
+    
+      let inResultsBlock = false;
+      maxi.length = judging.length = bringBack.length = lipsync.length = results.length = 0;
+    
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+    
+        if (/^Results:/i.test(trimmed)) {
+          inResultsBlock = true;
+          continue;
+        }
+    
+        if (!inResultsBlock) {
+          // Anything before "Results:" we treat as maxi-challenge flavour
+          maxi.push(line);
+          continue;
+        }
+    
+        if (/^Winner:/i.test(trimmed) || /^High:/i.test(trimmed) || /^Low:/i.test(trimmed)) {
+          judging.push(line);
+        } else if (/^Bottom:/i.test(trimmed)) {
+          bringBack.push(line);
+        } else if (/Shantay you stay/i.test(trimmed)) {
+          lipsync.push(line);
+        } else if (/Sashay away:/i.test(trimmed) || /^SPECIAL TWIST:/i.test(trimmed)) {
+          results.push(line);
+        } else {
+          // Anything else inside the Results block goes into results as a catch-all
+          results.push(line);
+        }
+      }
+    
       return { maxi, judging, bringBack, lipsync, results };
     }
 
@@ -2134,17 +2181,28 @@
         }
 
         // Maxi / judging / bring-back / lipsync / results
-        const { maxi, judging, bringBack, lipsync, results } =
-          parseEpisodeSections(filtered);
+      let { maxi, judging, bringBack, lipsync, results } =
+        parseEpisodeSections(filtered);
 
-        if (maxi.length) {
-          steps.push({
-            type: "episode_maxi",
-            epNum,
-            name: epName,
-            lines: maxi,
-          });
-        }
+          // If there were no explicit maxi lines but we *do* have judging/results,
+          // create a simple placeholder so the maxi step still exists.
+          if (
+            (!maxi || !maxi.length) &&
+            (judging.length || bringBack.length || lipsync.length || results.length)
+          ) {
+            maxi = [
+              `The queens give it their all in the ${epName} challenge.`,
+            ];
+          }
+    
+          if (maxi && maxi.length) {
+            steps.push({
+              type: "episode_maxi",
+              epNum,
+              name: epName,
+              lines: maxi,
+            });
+          }
 
         if (judging.length) {
           steps.push({
@@ -2376,6 +2434,9 @@
 
     function renderSeasonSummary(log) {
       const { header, episodes, finale } = parseSeasonLog(log);
+      // Keep a canonical count of competitive episodes for the track record
+      seasonEpisodeCount = episodes.length;
+    
       const summaryEl = document.createElement("div");
 
       const headerLines = filterHeader(header);
@@ -2604,6 +2665,30 @@
         return;
       }
     
+      // --- Normalize episodes: trim any phantom extra main episodes ---
+      let episodesArr = data.episodes.slice();
+    
+      // Find finale episode (by flag, with a sane fallback)
+      let finaleIndex = episodesArr.findIndex((ep) => ep && ep.isFinale);
+      if (finaleIndex === -1) {
+        finaleIndex = episodesArr.length - 1;
+      }
+    
+      // How many *competitive* episodes we actually want to show?
+      let mainCount = finaleIndex; // default: everything before the finale
+      if (
+        typeof seasonEpisodeCount === "number" &&
+        seasonEpisodeCount > 0 &&
+        seasonEpisodeCount < mainCount
+      ) {
+        // If the parsed log says there were fewer episodes, trust it.
+        mainCount = seasonEpisodeCount;
+      }
+    
+      const mainEpisodes = episodesArr.slice(0, mainCount);
+      const finaleEpisode = episodesArr[finaleIndex];
+      const allEpisodes = finaleEpisode ? [...mainEpisodes, finaleEpisode] : mainEpisodes;
+    
       const table = document.createElement("table");
       table.className = "track-record-table";
     
@@ -2615,10 +2700,10 @@
       thName.className = "track-name";
       headRow.appendChild(thName);
     
-      data.episodes.forEach((ep, idx) => {
+      allEpisodes.forEach((ep, idx) => {
         const th = document.createElement("th");
-        const isFinale = idx === data.episodes.length - 1;
-        th.textContent = ep.name || (isFinale ? "Finale" : "Ep " + (ep.index + 1));
+        const isFinale = !!(ep && ep.isFinale) || idx === allEpisodes.length - 1;
+        th.textContent = ep && ep.name ? ep.name : (isFinale ? "Finale" : "Ep " + (ep.index + 1));
         headRow.appendChild(th);
       });
     
@@ -2635,9 +2720,9 @@
         nameCell.className = "track-name";
         row.appendChild(nameCell);
     
-        data.episodes.forEach((ep, colIndex) => {
+        allEpisodes.forEach((ep, colIndex) => {
           const cell = document.createElement("td");
-          const isFinale = colIndex === data.episodes.length - 1;
+          const isFinale = !!(ep && ep.isFinale) || colIndex === allEpisodes.length - 1;
     
           if (isFinale) {
             // Finale is handled as winner / runners-up only, no BTM etc.
@@ -2664,9 +2749,11 @@
             return;
           }
     
-          // NEW: support both string statuses and { status, immune } objects
+          // Support both string statuses and { status, immune } objects
           const rawPlacement =
-            ep.placements && Object.prototype.hasOwnProperty.call(ep.placements, qName)
+            ep &&
+            ep.placements &&
+            Object.prototype.hasOwnProperty.call(ep.placements, qName)
               ? ep.placements[qName]
               : "";
     
