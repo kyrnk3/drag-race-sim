@@ -1521,7 +1521,8 @@
         const records = [];
         const statusSet = new Set(["WIN", "HIGH", "SAFE", "LOW", "BTM", "ELIM"]);
 
-        for (const line of trackLines) {
+        for (let lineIdx = 0; lineIdx < trackLines.length; lineIdx++) {
+          const line = trackLines[lineIdx];
           if (!line) continue;
           const parts = line.split(/\s+/);
           if (!parts.length) continue;
@@ -1549,50 +1550,120 @@
             name,
             record: rec,
             elimIndex: elimIdx === -1 ? Infinity : elimIdx,
+            rowIndex: lineIdx
           });
         }
 
-        // Sort: finalists (no ELIM) at top, earliest eliminated last
-        records.sort((a, b) => b.elimIndex - a.elimIndex);
+        if (!records.length) return;
 
-        // Decide finale ranking (WINNER / RUNNER-UP) using real season scores where possible
-        const finalistsSet = new Set(finalists);
+        // Detect duplicate names (cursed Test Queen season, etc.)
+        const nameCounts = new Map();
+        for (const r of records) {
+          nameCounts.set(r.name, (nameCounts.get(r.name) || 0) + 1);
+        }
+        const hasDuplicateNames = Array.from(nameCounts.values()).some((c) => c > 1);
 
-        const finalistRecords = records
-          .filter((r) => finalistsSet.has(r.name))
-          .map((r) => {
-            const fallback = seasonScoreFromRecord(r.record);
-            const seasonScore = seasonScoreMap.has(r.name)
-              ? seasonScoreMap.get(r.name)
-              : fallback;
-            return { ...r, seasonScore };
-          });
-
-        // Sort finalists by season score, then ensure the actual winner is first
-        finalistRecords.sort((a, b) => b.seasonScore - a.seasonScore);
-        const winnerIdx = finalistRecords.findIndex((r) => r.name === winnerName);
-        if (winnerIdx > 0) {
-          const [w] = finalistRecords.splice(winnerIdx, 1);
-          finalistRecords.unshift(w);
+        // Helper: fallback season score from record only (if needed)
+        function seasonScoreFromRecord(rec) {
+          let score = 0;
+          for (const raw of rec) {
+            const r = raw.replace(/\(IMM\)$/, "");
+            if (r === "WIN") score += 3;
+            else if (r === "HIGH") score += 1;
+            else if (r === "LOW") score -= 1;
+            else if (r === "BTM") score -= 2;
+          }
+          return score;
         }
 
-        const finishOrderNames = finalistRecords.map((r) => r.name);
-        const secondName = finishOrderNames[1] || null;
-        const thirdName = finishOrderNames[2] || null;
+        let finalRecords;
+        let secondName = null;
+        let thirdName = null;
 
-        // Rebuild records so finalists appear in finish order at the top
-        const finalistsByName = new Set(finishOrderNames);
-        const nonFinalistsOrdered = records.filter(
-          (r) => !finalistsByName.has(r.name)
-        );
-        const finalRecords = [
-          ...finalistRecords.map(({ name, record, elimIndex }) => ({
-            name,
-            record,
-            elimIndex,
-          })),
-          ...nonFinalistsOrdered,
-        ];
+        if (!hasDuplicateNames && finalists.length) {
+          // --- Normal case: unique names, use finalists list + real season scores ---
+          // Sort: finalists (no ELIM) at top, earliest eliminated last
+          records.sort((a, b) => b.elimIndex - a.elimIndex);
+
+          const finalistsSet = new Set(finalists);
+
+          const finalistRecords = records
+            .filter((r) => finalistsSet.has(r.name))
+            .map((r) => {
+              const fallback = seasonScoreFromRecord(r.record);
+              const seasonScore = seasonScoreMap.has(r.name)
+                ? seasonScoreMap.get(r.name)
+                : fallback;
+              return { ...r, seasonScore };
+            });
+
+          // Sort finalists by season score, then ensure the actual winner is first
+          finalistRecords.sort((a, b) => b.seasonScore - a.seasonScore);
+          const winnerIdx = finalistRecords.findIndex((r) => r.name === winnerName);
+          if (winnerIdx > 0) {
+            const [w] = finalistRecords.splice(winnerIdx, 1);
+            finalistRecords.unshift(w);
+          }
+
+          const finishOrderNames = finalistRecords.map((r) => r.name);
+          secondName = finishOrderNames[1] || null;
+          thirdName = finishOrderNames[2] || null;
+
+          const finalistsByName = new Set(finishOrderNames);
+          const nonFinalistsOrdered = records.filter(
+            (r) => !finalistsByName.has(r.name)
+          );
+
+          finalRecords = [
+            ...finalistRecords.map(({ name, record, elimIndex }) => ({
+              name,
+              record,
+              elimIndex
+            })),
+            ...nonFinalistsOrdered
+          ];
+        } else {
+          // --- Cursed case: duplicate names (e.g. multiple Test Queens) ---
+          // Decide finalists purely by track records (no ELIM).
+          const nonEliminated = records.filter((r) => r.elimIndex === Infinity);
+          const eliminated = records.filter((r) => r.elimIndex !== Infinity);
+
+          const finalistRecords = nonEliminated.map((r) => ({
+            ...r,
+            seasonScore: seasonScoreFromRecord(r.record)
+          }));
+
+          // Sort finalists by season score desc; tie-breaker: later elimIndex / rowIndex
+          finalistRecords.sort((a, b) => {
+            if (b.seasonScore !== a.seasonScore) {
+              return b.seasonScore - a.seasonScore;
+            }
+            if (b.elimIndex !== a.elimIndex) {
+              return b.elimIndex - a.elimIndex;
+            }
+            return a.rowIndex - b.rowIndex;
+          });
+
+          // Winner: best of these (all share the same name string anyway)
+          const winnerRec = finalistRecords[0] || null;
+          if (winnerRec) {
+            winnerName = winnerRec.name; // still "Test Queen", but that's fine
+          }
+          secondName = finalistRecords[1]?.name || null;
+          thirdName = finalistRecords[2]?.name || null;
+
+          // Sort eliminated by elimination order (earlier ELIM first)
+          eliminated.sort((a, b) => {
+            if (a.elimIndex !== b.elimIndex) {
+              return a.elimIndex - b.elimIndex;
+            }
+            return a.rowIndex - b.rowIndex;
+          });
+
+          finalRecords = [...finalistRecords, ...eliminated].map(
+            ({ name, record, elimIndex }) => ({ name, record, elimIndex })
+          );
+        }
 
         if (finalRecords.length) {
           let maxEpisodes = 0;
@@ -1689,7 +1760,6 @@
           card.appendChild(table);
         }
       }
-    }
 
     function getNextLabel(step, index, total) {
       const isLast = index === total - 1;
