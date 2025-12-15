@@ -23,8 +23,10 @@ const ALL_EDIT_FLAGS = [
   "messy"
 ];
 
-// Core challenge stats (lipsync is derived / added on top of these)
-const STAT_NAMES = ["runway", "comedy", "acting", "dance", "singing", "improv"];
+// Core challenge stats (lipsync is derived / added on top of these).
+// "design" is included for ball / design-heavy challenges.
+// All stats are conceptually on a 0–10 scale (0 = terrible, 10 = legendary).
+const STAT_NAMES = ["runway", "comedy", "acting", "dance", "singing", "improv", "design"];
 
 // Main challenges from challenges.js
 const CHALLENGES = window.CHALLENGES || [];
@@ -51,8 +53,9 @@ function choice(array) {
   return array[Math.floor(Math.random() * array.length)];
 }
 
+// Clamp to the 0–10 scale we’re using everywhere.
 function clampStat(x) {
-  return Math.max(1, Math.min(10, x));
+  return Math.max(0, Math.min(10, x));
 }
 
 // =========================
@@ -62,7 +65,7 @@ function clampStat(x) {
 class Queen {
   constructor(name, stats, dramaProne = false, producerFave = false, edits = []) {
     this.name = name;
-    // stats: {runway, comedy, acting, dance, singing, improv, lipsync}
+    // stats: {runway, comedy, acting, dance, singing, improv, design, lipsync}
     this.stats = stats;
     this.drama_prone = dramaProne;
     this.producer_fave = producerFave;
@@ -101,14 +104,14 @@ function generateRandomEdits(existingEdits) {
 
 // Build a lipsync stat from existing performance stats.
 function generateLipsyncFromStats(stats, editsSet) {
-  const dance = stats.dance != null ? stats.dance : 5;
-  const comedy = stats.comedy != null ? stats.comedy : 5;
+  const dance   = stats.dance   != null ? stats.dance   : 5;
+  const comedy  = stats.comedy  != null ? stats.comedy  : 5;
   const singing = stats.singing != null ? stats.singing : 5;
 
   // Core: queens who can move (dance), emote/perform (comedy), and sell lyrics (singing)
   let base =
-    dance * 0.45 +
-    comedy * 0.35 +
+    dance   * 0.45 +
+    comedy  * 0.35 +
     singing * 0.20;
 
   // Normalize-ish and add some personality noise
@@ -151,7 +154,7 @@ function generateRandomStats(editsSet) {
 
   if (editsSet.has("lip_sync_assassin")) {
     // Still boost dance/improv a bit – they're usually killers in performance
-    stats["dance"] = Math.min(10, stats["dance"] + 2);
+    stats["dance"]  = Math.min(10, stats["dance"]  + 2);
     stats["improv"] = Math.min(10, stats["improv"] + 1);
   }
 
@@ -189,34 +192,34 @@ function buildQueensFromDefs(queenDefs, options) {
     }
 
     const editsSet = new Set(editsList);
-    const statsEntry = entry.stats;
+    const statsEntry = entry.stats || null;
 
-    let needRandom = chaosMode || (autoGenStats && !statsEntry);
-
-    if (!needRandom && statsEntry) {
-      // If any *core* stat is missing, randomize all stats.
-      for (const k of STAT_NAMES) {
-        if (!(k in statsEntry)) {
-          needRandom = true;
-          break;
-        }
-      }
-    }
+    // In chaos mode we always randomize; otherwise we only randomize if
+    // there is *no* stats object at all. Partial stats are allowed.
+    const needRandom = chaosMode || (autoGenStats && !statsEntry);
 
     let stats;
-    if (needRandom) {
+    if (needRandom || !statsEntry) {
       // Full random, including derived lipsync
       stats = generateRandomStats(editsSet);
     } else {
-      // Copy provided core stats
+      // Copy whatever stats were provided, then fill gaps with a neutral default (5).
       stats = {};
+
       for (const k of STAT_NAMES) {
-        stats[k] = statsEntry[k];
+        if (statsEntry[k] != null) {
+          stats[k] = clampStat(statsEntry[k]);
+        }
       }
 
-      // Lipsync: use provided value if present, otherwise derive from provided stats
-      if ("lipsync" in statsEntry) {
-        stats.lipsync = statsEntry.lipsync;
+      // Fill any missing core stats with a mid-range default
+      for (const k of STAT_NAMES) {
+        if (stats[k] == null) stats[k] = 5;
+      }
+
+      // Lipsync: use provided value if present, otherwise derive from the profile
+      if ("lipsync" in statsEntry && statsEntry.lipsync != null) {
+        stats.lipsync = clampStat(statsEntry.lipsync);
       } else {
         stats.lipsync = generateLipsyncFromStats(stats, editsSet);
       }
@@ -1004,11 +1007,21 @@ function simulateSeason(queenDefs, options = {}) {
   };
 
   // Double Shantay/Sashay configuration
+  // UI usually passes doubleLipSyncTwistsEnabled as a single toggle.
+  const twistsToggle =
+    options.doubleLipSyncTwistsEnabled === undefined
+      ? true
+      : !!options.doubleLipSyncTwistsEnabled;
+
   const twistState = {
     doubleShantayEnabled:
-      options.doubleShantayEnabled === undefined ? true : !!options.doubleShantayEnabled,
+      options.doubleShantayEnabled === undefined
+        ? twistsToggle
+        : !!options.doubleShantayEnabled,
     doubleSashayEnabled:
-      options.doubleSashayEnabled === undefined ? true : !!options.doubleSashayEnabled,
+      options.doubleSashayEnabled === undefined
+        ? twistsToggle
+        : !!options.doubleSashayEnabled,
     usedDoubleShantay: false,
     usedDoubleSashay: false
   };
@@ -1037,7 +1050,7 @@ function simulateSeason(queenDefs, options = {}) {
     log.push("Immunity twist: disabled for this run.\n\n");
   }
 
-  // NEW: loop is driven by eliminations, not a fixed episode cap.
+  // Loop is driven by eliminations, not a fixed episode cap.
   while (
     queens.length > 3 &&
     eliminationsDone < eliminationsNeeded &&
