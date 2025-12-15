@@ -505,20 +505,11 @@
 
       <div class="control-row">
         <span class="muted">
-          Build a cast using the GUI below, or paste / edit raw JSON in the
-          advanced box. If a GUI cast is selected, it will be used instead of the JSON.
+          Build a cast using the GUI below. A default cast loads automatically; tweak it however you like!
         </span>
       </div>
 
-      <div class="control-row" style="width:100%;">
-        <label style="width:100%;">
-          Advanced — Queens JSON:
-          <textarea id="queensInput" rows="8" spellcheck="false"></textarea>
-        </label>
-      </div>
-
       <div class="control-row">
-        <button id="loadDefaultQueens">Load sample cast</button>
         <button id="simulateButton">Simulate Season</button>
       </div>
     </section>
@@ -629,12 +620,10 @@
 
   <!-- UI / Rendering -->
   <script>
-    const queensInput = document.getElementById("queensInput");
     const modeSelect = document.getElementById("modeSelect");
     const viewSelect = document.getElementById("viewSelect");
     const immunityToggle = document.getElementById("immunityToggle");
     const doubleTwistsToggle = document.getElementById("doubleTwistsToggle");
-    const loadDefaultBtn = document.getElementById("loadDefaultQueens");
     const simulateBtn = document.getElementById("simulateButton");
     const seasonContainer = document.getElementById("seasonContainer");
 
@@ -675,8 +664,8 @@
     // ---- Queen data for cast builder ----
     const CUSTOM_STORAGE_KEY = "drag_race_sim_custom_queens";
 
-    let baseQueenDefs = [];   // canonical from queens.js
-    let defaultQueens = [];   // with ids / imageUrl / source
+    let baseQueenDefs = [];
+    let defaultQueens = [];
     let customQueens = [];
     let allQueens = [];
     let currentCast = [];
@@ -833,8 +822,7 @@
     }
 
     function randomStat() {
-      // 0–10 inclusive
-      return Math.floor(Math.random() * 11);
+      return Math.floor(Math.random() * 11); // 0–10
     }
 
     btnRandomizeStats.addEventListener("click", () => {
@@ -936,12 +924,6 @@
       currentCast = currentCast.filter((q) => q.id !== id);
       renderCustomQueenSelect();
       renderCastPicker();
-    });
-
-    // ---- Existing JSON / season rendering logic ----
-
-    loadDefaultBtn.addEventListener("click", () => {
-      queensInput.value = JSON.stringify(baseQueenDefs, null, 2);
     });
 
     // ---------- Parsing helpers ----------
@@ -1713,13 +1695,11 @@
       let queens;
       if (currentCast.length > 0) {
         queens = currentCast;
+      } else if (defaultQueens.length > 0) {
+        queens = defaultQueens;
       } else {
-        try {
-          queens = JSON.parse(queensInput.value);
-        } catch (e) {
-          alert("Queens JSON is invalid.");
-          return;
-        }
+        alert("No queens available. Please add at least one queen to the cast.");
+        return;
       }
 
       const mode = modeSelect.value;
@@ -1752,10 +1732,12 @@
       customQueens = loadCustomQueens();
       allQueens = [...defaultQueens, ...customQueens];
 
-      // Show canonical defs (without id/source/imageUrl) in the JSON box
-      queensInput.value = JSON.stringify(baseQueenDefs, null, 2);
-
+      // default cast: all default queens
+      const defaultSize = defaultQueens.length || 12;
+      castSizeRange.value = defaultSize;
       syncCastSizeLabel();
+      currentCast = [...defaultQueens];
+
       renderCustomQueenSelect();
       renderCastPicker();
     });
