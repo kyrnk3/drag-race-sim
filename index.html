@@ -2688,7 +2688,7 @@
     
     function renderTrackRecordTable(container, data) {
       container.innerHTML = "";
-      if (!data || !Array.isArray(data.episodes)) {
+      if (!data || !Array.isArray(data.episodes) || !data.episodes.length) {
         const p = document.createElement("p");
         p.textContent = "No track record data available.";
         p.style.fontSize = "0.8rem";
@@ -2697,33 +2697,29 @@
         return;
       }
     
-      // --- Normalize episodes: trim any phantom extra main episodes ---
-      let episodesArr = data.episodes.slice();
+      // Use sim.js as the source of truth – do NOT try to trim with seasonEpisodeCount.
+      const episodesArr = data.episodes.filter(Boolean);
     
-      // Find finale episode (by flag, with a sane fallback)
-      let finaleIndex = episodesArr.findIndex((ep) => ep && ep.isFinale);
-      if (finaleIndex === -1) {
-        finaleIndex = episodesArr.length - 1;
+      // Look for an explicit finale episode.
+      let finaleIndex = episodesArr.findIndex(ep => ep && ep.isFinale);
+      const hasExplicitFinale = finaleIndex !== -1;
+    
+      let mainEpisodes, finaleEpisode;
+      if (hasExplicitFinale) {
+        finaleEpisode = episodesArr[finaleIndex];
+        mainEpisodes = episodesArr.slice(0, finaleIndex);
+      } else {
+        // No finale marked – just treat everything as main episodes.
+        mainEpisodes = episodesArr.slice();
+        finaleEpisode = null;
       }
     
-      // How many *competitive* episodes we actually want to show?
-      let mainCount = finaleIndex; // default: everything before the finale
-      if (
-        typeof seasonEpisodeCount === "number" &&
-        seasonEpisodeCount > 0 &&
-        seasonEpisodeCount < mainCount
-      ) {
-        // If the parsed log says there were fewer episodes, trust it.
-        mainCount = seasonEpisodeCount;
-      }
-    
-      const mainEpisodes = episodesArr.slice(0, mainCount);
-      const finaleEpisode = episodesArr[finaleIndex];
       const allEpisodes = finaleEpisode ? [...mainEpisodes, finaleEpisode] : mainEpisodes;
     
       const table = document.createElement("table");
       table.className = "track-record-table";
     
+      // ---------- Header ----------
       const thead = document.createElement("thead");
       const headRow = document.createElement("tr");
     
@@ -2734,17 +2730,24 @@
     
       allEpisodes.forEach((ep, idx) => {
         const th = document.createElement("th");
-        const isFinale = !!(ep && ep.isFinale) || idx === allEpisodes.length - 1;
-        th.textContent = ep && ep.name ? ep.name : (isFinale ? "Finale" : "Ep " + (ep.index + 1));
+        const isFinaleCol = hasExplicitFinale && ep === finaleEpisode;
+        if (isFinaleCol) {
+          th.textContent = "Finale";
+        } else if (ep && ep.name) {
+          th.textContent = ep.name;
+        } else {
+          th.textContent = "Ep " + (ep.index + 1);
+        }
         headRow.appendChild(th);
       });
     
       thead.appendChild(headRow);
       table.appendChild(thead);
     
+      // ---------- Body ----------
       const tbody = document.createElement("tbody");
     
-      data.queenOrder.forEach((qName, rowIndex) => {
+      (data.queenOrder || []).forEach((qName, rowIndex) => {
         const row = document.createElement("tr");
     
         const nameCell = document.createElement("td");
@@ -2752,12 +2755,12 @@
         nameCell.className = "track-name";
         row.appendChild(nameCell);
     
-        allEpisodes.forEach((ep, colIndex) => {
+        allEpisodes.forEach((ep) => {
           const cell = document.createElement("td");
-          const isFinale = !!(ep && ep.isFinale) || colIndex === allEpisodes.length - 1;
+          const isFinaleCol = hasExplicitFinale && ep === finaleEpisode;
     
-          if (isFinale) {
-            // Finale is handled as winner / runners-up only, no BTM etc.
+          if (isFinaleCol) {
+            // Finale column is strictly placement: winner + runners-up.
             let finaleStatus = "";
             let finaleClass = "status-empty";
     
@@ -2781,7 +2784,7 @@
             return;
           }
     
-          // Support both string statuses and { status, immune } objects
+          // Normal competitive episode cell.
           const rawPlacement =
             ep &&
             ep.placements &&
