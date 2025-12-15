@@ -270,6 +270,8 @@ function stageOk(challengeId, queensRemaining, episodeNum) {
   }
 
   if (challengeId === "snatch_game") {
+    // HARD RULE: cannot occur before Episode 4
+    if (episodeNum < 4) return false;
     return queensRemaining >= 8 && queensRemaining <= 10;
   }
 
@@ -326,15 +328,15 @@ function planRequiredSchedule(numQueens) {
     schedule[ep] = challengeId;
   }
 
-  // Snatch Game
+  // Snatch Game (Episode >= 4, 8–10 queens)
   const snatchCandidates = [];
-  for (let ep = 1; ep <= totalEpisodes; ep++) {
+  for (let ep = 4; ep <= totalEpisodes; ep++) {
     const qCount = queensAtEpisode(ep);
     if (qCount >= 8 && qCount <= 10) snatchCandidates.push(ep);
   }
   pickEpisodeFor("snatch_game", snatchCandidates);
 
-  // Makeover
+  // Makeover (5–6 queens)
   const makeoverCandidates = [];
   for (let ep = 1; ep <= totalEpisodes; ep++) {
     const qCount = queensAtEpisode(ep);
@@ -342,7 +344,7 @@ function planRequiredSchedule(numQueens) {
   }
   pickEpisodeFor("makeover", makeoverCandidates);
 
-  // Ball
+  // Ball (early OR top 5)
   const earlyEps = [];
   for (let ep = 1; ep <= Math.min(3, totalEpisodes); ep++) {
     earlyEps.push(ep);
@@ -534,16 +536,26 @@ function adjustRankedForEdits(ranked) {
 }
 
 // =========================
+// Double Shantay / Double Sashay helpers
+// =========================
+
+function hasDoubleShantayTag(q) {
+  return q.edits.has("front_runner") ||
+         q.edits.has("lip_sync_assassin") ||
+         q.producer_fave;
+}
+
+function hasDoubleSashayTag(q) {
+  return q.edits.has("robbed") ||
+         q.edits.has("messy") ||
+         q.drama_prone;
+}
+
+// =========================
 // Episode simulation
 // =========================
 
-// Double Shantay / Double Sashay tuning
-const DOUBLE_LIPSYNC_SLAY_THRESHOLD  = 8.5; // both queens scored this or higher
-const DOUBLE_LIPSYNC_BOMB_THRESHOLD  = 4.0; // both queens scored this or lower
-const DOUBLE_SHANTAY_CHANCE          = 0.22; // base low-medium chance
-const DOUBLE_SASHAY_CHANCE           = 0.18; // base low-medium chance
-
-function resolveLipSync(bottom2, challenge, phase, doubleLipSyncState) {
+function resolveLipSync(bottom2, challenge, phase, twistState) {
   const performScores = new Map();
   for (const q of bottom2) {
     const s = calculateScore(q, challenge, phase, "lipsync") + randUniform(-1.0, 1.0);
@@ -552,91 +564,75 @@ function resolveLipSync(bottom2, challenge, phase, doubleLipSyncState) {
 
   const ranked = Array.from(performScores.entries()).sort((a, b) => b[1] - a[1]);
   const winner = ranked[0][0];
-  const loser  = ranked[1][0];
-  const winnerScore = ranked[0][1];
-  const loserScore  = ranked[1][1];
+  const eliminated = ranked[1][0];
+  const sWinner = ranked[0][1];
+  const sLoser = ranked[1][1];
 
-  let twist = "none"; // "double_shantay" | "double_sashay" | "none"
+  let twist = "none";
 
-  if (doubleLipSyncState && doubleLipSyncState.enabled) {
-    const bothSlay = winnerScore >= DOUBLE_LIPSYNC_SLAY_THRESHOLD &&
-                     loserScore  >= DOUBLE_LIPSYNC_SLAY_THRESHOLD;
-    const bothBomb = winnerScore <= DOUBLE_LIPSYNC_BOMB_THRESHOLD &&
-                     loserScore  <= DOUBLE_LIPSYNC_BOMB_THRESHOLD;
+  const highThreshold = 8.0;
+  const lowThreshold = 4.0;
 
-    // ---- Double Shantay logic (slay-only) ----
-    if (bothSlay && !doubleLipSyncState.shantayUsed) {
-      let shantayChance = DOUBLE_SHANTAY_CHANCE;
+  const bothSlay = (sWinner >= highThreshold && sLoser >= highThreshold);
+  const bothBomb = (sWinner <= lowThreshold && sLoser <= lowThreshold);
 
-      // Boost if the LOSER is a protected storyline girl:
-      // front_runner, lip_sync_assassin, producer_fave.
-      const loserHasPositiveTag =
-        loser.edits.has("front_runner") ||
-        loser.edits.has("lip_sync_assassin") ||
-        loser.producer_fave;
+  // Double SHANTAY: only when both slay, once per season
+  if (
+    bothSlay &&
+    twistState.doubleShantayEnabled &&
+    !twistState.usedDoubleShantay
+  ) {
+    let chance = 0.12; // base low–medium chance
 
-      const winnerHasPositiveTag =
-        winner.edits.has("front_runner") ||
-        winner.edits.has("lip_sync_assassin") ||
-        winner.producer_fave;
-
-      // Only boost if the loser has at least one of these tags.
-      if (loserHasPositiveTag) {
-        // Base boost when the protected girl is about to lose.
-        shantayChance += 0.15;
-        // Extra boost if BOTH queens have at least one of these tags.
-        if (winnerHasPositiveTag) {
-          shantayChance += 0.15;
-        }
-      }
-
-      if (Math.random() < shantayChance) {
-        twist = "double_shantay";
-        doubleLipSyncState.shantayUsed = true;
-        return { winner, loser, twist, scores: ranked };
-      }
+    // Boost if the provisional loser is a protected narrative fave
+    if (hasDoubleShantayTag(eliminated)) {
+      chance += 0.20;
+    }
+    // Smaller boost if the winner also has those tags
+    if (hasDoubleShantayTag(winner)) {
+      chance += 0.10;
     }
 
-    // ---- Double Sashay logic (bomb-only) ----
-    if (bothBomb && !doubleLipSyncState.sashayUsed) {
-      let sashayChance = DOUBLE_SASHAY_CHANCE;
+    chance = Math.min(Math.max(chance, 0), 0.9);
 
-      // Boost if the WINNER is messy/controversial:
-      // robbed, messy, or drama_prone.
-      const winnerHasNegativeTag =
-        winner.edits.has("robbed") ||
-        winner.edits.has("messy") ||
-        winner.drama_prone;
-
-      const loserHasNegativeTag =
-        loser.edits.has("robbed") ||
-        loser.edits.has("messy") ||
-        loser.drama_prone;
-
-      // Only boost if the winner has at least one of these.
-      if (winnerHasNegativeTag) {
-        // Base boost because production wants chaos with this winner.
-        sashayChance += 0.15;
-        // Extra boost if BOTH queens are tagged disasters.
-        if (loserHasNegativeTag) {
-          sashayChance += 0.15;
-        }
-      }
-
-      if (Math.random() < sashayChance) {
-        twist = "double_sashay";
-        doubleLipSyncState.sashayUsed = true;
-        return { winner, loser, twist, scores: ranked };
-      }
+    if (Math.random() < chance) {
+      twist = "double_shantay";
+      twistState.usedDoubleShantay = true;
+      return { lipWinner: winner, eliminated: null, twist };
     }
   }
 
-  // No twist – normal outcome.
-  return { winner, loser, twist, scores: ranked };
+  // Double SASHAY: only when both bomb, once per season
+  if (
+    bothBomb &&
+    twistState.doubleSashayEnabled &&
+    !twistState.usedDoubleSashay
+  ) {
+    let chance = 0.10; // base low–medium chance
+
+    // Boost if the provisional winner is "messy"/drama fuel
+    if (hasDoubleSashayTag(winner)) {
+      chance += 0.20;
+    }
+    // Smaller boost if the other queen is also messy/robbed/drama
+    if (hasDoubleSashayTag(eliminated)) {
+      chance += 0.10;
+    }
+
+    chance = Math.min(Math.max(chance, 0), 0.9);
+
+    if (Math.random() < chance) {
+      twist = "double_sashay";
+      twistState.usedDoubleSashay = true;
+      return { lipWinner: null, eliminated: null, twist };
+    }
+  }
+
+  // Normal outcome
+  return { lipWinner: winner, eliminated, twist };
 }
 
 function updateTrackRecord(winner, highs, low, bottom2, eliminatedList, immuneSet) {
-  // Mark both bottom queens as BTM for the episode
   for (const q of bottom2) {
     q.track_record.push("BTM");
   }
@@ -646,43 +642,41 @@ function updateTrackRecord(winner, highs, low, bottom2, eliminatedList, immuneSe
   for (const q of highs) {
     q.track_record.push("HIGH");
   }
-  winner.track_record.push("WIN");
-
-  const involved = new Set([...highs, ...bottom2, winner]);
-  if (low) involved.add(low);
-
-  // SAFE for everyone else still in the competition this week
-  for (const q of allQueensGlobal) {
-    if (q.eliminated) continue;
-    if (!involved.has(q) && q.track_record.length < winner.track_record.length) {
-      q.track_record.push("SAFE");
-    }
+  if (winner) {
+    winner.track_record.push("WIN");
   }
 
-  const eliminatedSet = new Set(eliminatedList || []);
+  const involved = new Set([...highs, ...bottom2]);
+  if (winner) involved.add(winner);
+  if (low) involved.add(low);
 
-  // Overwrite last placement with ELIM for queens actually eliminated this episode
-  for (const elim of eliminatedSet) {
-    const lastIdx = elim.track_record.length - 1;
-    if (lastIdx >= 0) {
-      elim.track_record[lastIdx] = "ELIM";
-    } else {
-      elim.track_record.push("ELIM");
+  for (const q of allQueensGlobal) {
+    if (q.eliminated) continue;
+    if (!involved.has(q) && q.track_record.length < (winner ? winner.track_record.length : bottom2[0].track_record.length)) {
+      q.track_record.push("SAFE");
     }
   }
 
   // Record immunity flags in parallel with track records.
   const immuneQueens = immuneSet || new Set();
+  const eliminatedSet = new Set(eliminatedList || []);
   for (const q of allQueensGlobal) {
-    // Only extend history for queens still in the season or eliminated this week
+    // Only extend history for queens who actually appeared this episode
     if (q.eliminated && !eliminatedSet.has(q)) continue;
     if (!q.immunityHistory) q.immunityHistory = [];
     const isImmune = immuneQueens.has(q);
     q.immunityHistory.push(isImmune);
   }
 
-  // Mark eliminated queens as out of the competition
-  for (const elim of eliminatedSet) {
+  // Mark eliminations *after* recording immunity
+  for (const elim of eliminatedList) {
+    if (!elim) continue;
+    const lastIdx = elim.track_record.length - 1;
+    if (lastIdx >= 0) {
+      elim.track_record[lastIdx] = "ELIM";
+    } else {
+      elim.track_record.push("ELIM");
+    }
     elim.eliminated = true;
   }
 }
@@ -697,7 +691,7 @@ function simulateEpisode(
   log,
   usedMiniOneOffIdsSet,
   immunityState,
-  doubleLipSyncState
+  twistState
 ) {
   const queensRemaining = queens.length;
   const phase = episodeNum <= totalEpisodes / 2 ? "early" : "late";
@@ -710,12 +704,20 @@ function simulateEpisode(
 
   const scheduledId = requiredSchedule[episodeNum];
 
-  let challenge;
+  let challenge = null;
   if (scheduledId !== undefined) {
-    const candidates = CHALLENGES.filter(c => c.id === scheduledId);
-    if (candidates.length) challenge = candidates[0];
-    else challenge = chooseChallenge(queensRemaining, episodeNum, lastChallengeId, usedOneOffIdsSet);
-  } else {
+    // Respect one-off usage even for scheduled challenges
+    const canUseScheduled =
+      !(ONE_OFF_CHALLENGES.has(scheduledId) && usedOneOffIdsSet.has(scheduledId));
+    if (canUseScheduled) {
+      const candidates = CHALLENGES.filter(c => c.id === scheduledId);
+      if (candidates.length) {
+        challenge = candidates[0];
+      }
+    }
+  }
+
+  if (!challenge) {
     challenge = chooseChallenge(queensRemaining, episodeNum, lastChallengeId, usedOneOffIdsSet);
   }
 
@@ -783,28 +785,19 @@ function simulateEpisode(
     low = ranked[n - 3][0];
   }
 
-  // Lip sync resolution with possible twist
-  const lsResult = resolveLipSync(bottom2, challenge, phase, doubleLipSyncState);
-  const lipWinner = lsResult.winner;
-  const lipLoser  = lsResult.loser;
-  const twist     = lsResult.twist;
+  const lipOutcome = resolveLipSync(bottom2, challenge, phase, twistState);
 
   let eliminatedList = [];
-
-  if (twist === "double_shantay") {
-    // No one goes home
+  if (lipOutcome.twist === "double_shantay") {
     eliminatedList = [];
-  } else if (twist === "double_sashay") {
-    // Both bottoms go home
+  } else if (lipOutcome.twist === "double_sashay") {
     eliminatedList = [...bottom2];
   } else {
-    // Normal single elimination
-    eliminatedList = [lipLoser];
+    eliminatedList = [lipOutcome.eliminated];
   }
 
   updateTrackRecord(winner, highs, low, bottom2, eliminatedList, currentImmuneSet);
 
-  // Logging results
   log.push("\nResults:\n");
   log.push(`  Winner: ${winner.name}\n`);
   if (highs.length) {
@@ -815,22 +808,22 @@ function simulateEpisode(
   }
   log.push(`  Bottom: ${bottom2[0].name} vs. ${bottom2[1].name}\n`);
 
-  if (twist === "double_shantay") {
-    log.push(`  SPECIAL TWIST: DOUBLE SHANTAY! Both queens stay.\n`);
+  if (lipOutcome.twist === "double_shantay") {
+    log.push("  SPECIAL TWIST: DOUBLE SHANTAY! Both queens stay.\n");
     log.push(`  Shantay you stay: ${bottom2[0].name} & ${bottom2[1].name}\n`);
-    log.push(`  Sashay away:      (no one this week!)\n`);
-  } else if (twist === "double_sashay") {
-    log.push(`  SPECIAL TWIST: DOUBLE SASHAY! Both queens go home.\n`);
-    log.push(`  Shantay you stay: (no one!)\n`);
+    log.push("  Sashay away:      (no one!)\n");
+  } else if (lipOutcome.twist === "double_sashay") {
+    log.push("  SPECIAL TWIST: DOUBLE SASHAY! Both queens go home.\n");
+    log.push("  Shantay you stay: (no one!)\n");
     log.push(`  Sashay away:      ${bottom2[0].name} & ${bottom2[1].name}\n`);
   } else {
-    log.push(`  Shantay you stay: ${lipWinner.name}\n`);
-    log.push(`  Sashay away:      ${lipLoser.name}\n`);
+    log.push(`  Shantay you stay: ${lipOutcome.lipWinner.name}\n`);
+    log.push(`  Sashay away:      ${lipOutcome.eliminated.name}\n`);
   }
 
   // Decide who gets immunity for the next episode (if the twist is active).
   if (immunityState && immunityState.enabled) {
-    const nextCount = queensRemaining - eliminatedList.length; // 0, 1, or 2 eliminated
+    const nextCount = queensRemaining - eliminatedList.length;
     if (nextCount > immunityState.cutoff) {
       immunityState.next = winner;
     } else {
@@ -838,7 +831,7 @@ function simulateEpisode(
     }
   }
 
-  return [eliminatedList, cid, usedOneOffIdsSet];
+  return { eliminatedList, cid, twist: lipOutcome.twist };
 }
 
 // =========================
@@ -1001,13 +994,14 @@ function simulateSeason(queenDefs, options = {}) {
     next: null
   };
 
-  // Double Shantay / Double Sashay configuration
-  const doubleLipSyncState = {
-    enabled: options.doubleLipSyncTwistsEnabled === undefined
-      ? true   // default: ON
-      : !!options.doubleLipSyncTwistsEnabled,
-    shantayUsed: false, // at most one per season
-    sashayUsed: false   // at most one per season
+  // Double Shantay/Sashay configuration
+  const twistState = {
+    doubleShantayEnabled:
+      options.doubleShantayEnabled === undefined ? true : !!options.doubleShantayEnabled,
+    doubleSashayEnabled:
+      options.doubleSashayEnabled === undefined ? true : !!options.doubleSashayEnabled,
+    usedDoubleShantay: false,
+    usedDoubleSashay: false
   };
 
   log.push("========== Drag Race Season Simulation ==========\n");
@@ -1029,19 +1023,12 @@ function simulateSeason(queenDefs, options = {}) {
   }
 
   if (immunityState.enabled) {
-    log.push(`Immunity twist: active until the cast reaches Top ${immunityState.cutoff}.\n`);
+    log.push(`Immunity twist: active until the cast reaches Top ${immunityState.cutoff}.\n\n`);
   } else {
-    log.push("Immunity twist: disabled for this run.\n");
+    log.push("Immunity twist: disabled for this run.\n\n");
   }
 
-  if (doubleLipSyncState.enabled) {
-    log.push("Double lipsync twists: enabled (max 1 Double Shantay, 1 Double Sashay).\n\n");
-  } else {
-    log.push("Double lipsync twists: disabled for this run.\n\n");
-  }
-
-  // Allow for extra episodes if a double shantay happens
-  while (queens.length > 3) {
+  while (queens.length > 3 && episodeNum <= totalEpisodes) {
     const queensRemaining = queens.length;
 
     // Decide who (if anyone) is immune this episode
@@ -1063,7 +1050,7 @@ function simulateSeason(queenDefs, options = {}) {
       }
     }
 
-    const [eliminatedList, cid] = simulateEpisode(
+    const { eliminatedList, cid } = simulateEpisode(
       episodeNum,
       queens,
       lastChallengeId,
@@ -1073,14 +1060,14 @@ function simulateSeason(queenDefs, options = {}) {
       log,
       usedMiniOneOffIdsSet,
       immunityState,
-      doubleLipSyncState
+      twistState
     );
     lastChallengeId = cid;
 
-    // Remove any queens eliminated this episode (0, 1, or 2)
+    // Remove all eliminated queens from the active cast
     for (const elim of eliminatedList) {
       const idx = queens.indexOf(elim);
-      if (idx !== -1) {
+      if (idx >= 0) {
         queens.splice(idx, 1);
       }
     }
