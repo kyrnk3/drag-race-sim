@@ -316,6 +316,11 @@
           <input type="checkbox" id="immunityToggle" checked />
           Immunity (early episodes)
         </label>
+
+        <label>
+          <input type="checkbox" id="doubleTwistsToggle" checked />
+          Double shantays/sashays
+        </label>
       </div>
 
       <div class="control-row" style="width:100%;">
@@ -351,6 +356,7 @@
     const modeSelect = document.getElementById("modeSelect");
     const viewSelect = document.getElementById("viewSelect");
     const immunityToggle = document.getElementById("immunityToggle");
+    const doubleTwistsToggle = document.getElementById("doubleTwistsToggle");
     const loadDefaultBtn = document.getElementById("loadDefaultQueens");
     const simulateBtn = document.getElementById("simulateButton");
     const seasonContainer = document.getElementById("seasonContainer");
@@ -1135,8 +1141,13 @@
       const mode = modeSelect.value;
       const view = viewSelect.value;
       const immunityEnabled = immunityToggle.checked;
+      const doubleLipSyncTwistsEnabled = doubleTwistsToggle.checked;
 
-      const log = window.simulateSeason(queens, { mode, immunityEnabled });
+      const log = window.simulateSeason(queens, {
+        mode,
+        immunityEnabled,
+        doubleLipSyncTwistsEnabled
+      });
 
       if (view === "summary") {
         renderSeasonSummary(log);
