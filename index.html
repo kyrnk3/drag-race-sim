@@ -560,23 +560,25 @@
             </label>
 
             <button type="button" id="btnRandomizeStats">Randomize stats</button>
-            <span class="muted">(Stats should range from 0 to 15)</span>
+            <span class="muted">(Stats should range from 0 to 10)</span>
 
             <div class="stat-grid">
               <label for="statActing">Acting:</label>
-              <input id="statActing" type="number" min="0" max="15" />
+              <input id="statActing" type="number" min="0" max="10" />
               <label for="statComedy">Comedy:</label>
-              <input id="statComedy" type="number" min="0" max="15" />
+              <input id="statComedy" type="number" min="0" max="10" />
               <label for="statDance">Dance:</label>
-              <input id="statDance" type="number" min="0" max="15" />
+              <input id="statDance" type="number" min="0" max="10" />
               <label for="statDesign">Design:</label>
-              <input id="statDesign" type="number" min="0" max="15" />
+              <input id="statDesign" type="number" min="0" max="10" />
               <label for="statImprov">Improv:</label>
-              <input id="statImprov" type="number" min="0" max="15" />
+              <input id="statImprov" type="number" min="0" max="10" />
               <label for="statRunway">Runway:</label>
-              <input id="statRunway" type="number" min="0" max="15" />
+              <input id="statRunway" type="number" min="0" max="10" />
+              <label for="statSinging">Singing:</label>
+              <input id="statSinging" type="number" min="0" max="10" />
               <label for="statLipsync">Lip Sync:</label>
-              <input id="statLipsync" type="number" min="0" max="15" />
+              <input id="statLipsync" type="number" min="0" max="10" />
             </div>
 
             <label>
@@ -641,7 +643,7 @@
     const castSizeLabel = document.getElementById("castSizeLabel");
     const queenGrid = document.getElementById("queenGrid");
     const btnRandomAll = document.getElementById("btnRandomAll");
-    const btnRandomCustoms = document.getElementById("btnRandomCustoms");
+    the const btnRandomCustoms = document.getElementById("btnRandomCustoms");
     const btnClearCast = document.getElementById("btnClearCast");
 
     // Custom queen editor elements
@@ -652,6 +654,7 @@
     const statDesign = document.getElementById("statDesign");
     const statImprov = document.getElementById("statImprov");
     const statRunway = document.getElementById("statRunway");
+    const statSinging = document.getElementById("statSinging");
     const statLipsync = document.getElementById("statLipsync");
     const customImageUrlInput = document.getElementById("customImageUrl");
     const btnRandomizeStats = document.getElementById("btnRandomizeStats");
@@ -815,6 +818,7 @@
         design: Number(statDesign.value) || 0,
         improv: Number(statImprov.value) || 0,
         runway: Number(statRunway.value) || 0,
+        singing: Number(statSinging.value) || 0,
         lipsync: Number(statLipsync.value) || 0,
       };
 
@@ -830,7 +834,8 @@
     }
 
     function randomStat() {
-      return Math.floor(Math.random() * 16); // 0–15
+      // 0–10 inclusive
+      return Math.floor(Math.random() * 11);
     }
 
     btnRandomizeStats.addEventListener("click", () => {
@@ -840,6 +845,7 @@
       statDesign.value = randomStat();
       statImprov.value = randomStat();
       statRunway.value = randomStat();
+      statSinging.value = randomStat();
       statLipsync.value = randomStat();
     });
 
@@ -917,6 +923,7 @@
       statDesign.value = q.stats?.design ?? 0;
       statImprov.value = q.stats?.improv ?? 0;
       statRunway.value = q.stats?.runway ?? 0;
+      statSinging.value = q.stats?.singing ?? 0;
       statLipsync.value = q.stats?.lipsync ?? 0;
     });
 
@@ -930,12 +937,6 @@
       currentCast = currentCast.filter((q) => q.id !== id);
       renderCustomQueenSelect();
       renderCastPicker();
-    });
-
-    // ---- Existing JSON / season rendering logic ----
-
-    loadDefaultBtn.addEventListener("click", () => {
-      queensInput.value = JSON.stringify(defaultQueens, null, 2);
     });
 
     // ---------- Parsing helpers ----------
@@ -1742,11 +1743,10 @@
     // Auto-load sample cast and initialise cast builder
     window.addEventListener("DOMContentLoaded", () => {
       defaultQueens = (window.QUEENS || []).map((q, idx) => ({
-        // ensure they have ids + source + imageUrl in a consistent shape
+        // carry through all original properties, but add id/source/imageUrl
+        ...q,
         id: q.id || slugify(q.name || "queen-" + idx),
-        name: q.name,
         imageUrl: q.imageUrl || "",
-        stats: q.stats || {},
         source: "default",
       }));
       customQueens = loadCustomQueens();
