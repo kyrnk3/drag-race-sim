@@ -280,6 +280,14 @@
       color: #000;
       font-weight: 600;
     }
+
+    /* Immunity tag styling */
+    .track-record-table .status-immunity-tag {
+      font-size: 0.65rem;
+      opacity: 0.8;
+      margin-top: 0.1rem;
+      letter-spacing: 0.05em;
+    }
   </style>
 </head>
 <body>
@@ -302,6 +310,11 @@
             <option value="summary">Summary</option>
             <option value="full">Full</option>
           </select>
+        </label>
+
+        <label>
+          <input type="checkbox" id="immunityToggle" checked />
+          Immunity (early episodes)
         </label>
       </div>
 
@@ -337,6 +350,7 @@
     const queensInput = document.getElementById("queensInput");
     const modeSelect = document.getElementById("modeSelect");
     const viewSelect = document.getElementById("viewSelect");
+    const immunityToggle = document.getElementById("immunityToggle");
     const loadDefaultBtn = document.getElementById("loadDefaultQueens");
     const simulateBtn = document.getElementById("simulateButton");
     const seasonContainer = document.getElementById("seasonContainer");
@@ -782,7 +796,8 @@
       // Helper: fallback season score from record only (if needed)
       function seasonScoreFromRecord(rec) {
         let score = 0;
-        for (const r of rec) {
+        for (const raw of rec) {
+          const r = raw.replace(/\(IMM\)$/, "");
           if (r === "WIN") score += 3;
           else if (r === "HIGH") score += 1;
           else if (r === "LOW") score -= 1;
@@ -803,7 +818,8 @@
 
           let firstStatusIdx = -1;
           for (let i = 0; i < parts.length; i++) {
-            if (statusSet.has(parts[i])) {
+            const base = parts[i].replace(/\(IMM\)$/, "");
+            if (statusSet.has(base)) {
               firstStatusIdx = i;
               break;
             }
@@ -814,7 +830,11 @@
           const rec = parts.slice(firstStatusIdx);
           if (!name) continue;
 
-          const elimIdx = rec.findIndex(s => s === "ELIM");
+          const elimIdx = rec.findIndex(s => {
+            const base = s.replace(/\(IMM\)$/, "");
+            return base === "ELIM";
+          });
+
           records.push({
             name,
             record: rec,
@@ -904,11 +924,29 @@
               const td = document.createElement("td");
 
               if (i < numEpisodeCols) {
-                const status = r.record[i] || "";
+                const rawStatus = r.record[i] || "";
+                const hasImmunity = rawStatus.endsWith("(IMM)");
+                const baseStatus = hasImmunity
+                  ? rawStatus.replace(/\(IMM\)$/, "")
+                  : rawStatus;
+
                 const cls =
-                  "status-" + (status ? status.toLowerCase() : "empty");
+                  "status-" + (baseStatus ? baseStatus.toLowerCase() : "empty");
                 td.className = cls;
-                td.textContent = status || "";
+
+                if (!baseStatus) {
+                  td.textContent = "";
+                } else if (hasImmunity) {
+                  const mainDiv = document.createElement("div");
+                  mainDiv.textContent = baseStatus;
+                  const immDiv = document.createElement("div");
+                  immDiv.textContent = "(IMM)";
+                  immDiv.className = "status-immunity-tag";
+                  td.appendChild(mainDiv);
+                  td.appendChild(immDiv);
+                } else {
+                  td.textContent = baseStatus;
+                }
               } else {
                 // Finale column: 1st / 2nd / 3rd
                 let text = "";
@@ -1096,8 +1134,9 @@
       const queens = JSON.parse(queensInput.value);
       const mode = modeSelect.value;
       const view = viewSelect.value;
+      const immunityEnabled = immunityToggle.checked;
 
-      const log = window.simulateSeason(queens, { mode });
+      const log = window.simulateSeason(queens, { mode, immunityEnabled });
 
       if (view === "summary") {
         renderSeasonSummary(log);
