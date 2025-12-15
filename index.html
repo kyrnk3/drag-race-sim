@@ -41,18 +41,6 @@
       flex-wrap: wrap;
     }
 
-    textarea {
-      width: 100%;
-      font-family: monospace;
-      font-size: 0.85rem;
-      background: #000;
-      color: #eee;
-      border-radius: 4px;
-      border: 1px solid #444;
-      padding: 0.5rem;
-      resize: vertical;
-    }
-
     select {
       background: #000;
       color: #eee;
@@ -356,6 +344,7 @@
       display: block;
       margin: 0 auto 0.35rem;
       box-shadow: 0 0 0 2px #000;
+      background: #000;
     }
 
     .queen-name {
@@ -454,6 +443,7 @@
       box-shadow: 0 0 0 2px #000;
       display: block;
       margin: 0 auto;
+      background: #000;
     }
 
     .chip {
@@ -505,11 +495,12 @@
 
       <div class="control-row">
         <span class="muted">
-          Build a cast using the GUI below. A default cast loads automatically; tweak it however you like!
+          Build a cast using the GUI below. Use the sample cast, randomize, or create your own queens.
         </span>
       </div>
 
       <div class="control-row">
+        <button id="loadSampleCast">Load sample cast</button>
         <button id="simulateButton">Simulate Season</button>
       </div>
     </section>
@@ -624,6 +615,7 @@
     const viewSelect = document.getElementById("viewSelect");
     const immunityToggle = document.getElementById("immunityToggle");
     const doubleTwistsToggle = document.getElementById("doubleTwistsToggle");
+    const loadSampleBtn = document.getElementById("loadSampleCast");
     const simulateBtn = document.getElementById("simulateButton");
     const seasonContainer = document.getElementById("seasonContainer");
 
@@ -711,6 +703,14 @@
 
     castSizeRange.addEventListener("input", syncCastSizeLabel);
 
+    function attachImageErrorFallback(img) {
+      if (!img) return;
+      img.addEventListener("error", () => {
+        img.src = "";
+        img.alt = "";
+      });
+    }
+
     function renderCastPicker() {
       queenGrid.innerHTML = "";
       if (!allQueens.length) {
@@ -726,6 +726,7 @@
         const img = document.createElement("img");
         img.src = q.imageUrl || "";
         img.alt = q.name;
+        attachImageErrorFallback(img);
         card.appendChild(img);
 
         const name = document.createElement("div");
@@ -895,6 +896,7 @@
       }
     }
 
+    attachImageErrorFallback(customPreviewImage);
     customQueenSelect.addEventListener("change", updatePreviewFromSelect);
 
     btnLoadForEdit.addEventListener("click", () => {
@@ -1692,16 +1694,12 @@
 
     // ---------- Main simulate handler ----------
     simulateBtn.addEventListener("click", () => {
-      let queens;
-      if (currentCast.length > 0) {
-        queens = currentCast;
-      } else if (defaultQueens.length > 0) {
-        queens = defaultQueens;
-      } else {
-        alert("No queens available. Please add at least one queen to the cast.");
+      if (currentCast.length === 0) {
+        alert("Please build a cast first (load sample cast, randomize, or select queens).");
         return;
       }
 
+      const queens = currentCast;
       const mode = modeSelect.value;
       const view = viewSelect.value;
       const immunityEnabled = immunityToggle.checked;
@@ -1720,7 +1718,19 @@
       }
     });
 
-    // Auto-load sample cast and initialise cast builder
+    // ---------- Load sample cast ----------
+    loadSampleBtn.addEventListener("click", () => {
+      if (!defaultQueens.length) {
+        alert("No sample cast is defined.");
+        return;
+      }
+      currentCast = [...defaultQueens];
+      castSizeRange.value = defaultQueens.length;
+      syncCastSizeLabel();
+      renderCastPicker();
+    });
+
+    // Auto-init cast builder (no cast selected by default)
     window.addEventListener("DOMContentLoaded", () => {
       baseQueenDefs = window.QUEENS || [];
       defaultQueens = baseQueenDefs.map((q, idx) => ({
@@ -1732,12 +1742,7 @@
       customQueens = loadCustomQueens();
       allQueens = [...defaultQueens, ...customQueens];
 
-      // default cast: all default queens
-      const defaultSize = defaultQueens.length || 12;
-      castSizeRange.value = defaultSize;
       syncCastSizeLabel();
-      currentCast = [...defaultQueens];
-
       renderCustomQueenSelect();
       renderCastPicker();
     });
