@@ -1022,7 +1022,12 @@ function buildTrackRecordMeta(allQueens, winner, finalists) {
     for (const q of orderingObjs) {
       const label = queenLabelMap.get(q);
       const status = q.track_record[ep] || "";
-      placements[label] = { status: status, immune: immuneMap && immuneMap[label] === true };
+      // Use the per-queen immunityHistory we record in updateTrackRecord
+      const immune =
+        q.immunityHistory && q.immunityHistory[ep]
+          ? true
+          : false;
+      placements[label] = { status, immune };
     }
     episodes.push({
       index: ep,
@@ -1037,7 +1042,7 @@ function buildTrackRecordMeta(allQueens, winner, finalists) {
   orderingObjs.forEach((q, idx) => {
     const label = queenLabelMap.get(q);
     let status = "";
-    if (idx === 0) status = "WIN";   // winner
+    if (idx === 0) status = "WIN";                 // winner
     else if (idx === 1 && finalists.length > 1) status = "RU2"; // 2nd place
     else if (idx === 2 && finalists.length > 2) status = "RU3"; // 3rd place
     finalePlacements[label] = status;
