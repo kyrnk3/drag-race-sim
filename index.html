@@ -1194,18 +1194,20 @@
     }
 
     function initEditFlagCheckboxes() {
-      EDIT_FLAGS_LIST = Array.isArray(window.ALL_EDIT_FLAGS)
-        ? window.ALL_EDIT_FLAGS
-        : [
-            "front_runner",
-            "late_bloomer",
-            "lip_sync_assassin",
-            "fan_favorite",
-            "villain",
-            "robbed",
-            "underestimated",
-            "messy"
-          ];
+      if (typeof ALL_EDIT_FLAGS !== "undefined" && Array.isArray(ALL_EDIT_FLAGS)) {
+        EDIT_FLAGS_LIST = ALL_EDIT_FLAGS;
+      } else {
+        EDIT_FLAGS_LIST = [
+          "front_runner",
+          "late_bloomer",
+          "lip_sync_assassin",
+          "fan_favorite",
+          "villain",
+          "robbed",
+          "underestimated",
+          "messy"
+        ];
+      }
       editCheckboxes.clear();
       editFlagsContainer.innerHTML = "";
       EDIT_FLAGS_LIST.forEach((flag) => {
@@ -1638,10 +1640,19 @@
 
       if (!allQueens.length) return;
 
-      const filtered = allQueens.filter((q) => {
-        if (!term) return true;
-        return q.name.toLowerCase().includes(term);
-      });
+      // NEW: don't show the whole roster by default.
+      if (!term) {
+        const p = document.createElement("p");
+        p.textContent = "Start typing to search queens.";
+        p.style.fontSize = "0.8rem";
+        p.style.color = "#aaa";
+        searchResultsEl.appendChild(p);
+        return;
+      }
+
+      const filtered = allQueens.filter((q) =>
+        q.name.toLowerCase().includes(term)
+      );
 
       if (!filtered.length) {
         const p = document.createElement("p");
@@ -1717,7 +1728,10 @@
     });
 
     loadSampleBtn.addEventListener("click", () => {
-      const sampleIds = Array.isArray(window.SAMPLE_CAST) ? window.SAMPLE_CAST : [];
+      const sampleIds =
+        typeof SAMPLE_CAST !== "undefined" && Array.isArray(SAMPLE_CAST)
+          ? SAMPLE_CAST
+          : [];
       if (sampleIds.length) {
         currentCast = sampleIds.map((id) => {
           const q = allQueens.find((qq) => qq.id === id);
@@ -1779,7 +1793,7 @@
     }
 
     function simulateSeasonFromUI() {
-      if (typeof window.simulateSeason !== "function") {
+      if (typeof simulateSeason !== "function") {
         alert("simulateSeason is not defined. Please check sim.js is loaded.");
         return;
       }
@@ -1791,7 +1805,7 @@
       }
 
       const options = getOptionsFromUI();
-      const result = window.simulateSeason(queens, options);
+      const result = simulateSeason(queens, options);
       const log = typeof result === "string" ? result : result.log || "";
       const meta = typeof result === "string" ? null : result;
 
@@ -2811,15 +2825,16 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-      if (!window.DEFAULT_QUEENS || !Array.isArray(window.DEFAULT_QUEENS)) {
+      if (typeof DEFAULT_QUEENS === "undefined" || !Array.isArray(DEFAULT_QUEENS)) {
         console.warn("DEFAULT_QUEENS is not defined or not an array.");
-        window.DEFAULT_QUEENS = [];
+        defaultQueens = [];
+      } else {
+        defaultQueens = DEFAULT_QUEENS.map(q => ({
+          ...q,
+          imageUrl: (q.imageUrl && q.imageUrl.trim()) ? q.imageUrl.trim() : DEFAULT_QUEEN_IMAGE
+        }));
       }
 
-      defaultQueens = window.DEFAULT_QUEENS.map(q => ({
-        ...q,
-        imageUrl: (q.imageUrl && q.imageUrl.trim()) ? q.imageUrl.trim() : DEFAULT_QUEEN_IMAGE
-      }));
       customQueens = loadCustomQueens().map(q => ({
         ...q,
         imageUrl: (q.imageUrl && q.imageUrl.trim()) ? q.imageUrl.trim() : DEFAULT_QUEEN_IMAGE
