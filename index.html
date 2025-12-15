@@ -43,22 +43,6 @@
       font-family: inherit;
     }
 
-    /* ---- Full-view "page" mode ---- */
-
-    body.sim-full-mode .toolbar,
-    body.sim-full-mode .builder-layout,
-    body.sim-full-mode .season-output > h2 {
-      display: none;
-    }
-
-    body.sim-full-mode .season-output {
-      margin-top: 1rem;
-    }
-
-    body.sim-full-mode #seasonContainer {
-      margin-top: 1.5rem;
-    }
-
     /* ---- Layout / containers ---- */
 
     .toolbar {
@@ -440,6 +424,25 @@
       color: #fff3d5;
     }
 
+    /* Finale-only cells (winner / runners-up) */
+    .track-record-table .status-final-win {
+      background: #d4af37;
+      color: #111;
+      font-weight: 700;
+    }
+
+    .track-record-table .status-final-runner1 {
+      background: #b0bec5;
+      color: #111;
+      font-weight: 600;
+    }
+
+    .track-record-table .status-final-runner2 {
+      background: #8d6e63;
+      color: #fff3e0;
+      font-weight: 600;
+    }
+
     /* Cast builder / search styling */
 
     .builder-layout {
@@ -568,7 +571,7 @@
     }
 
     .search-result-card.added {
-      /* No persistent highlight */
+      /* kept same as normal to avoid weird green highlight */
     }
 
     .queen-row {
@@ -1005,8 +1008,7 @@
               <label class="small-label" style="font-size:0.8rem; color:#ccc;">
                 Traits &amp; edits:
               </label>
-
-              <div class="edit-flags" style="margin-bottom:0.2rem;">
+              <div class="edit-flags" style="margin-bottom:0.4rem;">
                 <label class="edit-flag-label">
                   <input id="traitDramaProne" type="checkbox" />
                   <span>drama-prone</span>
@@ -1137,7 +1139,11 @@
       let key = normalizeQueenName(rawName.replace(/[.!?…]+$/u, ""));
       let q = queenNameMap.get(key);
       if (q) return q;
-      // Try stripping leading "The "
+      // Try stripping leading "Winner ", "High ", etc. that may sneak in
+      key = key.replace(/^(winner|high|low|bottom|safe|sashay away|shantay you stay|mini-challenge winner)\s+/i, "").trim();
+      q = queenNameMap.get(key);
+      if (q) return q;
+      // Try stripping leading "the "
       if (key.startsWith("the ")) {
         key = key.slice(4);
         q = queenNameMap.get(key);
@@ -1564,6 +1570,7 @@
       const opts = options || {};
       const allowDuplicate = !!opts.allowDuplicate;
       const limit = getCastLimit();
+      // Always respect the cast limit, even for duplicates
       if (currentCast.length >= limit) return;
 
       const existing = currentCast.find(q => q.id === id);
@@ -1572,6 +1579,7 @@
 
       let q;
       if (allowDuplicate) {
+        // Clone with a new id so the cast can hold multiple copies
         q = {
           ...base,
           id: base.id + "_copy_" + Date.now() + "_" + Math.floor(Math.random() * 1000)
@@ -1581,6 +1589,7 @@
       }
 
       if (existing && !allowDuplicate) {
+        // Already in the cast; do nothing
         return;
       }
 
@@ -1819,16 +1828,12 @@
       } else {
         renderSeasonSummary(lastSeasonLog);
       }
+
+      // Scroll to the output so it feels like a new "page"
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     simulateBtn.addEventListener("click", simulateSeasonFromUI);
-
-    // If user flips from full back to summary, restore builder layout.
-    viewSelect.addEventListener("change", () => {
-      if (viewSelect.value !== "full") {
-        exitFullViewMode();
-      }
-    });
 
     // =========================
     // Parsing season logs
@@ -1888,56 +1893,45 @@
       });
     }
 
-    // Remove raw numeric score blocks for episodes
+    // Strip out raw numeric score blocks from episodes
     function filterEpisode(lines) {
       const out = [];
       let skippingScores = false;
+
       for (const line of lines || []) {
         const trimmed = line.trim();
         if (!trimmed) {
-          if (skippingScores) {
-            // blank line ends score block
-            skippingScores = false;
-            continue;
-          }
+          // blank lines reset score-skipping
+          skippingScores = false;
           continue;
         }
 
+        // Headers that introduce a numeric score table
         if (
-          trimmed.startsWith("Mini-challenge scores:") ||
-          trimmed.startsWith("Scores this week:")
+          /^Mini-challenge scores:/i.test(trimmed) ||
+          /^Scores this week:/i.test(trimmed) ||
+          /^Main challenge scores:/i.test(trimmed) ||
+          /^Runway scores:/i.test(trimmed) ||
+          /^Total scores:/i.test(trimmed)
         ) {
           skippingScores = true;
           continue;
         }
 
+        // While skipping, ignore lines until we hit something clearly narrative.
         if (skippingScores) {
-          continue;
-        }
-
-        out.push(line);
-      }
-      return out;
-    }
-
-    // Remove raw numeric finale stats
-    function filterFinale(lines) {
-      const out = [];
-      let skippingScores = false;
-      for (const line of lines || []) {
-        const trimmed = line.trim();
-        if (!trimmed) {
-          if (skippingScores) {
+          if (
+            /^Results:/i.test(trimmed) ||
+            /^Mini-challenge winner:/i.test(trimmed) ||
+            /^Winner:/i.test(trimmed) ||
+            /^Based on tonight's performances/i.test(trimmed)
+          ) {
             skippingScores = false;
+          } else {
             continue;
           }
-          continue;
         }
-        if (trimmed.startsWith("Final lip sync performance:")) {
-          skippingScores = true;
-          continue;
-        }
-        if (skippingScores) continue;
+
         out.push(line);
       }
       return out;
@@ -2001,10 +1995,18 @@
       return { maxi, judging, bringBack, lipsync, results };
     }
 
+    // Now robust to "Winner:", "High:", "Bottom: A vs. B", etc.
     function parseQueenNamesFromLine(line) {
       if (!line) return [];
-      let segment = line;
+      let segment = line.trim();
 
+      // Strip leading labels
+      segment = segment.replace(/^(Winner|High|Low|Bottom|Safe|Mini-challenge winner|Sashay away|Shantay you stay):\s*/i, "");
+
+      // Turn "X vs Y" into "X, Y"
+      segment = segment.replace(/\s+vs\.?\s+/i, ", ");
+
+      // Chop off trailing narrative phrases
       const cutMarkers = [
         " had a great performance",
         " had a good performance",
@@ -2030,9 +2032,14 @@
         }
       }
 
+      // Replace "and" with commas so "A and B" parses as two names.
       segment = segment.replace(/\band\b/gi, ",");
-      segment = segment.replace(/\bvs\.\b/gi, ",").replace(/\bvs\b/gi, ",");
-      const parts = segment.split(",").map((p) => p.trim()).filter(Boolean);
+
+      const parts = segment
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean);
+
       return parts;
     }
 
@@ -2073,6 +2080,7 @@
       const { header, episodes, finale } = parseSeasonLog(log);
       const steps = [];
 
+      // Canonical number of main episodes for track-record table
       seasonEpisodeCount = episodes.length;
 
       const castLines = filterHeader(header);
@@ -2087,6 +2095,7 @@
         const epNum = m ? parseInt(m[1], 10) : index + 1;
         const epName = m ? m[2] : "Unknown challenge";
 
+        // Basic episode intro
         steps.push({ type: "episode_setup", epNum, name: epName });
 
         // Mini-challenge
@@ -2124,6 +2133,7 @@
           });
         }
 
+        // Maxi / judging / bring-back / lipsync / results
         const { maxi, judging, bringBack, lipsync, results } =
           parseEpisodeSections(filtered);
 
@@ -2173,6 +2183,7 @@
         }
       });
 
+      // Finale / track record summary
       const finaleLines = finale;
       if (finaleLines.length) {
         const idx = finaleLines.findIndex((l) =>
@@ -2225,6 +2236,7 @@
       );
       block.appendChild(challengeRow);
 
+      // Try to find line(s) that describe the winner(s)
       let winnerLine = null;
       for (const line of step.lines || []) {
         const lower = line.trim().toLowerCase();
@@ -2241,6 +2253,7 @@
       }
 
       if (!winnerNames.length) {
+        // Fallback: old style "Mini-challenge winner: Name"
         for (const line of step.lines || []) {
           const trimmed = line.trim();
           const lower = trimmed.toLowerCase();
@@ -2263,12 +2276,13 @@
     }
 
     function renderFinaleLines(lines, card) {
-      const filteredLines = filterFinale(lines);
       const block = document.createElement("div");
       block.className = "results-block";
 
       let titlePrinted = false;
-      for (const line of filteredLines) {
+      let skippingLipScores = false;
+
+      for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed) continue;
 
@@ -2279,6 +2293,20 @@
           block.appendChild(h);
           titlePrinted = true;
           continue;
+        }
+
+        // Skip numeric lip-sync breakdowns, keep the flavour text
+        if (/^Final lip sync performance:/i.test(trimmed)) {
+          skippingLipScores = true;
+          continue;
+        }
+        if (skippingLipScores) {
+          if (/devours the stage/i.test(trimmed) || /^And the winner/i.test(trimmed)) {
+            skippingLipScores = false;
+            // fall through and render this line
+          } else {
+            continue;
+          }
         }
 
         const p = document.createElement("div");
@@ -2343,30 +2371,33 @@
     function renderSeasonFull(log) {
       currentSteps = buildStepsFromLog(log);
       currentStepIndex = 0;
-      enterFullViewMode();
       renderCurrentStep();
     }
 
     function renderSeasonSummary(log) {
-      exitFullViewMode();
-
       const { header, episodes, finale } = parseSeasonLog(log);
       const summaryEl = document.createElement("div");
 
-      const headerCard = document.createElement("details");
-      headerCard.className = "episode-card";
-      headerCard.open = true;
+      const headerLines = filterHeader(header);
 
-      const headerSummary = document.createElement("summary");
-      headerSummary.textContent = "Season overview";
-      headerCard.appendChild(headerSummary);
+      // Header / season info – only if we actually have anything to show
+      if (headerLines.length) {
+        const headerCard = document.createElement("details");
+        headerCard.className = "episode-card";
+        headerCard.open = false;
 
-      const pre = document.createElement("pre");
-      pre.textContent = filterHeader(header).join("\n") || "(No overview available.)";
-      headerCard.appendChild(pre);
+        const headerSummary = document.createElement("summary");
+        headerSummary.textContent = "Season overview";
+        headerCard.appendChild(headerSummary);
 
-      summaryEl.appendChild(headerCard);
+        const pre = document.createElement("pre");
+        pre.textContent = headerLines.join("\n");
+        headerCard.appendChild(pre);
 
+        summaryEl.appendChild(headerCard);
+      }
+
+      // Episodes
       episodes.forEach((ep, index) => {
         const epCard = document.createElement("details");
         epCard.className = "episode-card";
@@ -2392,17 +2423,37 @@
         summaryEl.appendChild(epCard);
       });
 
+      // Finale / track record
       if (finale.length) {
         const finaleCard = document.createElement("details");
         finaleCard.className = "episode-card summary-final finale-card";
-        finaleCard.open = true;
+        finaleCard.open = false; // collapsed by default now
 
         const summary = document.createElement("summary");
         summary.textContent = "Grand Finale & track records";
         finaleCard.appendChild(summary);
 
         const bodyPre = document.createElement("pre");
-        bodyPre.textContent = filterFinale(finale).join("\n");
+        // Reuse the same Finale filtering we use in full view so raw stats don't show
+        const filteredLines = [];
+        let skippingLip = false;
+        for (const line of finale) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          if (trimmed.startsWith("Final lip sync performance:")) {
+            skippingLip = true;
+            continue;
+          }
+          if (skippingLip) {
+            if (/devours the stage/i.test(trimmed) || /^And the winner/i.test(trimmed)) {
+              skippingLip = false;
+            } else {
+              continue;
+            }
+          }
+          filteredLines.push(line);
+        }
+        bodyPre.textContent = filteredLines.join("\n");
         finaleCard.appendChild(bodyPre);
 
         const trackContainer = document.createElement("div");
@@ -2455,7 +2506,6 @@
       seasonContainer.appendChild(summaryEl);
     }
 
-    // Build track records directly from the log (with better parsing / ordering)
     function buildTrackRecordFromLog(logText) {
       const lines = (logText || "").split(/\r?\n/);
       const queenNames = new Set();
@@ -2472,7 +2522,6 @@
 
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed) continue;
 
         if (trimmed.startsWith("========== Episode")) {
           finalizeEpisode();
@@ -2501,19 +2550,15 @@
 
         for (const ptn of patterns) {
           if (trimmed.startsWith(ptn.label)) {
-            const tail = trimmed.slice(ptn.label.length).trim();
-            if (!tail) break;
-
-            const rawPieces = tail
-              .split(/,|\s+vs\.\s+|\s+vs\s+|\s+and\s+/i)
+            const list = trimmed
+              .slice(ptn.label.length)
+              .split(",")
               .map((s) => s.trim())
               .filter(Boolean);
-
-            rawPieces.forEach((name) => {
+            list.forEach((name) => {
               queenNames.add(name);
               currentEpisode.placements[name] = ptn.key;
             });
-            break;
           }
         }
       }
@@ -2522,50 +2567,9 @@
 
       if (!episodes.length || !queenNames.size) return null;
 
-      const allQueens = Array.from(queenNames);
+      const queenOrder = Array.from(queenNames);
       const episodeCount = episodes.length;
 
-      function findElimIndex(name) {
-        for (let i = 0; i < episodeCount; i++) {
-          if (episodes[i].placements[name] === "ELIM") return i;
-        }
-        return -1;
-      }
-
-      function seasonScore(name) {
-        let wins = 0,
-          highs = 0,
-          lows = 0,
-          btms = 0;
-        for (let i = 0; i < episodeCount; i++) {
-          const st = episodes[i].placements[name];
-          if (st === "WIN") wins++;
-          else if (st === "HIGH") highs++;
-          else if (st === "LOW") lows++;
-          else if (st === "BTM") btms++;
-        }
-        return wins * 3 + highs * 1 - lows * 1 - btms * 2;
-      }
-
-      allQueens.sort((a, b) => {
-        const elimA = findElimIndex(a);
-        const elimB = findElimIndex(b);
-        const elimValA = elimA === -1 ? Infinity : elimA;
-        const elimValB = elimB === -1 ? Infinity : elimB;
-
-        if (elimValA !== elimValB) {
-          // later elimination (higher index) should rank higher
-          return elimValB - elimValA;
-        }
-
-        const scoreA = seasonScore(a);
-        const scoreB = seasonScore(b);
-        if (scoreA !== scoreB) return scoreB - scoreA;
-
-        return a.localeCompare(b);
-      });
-
-      const queenOrder = allQueens;
       const tableEpisodes = [];
       for (let i = 0; i < episodeCount; i++) {
         const ep = episodes[i] || { placements: {} };
@@ -2611,9 +2615,10 @@
       thName.className = "track-name";
       headRow.appendChild(thName);
 
-      data.episodes.forEach((ep) => {
+      data.episodes.forEach((ep, idx) => {
         const th = document.createElement("th");
-        th.textContent = ep.name || "Ep " + (ep.index + 1);
+        const isFinale = idx === data.episodes.length - 1;
+        th.textContent = ep.name || (isFinale ? "Finale" : "Ep " + (ep.index + 1));
         headRow.appendChild(th);
       });
 
@@ -2622,7 +2627,7 @@
 
       const tbody = document.createElement("tbody");
 
-      data.queenOrder.forEach((qName) => {
+      data.queenOrder.forEach((qName, rowIndex) => {
         const row = document.createElement("tr");
 
         const nameCell = document.createElement("td");
@@ -2630,10 +2635,38 @@
         nameCell.className = "track-name";
         row.appendChild(nameCell);
 
-        data.episodes.forEach((ep) => {
+        data.episodes.forEach((ep, colIndex) => {
           const cell = document.createElement("td");
-          const status = ep.placements[qName] || "";
+          const isFinale = colIndex === data.episodes.length - 1;
+
+          if (isFinale) {
+            // Finale is handled as winner / runner-up only, no BTM etc.
+            let finaleStatus = "";
+            let finaleClass = "status-empty";
+
+            if (rowIndex === 0) {
+              finaleStatus = "WIN";
+              finaleClass = "status-final-win";
+            } else if (rowIndex === 1) {
+              finaleStatus = "RUN-UP";
+              finaleClass = "status-final-runner1";
+            } else if (rowIndex === 2) {
+              finaleStatus = "RUN-UP";
+              finaleClass = "status-final-runner2";
+            } else {
+              finaleStatus = "";
+              finaleClass = "status-empty";
+            }
+
+            cell.textContent = finaleStatus;
+            cell.className = finaleClass;
+            row.appendChild(cell);
+            return;
+          }
+
+          const status = (ep.placements && ep.placements[qName]) || "";
           const displayStatus = status === "RTU" ? "RTRN" : status;
+
           cell.textContent = displayStatus;
           if (!status) {
             cell.className = "status-empty";
@@ -2700,15 +2733,6 @@
         default:
           return "Next";
       }
-    }
-
-    function enterFullViewMode() {
-      document.body.classList.add("sim-full-mode");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    function exitFullViewMode() {
-      document.body.classList.remove("sim-full-mode");
     }
 
     function renderCurrentStep() {
@@ -2852,6 +2876,9 @@
       card.appendChild(nav);
 
       seasonContainer.appendChild(card);
+
+      // Always jump the viewport to the card so it feels like a "new page"
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     // =========================
@@ -2859,39 +2886,36 @@
     // =========================
 
     function renderCustomQueenSelect() {
-      // Deprecated; no-op
+      // Deprecated in this refactor; kept as a no-op placeholder
     }
 
     document.addEventListener("DOMContentLoaded", () => {
+      // Fallbacks for different queens.js exports.
       let sourceDefault = [];
-    
+
       if (Array.isArray(window.DEFAULT_QUEENS)) {
         sourceDefault = window.DEFAULT_QUEENS;
+      } else if (typeof DEFAULT_QUEENS !== "undefined" && Array.isArray(DEFAULT_QUEENS)) {
+        sourceDefault = DEFAULT_QUEENS;
       } else if (Array.isArray(window.QUEENS)) {
-        // fallback to QUEENS if DEFAULT_QUEENS isn't defined
+        // Older queens.js used window.QUEENS
         sourceDefault = window.QUEENS;
       } else {
-        console.warn(
-          "No queen list found – expected window.DEFAULT_QUEENS or window.QUEENS."
-        );
+        console.warn("DEFAULT_QUEENS is not defined or not an array.");
         sourceDefault = [];
       }
-    
+
       defaultQueens = sourceDefault.map(q => ({
         ...q,
-        imageUrl: (q.imageUrl && q.imageUrl.trim())
-          ? q.imageUrl.trim()
-          : DEFAULT_QUEEN_IMAGE
+        imageUrl: (q.imageUrl && q.imageUrl.trim()) ? q.imageUrl.trim() : DEFAULT_QUEEN_IMAGE
       }));
       customQueens = loadCustomQueens().map(q => ({
         ...q,
-        imageUrl: (q.imageUrl && q.imageUrl.trim())
-          ? q.imageUrl.trim()
-          : DEFAULT_QUEEN_IMAGE
+        imageUrl: (q.imageUrl && q.imageUrl.trim()) ? q.imageUrl.trim() : DEFAULT_QUEEN_IMAGE
       }));
       allQueens = [...defaultQueens, ...customQueens];
       rebuildQueenNameMap();
-    
+
       syncCastSizeLabel();
       updateCastCount();
       initEditFlagCheckboxes();
