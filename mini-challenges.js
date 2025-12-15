@@ -84,10 +84,10 @@ window.MINI_CHALLENGES = [
     id: "lip_sync_mini",
     name: "Lip Sync Challenge",
     weights: {
-      dance: 0.4,
-      improv: 0.25,
-      acting: 0.2,
-      singing: 0.15
+      lipsync: 0.55,
+      dance:   0.20,
+      improv:  0.15,
+      singing: 0.10
     },
     variance: 2.0
   },
