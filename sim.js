@@ -62,6 +62,8 @@ class Queen {
     this.producer_fave = producerFave;
     this.edits = new Set(edits || []);
     this.track_record = []; // ["WIN", "HIGH", "SAFE", "BTM", "ELIM"]
+    // Per-episode immunity flags (true if this queen was immune that week)
+    this.immunityHistory = [];
     this.eliminated = false;
   }
 }
@@ -500,7 +502,7 @@ function resolveLipSync(bottom2, challenge, phase) {
   return [winner, eliminated];
 }
 
-function updateTrackRecord(winner, highs, low, bottom2, eliminated) {
+function updateTrackRecord(winner, highs, low, bottom2, eliminated, immuneSet) {
   for (const q of bottom2) {
     q.track_record.push("BTM");
   }
@@ -528,6 +530,17 @@ function updateTrackRecord(winner, highs, low, bottom2, eliminated) {
   } else {
     eliminated.track_record.push("ELIM");
   }
+
+  // Record immunity flags in parallel with track records.
+  const immuneQueens = immuneSet || new Set();
+  for (const q of allQueensGlobal) {
+    // Only extend history for queens who actually appeared this episode
+    if (q.eliminated && q !== eliminated) continue;
+    if (!q.immunityHistory) q.immunityHistory = [];
+    const isImmune = immuneQueens.has(q);
+    q.immunityHistory.push(isImmune);
+  }
+
   eliminated.eliminated = true;
 }
 
@@ -539,10 +552,17 @@ function simulateEpisode(
   requiredSchedule,
   totalEpisodes,
   log,
-  usedMiniOneOffIdsSet
+  usedMiniOneOffIdsSet,
+  immunityState
 ) {
   const queensRemaining = queens.length;
   const phase = episodeNum <= totalEpisodes / 2 ? "early" : "late";
+
+  // Determine who is immune this episode.
+  const currentImmuneSet = new Set();
+  if (immunityState && immunityState.enabled && immunityState.current) {
+    currentImmuneSet.add(immunityState.current);
+  }
 
   const scheduledId = requiredSchedule[episodeNum];
 
@@ -603,7 +623,12 @@ function simulateEpisode(
 
   const n = ranked.length;
   const winner = ranked[0][0];
-  const bottom2 = [ranked[n - 2][0], ranked[n - 1][0]];
+
+  // Bottom 2: among non-immune queens only
+  const nonImmuneRanked = ranked.filter(([q]) => !currentImmuneSet.has(q));
+  const m = nonImmuneRanked.length;
+  const bottom2 = [nonImmuneRanked[m - 2][0], nonImmuneRanked[m - 1][0]];
+
   const highIndicesEnd = Math.min(3, n - 2);
   const highs = [];
   for (let i = 1; i < highIndicesEnd; i++) {
@@ -615,7 +640,7 @@ function simulateEpisode(
   }
 
   const [lipWinner, eliminated] = resolveLipSync(bottom2, challenge, phase);
-  updateTrackRecord(winner, highs, low, bottom2, eliminated);
+  updateTrackRecord(winner, highs, low, bottom2, eliminated, currentImmuneSet);
 
   log.push("\nResults:\n");
   log.push(`  Winner: ${winner.name}\n`);
@@ -629,6 +654,16 @@ function simulateEpisode(
   log.push(`  Shantay you stay: ${lipWinner.name}\n`);
   log.push(`  Sashay away:      ${eliminated.name}\n`);
 
+  // Decide who gets immunity for the next episode (if the twist is active).
+  if (immunityState && immunityState.enabled) {
+    const nextCount = queensRemaining - 1; // one queen just got eliminated
+    if (nextCount > immunityState.cutoff) {
+      immunityState.next = winner;
+    } else {
+      immunityState.next = null;
+    }
+  }
+
   return [eliminated, cid, usedOneOffIdsSet];
 }
 
@@ -637,9 +672,20 @@ function simulateEpisode(
 // =========================
 
 function formatTrackRecord(q) {
-  const rec = [...q.track_record];
-  const idx = rec.indexOf("ELIM");
-  const trimmed = idx >= 0 ? rec.slice(0, idx + 1) : rec;
+  const raw = q.track_record || [];
+  const imm = q.immunityHistory || [];
+
+  // Annotate placements with (IMM) where applicable (except ELIM)
+  const annotated = raw.map((status, idx) => {
+    const hasImm = !!imm[idx];
+    if (hasImm && status !== "ELIM") {
+      return status + "(IMM)";
+    }
+    return status;
+  });
+
+  const idx = raw.indexOf("ELIM");
+  const trimmed = idx >= 0 ? annotated.slice(0, idx + 1) : annotated;
   return trimmed.join(" ");
 }
 
@@ -769,6 +815,17 @@ function simulateSeason(queenDefs, options = {}) {
 
   const log = [];
 
+  // Immunity twist configuration
+  const immunityEnabled =
+    options.immunityEnabled === undefined ? true : !!options.immunityEnabled;
+  const immunityCutoff = Math.random() < 0.5 ? 7 : 8;
+  const immunityState = {
+    enabled: immunityEnabled,
+    cutoff: immunityCutoff,
+    current: null,
+    next: null
+  };
+
   log.push("========== Drag Race Season Simulation ==========\n");
   log.push("Starting queens:\n");
   for (const q of queens) {
@@ -787,7 +844,34 @@ function simulateSeason(queenDefs, options = {}) {
     log.push("\n");
   }
 
+  if (immunityState.enabled) {
+    log.push(`Immunity twist: active until the cast reaches Top ${immunityState.cutoff}.\n\n`);
+  } else {
+    log.push("Immunity twist: disabled for this run.\n\n");
+  }
+
   while (queens.length > 3 && episodeNum <= totalEpisodes) {
+    const queensRemaining = queens.length;
+
+    // Decide who (if anyone) is immune this episode
+    if (!immunityState.enabled) {
+      immunityState.current = null;
+    } else {
+      if (episodeNum === 1) {
+        // No immunity in Episode 1
+        immunityState.current = null;
+      } else if (queensRemaining <= immunityState.cutoff) {
+        // Once we reach Top 7/8, immunity is fully phased out.
+        immunityState.current = null;
+      } else {
+        // Use the queen who earned immunity last episode, if she's still in.
+        if (immunityState.next && !queens.includes(immunityState.next)) {
+          immunityState.next = null;
+        }
+        immunityState.current = immunityState.next || null;
+      }
+    }
+
     const [eliminated, cid] = simulateEpisode(
       episodeNum,
       queens,
@@ -796,7 +880,8 @@ function simulateSeason(queenDefs, options = {}) {
       requiredSchedule,
       totalEpisodes,
       log,
-      usedMiniOneOffIdsSet
+      usedMiniOneOffIdsSet,
+      immunityState
     );
     lastChallengeId = cid;
     queens.splice(queens.indexOf(eliminated), 1);
