@@ -582,7 +582,7 @@ function resolveLipSync(bottom2, challenge, phase, twistState) {
     twistState.doubleShantayEnabled &&
     !twistState.usedDoubleShantay
   ) {
-    let chance = 0.12; // base low–medium chance
+    let chance = 0.18; // base low–medium chance
 
     // Boost if the provisional loser is a protected narrative fave
     if (hasDoubleShantayTag(eliminated)) {
