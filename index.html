@@ -1350,7 +1350,7 @@
       for (const ep of episodes) {
         const lines = filterEpisode(ep.lines);
         const title = lines[0] || "";
-        the m = title.match(/Episode (\d+) — (.+?) =+/);
+        const m = title.match(/Episode (\d+) — (.+?) =+/);
         const label = m ? `Episode ${m[1]} — ${m[2]}` : title;
 
         const d = document.createElement("details");
