@@ -646,7 +646,10 @@
               <input id="statLipsync" type="number" min="0" max="10" />
             </div>
 
-            <div class="muted" style="margin-top:0.5rem;">Traits:</div>
+            <div style="margin-top:0.5rem; display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+              <span class="muted">Personality / story:</span>
+              <button type="button" id="btnRandomizePersonality">Randomize traits/edits</button>
+            </div>
             <div class="traits-row">
               <label><input type="checkbox" id="traitDramaProne" /> Drama-prone</label>
               <label><input type="checkbox" id="traitProducerFave" /> Producer favorite</label>
@@ -733,6 +736,7 @@
     const statLipsync = document.getElementById("statLipsync");
     const customImageUrlInput = document.getElementById("customImageUrl");
     const btnRandomizeStats = document.getElementById("btnRandomizeStats");
+    const btnRandomizePersonality = document.getElementById("btnRandomizePersonality");
     const btnAddQueen = document.getElementById("btnAddQueen");
     const btnUpdateQueen = document.getElementById("btnUpdateQueen");
     const customQueenSelect = document.getElementById("customQueenSelect");
@@ -752,7 +756,7 @@
 
     // ---- Queen data for cast builder ----
     const CUSTOM_STORAGE_KEY = "drag_race_sim_custom_queens";
-    const DEFAULT_QUEEN_IMAGE_URL = ""; // set this to a generic image URL for default queens
+    const DEFAULT_QUEEN_IMAGE_URL = ""; // put a generic image URL here if you want
 
     let defaultQueens = [];
     let customQueens = [];
@@ -760,6 +764,7 @@
     let currentCast = [];
 
     const editCheckboxes = new Map();
+    let EDIT_FLAGS_LIST = [];
 
     function slugify(name) {
       return (
@@ -805,6 +810,8 @@
               "underestimated",
               "messy",
             ];
+
+      EDIT_FLAGS_LIST = flagsSource.slice();
 
       editFlagsContainer.innerHTML = "";
       editCheckboxes.clear();
@@ -1031,6 +1038,27 @@
       statImprov.value = randomStat();
       statRunway.value = randomStat();
       statLipsync.value = randomStat();
+    });
+
+    btnRandomizePersonality.addEventListener("click", () => {
+      // Traits
+      traitDramaProne.checked = Math.random() < 0.35;
+      traitProducerFave.checked = Math.random() < 0.2;
+
+      // Edits: clear, then pick 0–3 random ones
+      editCheckboxes.forEach((cb) => (cb.checked = false));
+
+      if (!EDIT_FLAGS_LIST.length) return;
+      const maxEdits = 3;
+      const count = Math.floor(Math.random() * (maxEdits + 1)); // 0..3
+
+      const pool = EDIT_FLAGS_LIST.slice();
+      for (let i = 0; i < count && pool.length; i++) {
+        const idx = Math.floor(Math.random() * pool.length);
+        const flag = pool.splice(idx, 1)[0];
+        const cb = editCheckboxes.get(flag);
+        if (cb) cb.checked = true;
+      }
     });
 
     function formToQueen(idOverride) {
@@ -1604,6 +1632,19 @@
 
       card.appendChild(block);
 
+      function seasonScoreFromRecord(rec) {
+        let score = 0;
+        for (const raw of rec) {
+          const r = raw.replace(/\(IMM\)$/, "");
+          if (r === "WIN") score += 3;
+          else if (r === "HIGH") score += 1;
+          else if (r === "LOW") score -= 1;
+          else if (r === "BTM") score -= 2;
+        }
+        return score;
+      }
+
+      // Track records table
       if (!trackLines.length) return;
 
       const records = [];
@@ -1644,32 +1685,19 @@
 
       if (!records.length) return;
 
+      // Detect duplicate names (cursed Test Queen season, etc.)
       const nameCounts = new Map();
       for (const r of records) {
         nameCounts.set(r.name, (nameCounts.get(r.name) || 0) + 1);
       }
       const hasDuplicateNames = Array.from(nameCounts.values()).some((c) => c > 1);
 
-      function seasonScoreFromRecord(rec) {
-        let score = 0;
-        for (const raw of rec) {
-          const r = raw.replace(/\(IMM\)$/, "");
-          if (r === "WIN") score += 3;
-          else if (r === "HIGH") score += 1;
-          else if (r === "LOW") score -= 1;
-          else if (r === "BTM") score -= 2;
-        }
-        return score;
-      }
-
       let finalRecords;
       let secondName = null;
       let thirdName = null;
 
       if (!hasDuplicateNames && finalists.length) {
-        // Normal case: unique names
-        records.sort((a, b) => b.elimIndex - a.elimIndex);
-
+        // --- Normal case: unique names, use finalists list + real season scores ---
         const finalistsSet = new Set(finalists);
 
         const finalistRecords = records
@@ -1682,6 +1710,7 @@
             return { ...r, seasonScore };
           });
 
+        // Sort finalists by season score, then ensure the actual winner is first
         finalistRecords.sort((a, b) => b.seasonScore - a.seasonScore);
         const winnerIdx = finalistRecords.findIndex((r) => r.name === winnerName);
         if (winnerIdx > 0) {
@@ -1707,7 +1736,8 @@
           ...nonFinalistsOrdered,
         ];
       } else {
-        // Cursed case: duplicate names (e.g. multiple Test Queens)
+        // --- Cursed case: duplicate names (e.g. multiple Test Queens) ---
+        // Decide finalists purely by track records (no ELIM).
         const nonEliminated = records.filter((r) => r.elimIndex === Infinity);
         const eliminated = records.filter((r) => r.elimIndex !== Infinity);
 
@@ -1716,6 +1746,7 @@
           seasonScore: seasonScoreFromRecord(r.record),
         }));
 
+        // Sort finalists by season score desc; tie-breaker: later elimIndex / rowIndex
         finalistRecords.sort((a, b) => {
           if (b.seasonScore !== a.seasonScore) {
             return b.seasonScore - a.seasonScore;
@@ -1726,6 +1757,7 @@
           return a.rowIndex - b.rowIndex;
         });
 
+        // Winner: best of these (all share the same name string anyway)
         const winnerRec = finalistRecords[0] || null;
         if (winnerRec) {
           winnerName = winnerRec.name;
@@ -1733,6 +1765,7 @@
         secondName = finalistRecords[1]?.name || null;
         thirdName = finalistRecords[2]?.name || null;
 
+        // Sort eliminated by elimination order (earlier ELIM first)
         eliminated.sort((a, b) => {
           if (a.elimIndex !== b.elimIndex) {
             return a.elimIndex - b.elimIndex;
@@ -1752,6 +1785,7 @@
         if (r.record.length > maxEpisodes) maxEpisodes = r.record.length;
       }
 
+      // Use canonical episode count if we have it; fall back to max record length.
       const numEpisodeCols = seasonEpisodeCount || maxEpisodes;
 
       const table = document.createElement("table");
@@ -1813,6 +1847,7 @@
               td.textContent = baseStatus;
             }
           } else {
+            // Finale column: 1st / 2nd / 3rd
             let text = "";
             let cls = "status-empty";
             if (r.name === winnerName) {
@@ -1999,6 +2034,7 @@
       if (currentCast.length > 0) {
         queens = currentCast;
       } else {
+        // fallback to full default cast if user didn't build one
         queens = defaultQueens;
       }
 
@@ -2031,16 +2067,15 @@
       defaultQueens = baseDefs.map((q, idx) => ({
         ...q,
         id: q.id || slugify(q.name || "queen-" + idx),
-        imageUrl: q.imageUrl || DEFAULT_QUEEN_IMAGE_URL,
+        imageUrl: q.imageUrl || DEFAULT_QUEEN_IMAGE_URL || "",
         source: "default",
       }));
       customQueens = loadCustomQueens();
       allQueens = [...defaultQueens, ...customQueens];
 
-      initEditFlagCheckboxes();
-
       syncCastSizeLabel();
       updateCastCount();
+      initEditFlagCheckboxes();
       renderCustomQueenSelect();
       renderCastList();
       renderSearchResults("");
