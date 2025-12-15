@@ -838,11 +838,50 @@
     });
 
     btnAddQueen.addEventListener("click", () => {
+      const selectedId = customQueenSelect.value;
+    
+      // Easter egg: if a custom queen is selected in the dropdown,
+      // "Add queen" will CLONE her into the cast (but not the custom list).
+      if (selectedId) {
+        const base = customQueens.find((q) => q.id === selectedId);
+        if (!base) {
+          alert("Could not find that custom queen to clone.");
+          return;
+        }
+    
+        const limit = getCastLimit();
+        if (currentCast.length >= limit) {
+          // Cast is already full; silently ignore (or alert if you prefer)
+          alert("Cast is already at the selected size limit.");
+          return;
+        }
+    
+        const clone = {
+          ...base,
+          // Give each clone a unique internal id so the simulator
+          // treats them as separate contestants.
+          id: base.id + "__clone_" + Date.now() + "_" + Math.floor(Math.random() * 100000)
+        };
+    
+        allQueens.push(clone);
+        currentCast.push(clone);
+        renderCastPicker();
+        return;
+      }
+    
+      // Normal path: create a brand-new custom queen definition.
       const q = formToQueen();
       if (!q) {
         alert("Please enter a name for the queen.");
         return;
       }
+    
+      // Prevent duplicate custom entries with the same id (same name).
+      if (customQueens.some((existing) => existing.id === q.id)) {
+        alert("A custom queen with that name already exists. Use 'Update queen' instead.");
+        return;
+      }
+    
       customQueens.push(q);
       saveCustomQueens(customQueens);
       allQueens = [...defaultQueens, ...customQueens];
