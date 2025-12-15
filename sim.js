@@ -576,13 +576,18 @@ function resolveLipSync(bottom2, challenge, phase, twistState) {
 
   let twist = "none";
 
-  const highThreshold = 8.0;
-  const lowThreshold = 3.0;
+  // Thresholds for “slay” and “bomb”
+  const highThreshold = 8.0;    // unchanged – really strong lip sync
+  const bombThreshold = 4.0;    // was 3.0 – now includes more obvious flops
+  const disasterThreshold = 2.0; // “truly awful” territory
 
   const bothSlay = (sWinner >= highThreshold && sLoser >= highThreshold);
-  const bothBomb = (sWinner <= lowThreshold && sLoser <= lowThreshold);
+  const bothBomb = (sWinner <= bombThreshold && sLoser <= bombThreshold);
+  const oneDisaster = (Math.min(sWinner, sLoser) <= disasterThreshold);
 
-  // Double SHANTAY: only when both slay, once per season
+  // =========================
+  // Double SHANTAY (unchanged)
+  // =========================
   if (
     bothSlay &&
     twistState.doubleShantayEnabled &&
@@ -608,15 +613,20 @@ function resolveLipSync(bottom2, challenge, phase, twistState) {
     }
   }
 
-  // Double SASHAY: only when both bomb, once per season
+  // =========================
+  // Double SASHAY (more permissive)
+  // =========================
+  // Triggers when:
+  //  - both queens are clear flops (<= bombThreshold), OR
+  //  - at least one queen is a total disaster (<= disasterThreshold)
   if (
-    bothBomb &&
+    (bothBomb || oneDisaster) &&
     twistState.doubleSashayEnabled &&
     !twistState.usedDoubleSashay
   ) {
-    let chance = 0.10; // base low–medium chance
+    let chance = 0.14; // slightly higher base than before
 
-    // Boost if the provisional winner is "messy"/drama fuel
+    // Boost if the *winner* is messy/drama/robbed (producers love chaos)
     if (hasDoubleSashayTag(winner)) {
       chance += 0.20;
     }
@@ -634,7 +644,9 @@ function resolveLipSync(bottom2, challenge, phase, twistState) {
     }
   }
 
+  // =========================
   // Normal outcome
+  // =========================
   return { lipWinner: winner, eliminated, twist };
 }
 
