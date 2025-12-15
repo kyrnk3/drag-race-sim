@@ -723,6 +723,8 @@
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem;
+      align-items: center;
+      justify-content: flex-start;
     }
 
     .editor-actions button {
@@ -737,6 +739,9 @@
       align-items: center;
       gap: 0.3rem;
       transition: background 0.08s ease, transform 0.08s ease, box-shadow 0.08s ease;
+      flex: 1 1 140px;
+      text-align: center;
+      justify-content: center;
     }
 
     .editor-actions button:hover {
@@ -836,6 +841,9 @@
     .edit-flag-label {
       cursor: pointer;
       white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
     }
   </style>
 </head>
@@ -985,16 +993,16 @@
               <div class="edit-flags" style="margin-bottom:0.4rem;">
                 <label class="edit-flag-label">
                   <input id="traitDramaProne" type="checkbox" />
-                  drama-prone
+                  <span>drama-prone</span>
                 </label>
                 <label class="edit-flag-label">
                   <input id="traitProducerFave" type="checkbox" />
-                  producer favorite
+                  <span>producer favorite</span>
                 </label>
               </div>
 
               <label class="small-label" style="font-size:0.8rem; color:#ccc;">
-                Edit flags:
+                Edits:
               </label>
               <div class="edit-flags" id="editFlagsContainer"></div>
             </div>
@@ -1034,13 +1042,12 @@
     </section>
   </div>
 
-  
   <script src="challenges.js"></script>
   <script src="mini-challenges.js"></script>
   <script src="queens.js"></script>
   <script src="sim.js"></script>
 
-<script>
+  <script>
     const DEFAULT_QUEEN_IMAGE = "https://i.imgur.com/kXv2EFQ.png";
 
     const modeSelect = document.getElementById("modeSelect");
@@ -1077,8 +1084,7 @@
     const editFlagsContainer = document.getElementById("editFlagsContainer");
 
     const btnRandomizeStats = document.getElementById("randomizeStatsBtn");
-    const btnRandomizePersonality =
-      document.getElementById("randomizeTraitsBtn");
+    const btnRandomizePersonality = document.getElementById("randomizeTraitsBtn");
     const btnAddCustomQueen = document.getElementById("addCustomQueenBtn");
     const btnUpdateCustomQueen = document.getElementById("updateCustomQueenBtn");
     const btnRemoveCustomQueen = document.getElementById("removeCustomQueenBtn");
@@ -1805,9 +1811,7 @@
     // =========================
 
     function parseSeasonLog(logText) {
-      const lines = (logText || "").split(/
-?
-/);
+      const lines = (logText || "").split(/\r?\n/);
       const header = [];
       const episodes = [];
       const finale = [];
@@ -1962,7 +1966,7 @@
         }
       }
 
-      segment = segment.replace(/and/gi, ",");
+      segment = segment.replace(/\band\b/gi, ",");
       const parts = segment.split(",").map((p) => p.trim()).filter(Boolean);
       return parts;
     }
@@ -2340,6 +2344,34 @@
       renderQueenLinesBlock(step.lines || [], card);
     }
 
+    function getNextLabel(step, index, total) {
+      if (index === total - 1) return "Back to start";
+      switch (step.type) {
+        case "cast":
+          return "Start Episode 1";
+        case "episode_setup":
+          return "Mini-challenge";
+        case "episode_mini":
+          return "Maxi-challenge";
+        case "episode_maxi":
+          return "Judging";
+        case "episode_judging":
+          return "Bring back my girls";
+        case "episode_bring_back":
+          return "Lipsync";
+        case "episode_lipsync":
+          return "Results";
+        case "episode_results":
+          return "Next episode";
+        case "final3":
+          return "Grand Finale";
+        case "finale":
+          return "Back to start";
+        default:
+          return "Next";
+      }
+    }
+
     function renderCurrentStep() {
       seasonContainer.innerHTML = "";
       if (!currentSteps.length) {
@@ -2417,8 +2449,7 @@
       if (bodyLines.length) {
         if (step.type === "episode_setup") {
           const p = document.createElement("p");
-          p.textContent = bodyLines.join("
-");
+          p.textContent = bodyLines.join("\n");
           card.appendChild(p);
         } else if (step.type === "episode_mini") {
           renderMiniLines(step, card);
@@ -2436,8 +2467,7 @@
           renderFinaleLines(bodyLines, card);
         } else {
           const pre = document.createElement("pre");
-          pre.textContent = bodyLines.join("
-");
+          pre.textContent = bodyLines.join("\n");
           card.appendChild(pre);
         }
       }
@@ -2501,8 +2531,7 @@
       headerCard.appendChild(headerSummary);
 
       const pre = document.createElement("pre");
-      pre.textContent = filterHeader(header).join("
-") || "(No overview available.)";
+      pre.textContent = filterHeader(header).join("\n") || "(No overview available.)";
       headerCard.appendChild(pre);
 
       summaryEl.appendChild(headerCard);
@@ -2527,8 +2556,7 @@
         epCard.appendChild(summary);
 
         const bodyPre = document.createElement("pre");
-        bodyPre.textContent = filterEpisode(ep.lines).join("
-");
+        bodyPre.textContent = filterEpisode(ep.lines).join("\n");
         epCard.appendChild(bodyPre);
 
         summaryEl.appendChild(epCard);
@@ -2545,8 +2573,7 @@
         finaleCard.appendChild(summary);
 
         const bodyPre = document.createElement("pre");
-        bodyPre.textContent = finale.join("
-");
+        bodyPre.textContent = finale.join("\n");
         finaleCard.appendChild(bodyPre);
 
         const trackContainer = document.createElement("div");
@@ -2604,9 +2631,7 @@
     // ----------
 
     function buildTrackRecordFromLog(logText) {
-      const lines = (logText || "").split(/
-?
-/);
+      const lines = (logText || "").split(/\r?\n/);
       const queenNames = new Set();
       const episodes = [];
 
@@ -2774,38 +2799,6 @@
 
       table.appendChild(tbody);
       container.appendChild(table);
-    }
-
-    // =========================
-    // Utility: next button label
-    // =========================
-
-    function getNextLabel(step, index, total) {
-      if (index === total - 1) return "Back to start";
-      switch (step.type) {
-        case "cast":
-          return "Start Episode 1";
-        case "episode_setup":
-          return "Mini-challenge";
-        case "episode_mini":
-          return "Maxi-challenge";
-        case "episode_maxi":
-          return "Judging";
-        case "episode_judging":
-          return "Bring back my girls";
-        case "episode_bring_back":
-          return "Lipsync";
-        case "episode_lipsync":
-          return "Results";
-        case "episode_results":
-          return "Next episode";
-        case "final3":
-          return "Grand Finale";
-        case "finale":
-          return "Back to start";
-        default:
-          return "Next";
-      }
     }
 
     // =========================
