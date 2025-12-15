@@ -707,6 +707,7 @@
   <!-- UI / Rendering -->
   <script>
     const DEFAULT_QUEEN_IMAGE = "https://i.imgur.com/kXv2EFQ.png";
+
     const modeSelect = document.getElementById("modeSelect");
     const viewSelect = document.getElementById("viewSelect");
     const immunityToggle = document.getElementById("immunityToggle");
@@ -757,7 +758,6 @@
 
     // ---- Queen data for cast builder ----
     const CUSTOM_STORAGE_KEY = "drag_race_sim_custom_queens";
-    const DEFAULT_QUEEN_IMAGE_URL = ""; // put a generic image URL here if you want
 
     let defaultQueens = [];
     let customQueens = [];
@@ -897,7 +897,6 @@
       renderCastList();
       renderSearchResults(queenSearchInput.value);
     }
-}
 
     function removeQueenFromCast(id) {
       currentCast = currentCast.filter((q) => q.id !== id);
@@ -921,7 +920,7 @@
         card.className = "queen-card cast-queen-card";
 
         const img = document.createElement("img");
-        img.src = q.imageUrl || DEFAULT_QUEEN_IMAGE_URL || "";
+        img.src = q.imageUrl || DEFAULT_QUEEN_IMAGE;
         img.alt = q.name;
         card.appendChild(img);
 
@@ -980,7 +979,7 @@
         card.dataset.id = q.id;
 
         const img = document.createElement("img");
-        img.src = q.imageUrl || DEFAULT_QUEEN_IMAGE_URL || "";
+        img.src = q.imageUrl || DEFAULT_QUEEN_IMAGE;
         img.alt = q.name;
         card.appendChild(img);
 
@@ -1001,9 +1000,10 @@
         }
 
         card.addEventListener("click", (event) => {
-        const allowDuplicate = event && (event.altKey || event.shiftKey || event.ctrlKey);
-        addQueenToCast(q.id, { allowDuplicate });
-      });
+          const allowDuplicate =
+            event && (event.altKey || event.shiftKey || event.ctrlKey);
+          addQueenToCast(q.id, { allowDuplicate });
+        });
         searchResultsEl.appendChild(card);
       });
     }
@@ -1108,7 +1108,10 @@
       return {
         id,
         name,
-        imageUrl: (customImageUrlInput.value && customImageUrlInput.value.trim()) ? customImageUrlInput.value.trim() : DEFAULT_QUEEN_IMAGE,
+        imageUrl:
+          (customImageUrlInput.value && customImageUrlInput.value.trim())
+            ? customImageUrlInput.value.trim()
+            : DEFAULT_QUEEN_IMAGE,
         stats,
         traits,
         edits,
@@ -2085,7 +2088,7 @@
       defaultQueens = baseDefs.map((q, idx) => ({
         ...q,
         id: q.id || slugify(q.name || "queen-" + idx),
-        imageUrl: q.imageUrl || DEFAULT_QUEEN_IMAGE_URL || "",
+        imageUrl: q.imageUrl || DEFAULT_QUEEN_IMAGE,
         source: "default",
       }));
       customQueens = loadCustomQueens().map(q => ({
