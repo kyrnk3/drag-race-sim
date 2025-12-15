@@ -507,6 +507,30 @@
       display: block;
       margin: 0 auto;
     }
+
+    .traits-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+    }
+
+    .traits-row label {
+      cursor: pointer;
+    }
+
+    .edit-flags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem 0.75rem;
+      margin-top: 0.25rem;
+      font-size: 0.78rem;
+    }
+
+    .edit-flag-label {
+      cursor: pointer;
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
@@ -622,6 +646,15 @@
               <input id="statLipsync" type="number" min="0" max="10" />
             </div>
 
+            <div class="muted" style="margin-top:0.5rem;">Traits:</div>
+            <div class="traits-row">
+              <label><input type="checkbox" id="traitDramaProne" /> Drama-prone</label>
+              <label><input type="checkbox" id="traitProducerFave" /> Producer favorite</label>
+            </div>
+
+            <div class="muted" style="margin-top:0.5rem;">Edit flags:</div>
+            <div id="editFlagsContainer" class="edit-flags"></div>
+
             <label>
               Image URL:
               <input id="customImageUrl" type="url" placeholder="https://example.com/image.png" />
@@ -706,9 +739,9 @@
     const btnLoadForEdit = document.getElementById("btnLoadForEdit");
     const btnDeleteQueen = document.getElementById("btnDeleteQueen");
     const customPreviewImage = document.getElementById("customPreviewImage");
-
-    // Generic placeholder for sample queens
-    const DEFAULT_QUEEN_IMAGE_URL = "https://example.com/generic-queen.png";
+    const traitDramaProne = document.getElementById("traitDramaProne");
+    const traitProducerFave = document.getElementById("traitProducerFave");
+    const editFlagsContainer = document.getElementById("editFlagsContainer");
 
     // For Full view
     let currentSteps = [];
@@ -719,11 +752,14 @@
 
     // ---- Queen data for cast builder ----
     const CUSTOM_STORAGE_KEY = "drag_race_sim_custom_queens";
+    const DEFAULT_QUEEN_IMAGE_URL = ""; // set this to a generic image URL for default queens
 
     let defaultQueens = [];
     let customQueens = [];
     let allQueens = [];
     let currentCast = [];
+
+    const editCheckboxes = new Map();
 
     function slugify(name) {
       return (
@@ -753,6 +789,44 @@
       } catch (e) {
         console.warn("Failed to save custom queens:", e);
       }
+    }
+
+    function initEditFlagCheckboxes() {
+      const flagsSource =
+        typeof ALL_EDIT_FLAGS !== "undefined"
+          ? ALL_EDIT_FLAGS
+          : [
+              "front_runner",
+              "late_bloomer",
+              "lip_sync_assassin",
+              "fan_favorite",
+              "villain",
+              "robbed",
+              "underestimated",
+              "messy",
+            ];
+
+      editFlagsContainer.innerHTML = "";
+      editCheckboxes.clear();
+
+      flagsSource.forEach((flag) => {
+        const id = "editFlag_" + flag;
+        const label = document.createElement("label");
+        label.className = "edit-flag-label";
+
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.id = id;
+        cb.value = flag;
+
+        label.appendChild(cb);
+        label.appendChild(
+          document.createTextNode(" " + flag.replace(/_/g, " "))
+        );
+
+        editFlagsContainer.appendChild(label);
+        editCheckboxes.set(flag, cb);
+      });
     }
 
     function getCastLimit() {
@@ -792,10 +866,10 @@
       const limit = getCastLimit();
       if (currentCast.length >= limit) return;
 
-      const existing = currentCast.find(q => q.id === id);
+      const existing = currentCast.find((q) => q.id === id);
       if (existing) return; // no accidental dupes
 
-      const q = allQueens.find(q => q.id === id);
+      const q = allQueens.find((q) => q.id === id);
       if (!q) return;
       currentCast.push(q);
       updateCastCount();
@@ -804,7 +878,7 @@
     }
 
     function removeQueenFromCast(id) {
-      currentCast = currentCast.filter(q => q.id !== id);
+      currentCast = currentCast.filter((q) => q.id !== id);
       updateCastCount();
       renderCastList();
       renderSearchResults(queenSearchInput.value);
@@ -820,12 +894,12 @@
         return;
       }
 
-      currentCast.forEach(q => {
+      currentCast.forEach((q) => {
         const card = document.createElement("div");
         card.className = "queen-card cast-queen-card";
 
         const img = document.createElement("img");
-        img.src = q.imageUrl || DEFAULT_QUEEN_IMAGE_URL;
+        img.src = q.imageUrl || DEFAULT_QUEEN_IMAGE_URL || "";
         img.alt = q.name;
         card.appendChild(img);
 
@@ -856,7 +930,6 @@
       const text = (filterText || "").trim().toLowerCase();
       searchResultsEl.innerHTML = "";
 
-      // If nothing typed, keep browser effectively "collapsed"
       if (!text) {
         const p = document.createElement("div");
         p.className = "muted";
@@ -865,11 +938,10 @@
         return;
       }
 
-      let pool = allQueens.filter(q =>
+      let pool = allQueens.filter((q) =>
         q.name.toLowerCase().includes(text)
       );
 
-      // don't spam with hundreds
       pool = pool.slice(0, 40);
 
       if (!pool.length) {
@@ -880,13 +952,13 @@
         return;
       }
 
-      pool.forEach(q => {
+      pool.forEach((q) => {
         const card = document.createElement("div");
         card.className = "queen-card search-result-card";
         card.dataset.id = q.id;
 
         const img = document.createElement("img");
-        img.src = q.imageUrl || DEFAULT_QUEEN_IMAGE_URL;
+        img.src = q.imageUrl || DEFAULT_QUEEN_IMAGE_URL || "";
         img.alt = q.name;
         card.appendChild(img);
 
@@ -902,7 +974,7 @@
           card.appendChild(badge);
         }
 
-        if (currentCast.find(c => c.id === q.id)) {
+        if (currentCast.find((c) => c.id === q.id)) {
           card.classList.add("added");
         }
 
@@ -975,6 +1047,16 @@
         lipsync: Number(statLipsync.value) || 0,
       };
 
+      const traits = {
+        drama_prone: !!traitDramaProne.checked,
+        producer_fave: !!traitProducerFave.checked,
+      };
+
+      const edits = [];
+      editCheckboxes.forEach((cb, flag) => {
+        if (cb.checked) edits.push(flag);
+      });
+
       const id = idOverride || slugify(name);
 
       return {
@@ -982,8 +1064,8 @@
         name,
         imageUrl: customImageUrlInput.value.trim(),
         stats,
-        traits: {},
-        edits: [],
+        traits,
+        edits,
         source: "custom",
       };
     }
@@ -1027,7 +1109,7 @@
       }
 
       // avoid duplicate custom IDs by default
-      if (customQueens.find(c => c.id === q.id)) {
+      if (customQueens.find((c) => c.id === q.id)) {
         alert("A custom queen with that name/id already exists. Use Update instead.");
         return;
       }
@@ -1071,6 +1153,14 @@
       statImprov.value = q.stats?.improv ?? 0;
       statRunway.value = q.stats?.runway ?? 0;
       statLipsync.value = q.stats?.lipsync ?? 0;
+
+      traitDramaProne.checked = !!(q.traits && q.traits.drama_prone);
+      traitProducerFave.checked = !!(q.traits && q.traits.producer_fave);
+
+      const editsSet = new Set(Array.isArray(q.edits) ? q.edits : []);
+      editCheckboxes.forEach((cb, flag) => {
+        cb.checked = editsSet.has(flag);
+      });
     });
 
     btnDeleteQueen.addEventListener("click", () => {
@@ -1514,7 +1604,52 @@
 
       card.appendChild(block);
 
-      // Helper: fallback season score from record only (if needed)
+      if (!trackLines.length) return;
+
+      const records = [];
+      const statusSet = new Set(["WIN", "HIGH", "SAFE", "LOW", "BTM", "ELIM"]);
+
+      for (let lineIdx = 0; lineIdx < trackLines.length; lineIdx++) {
+        const line = trackLines[lineIdx];
+        if (!line) continue;
+        const parts = line.split(/\s+/);
+        if (!parts.length) continue;
+
+        let firstStatusIdx = -1;
+        for (let i = 0; i < parts.length; i++) {
+          const base = parts[i].replace(/\(IMM\)$/, "");
+          if (statusSet.has(base)) {
+            firstStatusIdx = i;
+            break;
+          }
+        }
+        if (firstStatusIdx === -1) continue;
+
+        const name = parts.slice(0, firstStatusIdx).join(" ");
+        const rec = parts.slice(firstStatusIdx);
+        if (!name) continue;
+
+        const elimIdx = rec.findIndex((s) => {
+          const base = s.replace(/\(IMM\)$/, "");
+          return base === "ELIM";
+        });
+
+        records.push({
+          name,
+          record: rec,
+          elimIndex: elimIdx === -1 ? Infinity : elimIdx,
+          rowIndex: lineIdx,
+        });
+      }
+
+      if (!records.length) return;
+
+      const nameCounts = new Map();
+      for (const r of records) {
+        nameCounts.set(r.name, (nameCounts.get(r.name) || 0) + 1);
+      }
+      const hasDuplicateNames = Array.from(nameCounts.values()).some((c) => c > 1);
+
       function seasonScoreFromRecord(rec) {
         let score = 0;
         for (const raw of rec) {
@@ -1527,237 +1662,181 @@
         return score;
       }
 
-      // Track records table
-      if (trackLines.length) {
-        const records = [];
-        const statusSet = new Set(["WIN", "HIGH", "SAFE", "LOW", "BTM", "ELIM"]);
+      let finalRecords;
+      let secondName = null;
+      let thirdName = null;
 
-        for (let lineIdx = 0; lineIdx < trackLines.length; lineIdx++) {
-          const line = trackLines[lineIdx];
-          if (!line) continue;
-          const parts = line.split(/\s+/);
-          if (!parts.length) continue;
+      if (!hasDuplicateNames && finalists.length) {
+        // Normal case: unique names
+        records.sort((a, b) => b.elimIndex - a.elimIndex);
 
-          let firstStatusIdx = -1;
-          for (let i = 0; i < parts.length; i++) {
-            const base = parts[i].replace(/\(IMM\)$/, "");
-            if (statusSet.has(base)) {
-              firstStatusIdx = i;
-              break;
-            }
-          }
-          if (firstStatusIdx === -1) continue;
+        const finalistsSet = new Set(finalists);
 
-          const name = parts.slice(0, firstStatusIdx).join(" ");
-          const rec = parts.slice(firstStatusIdx);
-          if (!name) continue;
-
-          const elimIdx = rec.findIndex((s) => {
-            const base = s.replace(/\(IMM\)$/, "");
-            return base === "ELIM";
+        const finalistRecords = records
+          .filter((r) => finalistsSet.has(r.name))
+          .map((r) => {
+            const fallback = seasonScoreFromRecord(r.record);
+            const seasonScore = seasonScoreMap.has(r.name)
+              ? seasonScoreMap.get(r.name)
+              : fallback;
+            return { ...r, seasonScore };
           });
 
-          records.push({
+        finalistRecords.sort((a, b) => b.seasonScore - a.seasonScore);
+        const winnerIdx = finalistRecords.findIndex((r) => r.name === winnerName);
+        if (winnerIdx > 0) {
+          const [w] = finalistRecords.splice(winnerIdx, 1);
+          finalistRecords.unshift(w);
+        }
+
+        const finishOrderNames = finalistRecords.map((r) => r.name);
+        secondName = finishOrderNames[1] || null;
+        thirdName = finishOrderNames[2] || null;
+
+        const finalistsByName = new Set(finishOrderNames);
+        const nonFinalistsOrdered = records.filter(
+          (r) => !finalistsByName.has(r.name)
+        );
+
+        finalRecords = [
+          ...finalistRecords.map(({ name, record, elimIndex }) => ({
             name,
-            record: rec,
-            elimIndex: elimIdx === -1 ? Infinity : elimIdx,
-            rowIndex: lineIdx
-          });
+            record,
+            elimIndex,
+          })),
+          ...nonFinalistsOrdered,
+        ];
+      } else {
+        // Cursed case: duplicate names (e.g. multiple Test Queens)
+        const nonEliminated = records.filter((r) => r.elimIndex === Infinity);
+        const eliminated = records.filter((r) => r.elimIndex !== Infinity);
+
+        const finalistRecords = nonEliminated.map((r) => ({
+          ...r,
+          seasonScore: seasonScoreFromRecord(r.record),
+        }));
+
+        finalistRecords.sort((a, b) => {
+          if (b.seasonScore !== a.seasonScore) {
+            return b.seasonScore - a.seasonScore;
+          }
+          if (b.elimIndex !== a.elimIndex) {
+            return b.elimIndex - a.elimIndex;
+          }
+          return a.rowIndex - b.rowIndex;
+        });
+
+        const winnerRec = finalistRecords[0] || null;
+        if (winnerRec) {
+          winnerName = winnerRec.name;
         }
+        secondName = finalistRecords[1]?.name || null;
+        thirdName = finalistRecords[2]?.name || null;
 
-        if (!records.length) return;
-
-        // Detect duplicate names (cursed Test Queen season, etc.)
-        const nameCounts = new Map();
-        for (const r of records) {
-          nameCounts.set(r.name, (nameCounts.get(r.name) || 0) + 1);
-        }
-        const hasDuplicateNames = Array.from(nameCounts.values()).some((c) => c > 1);
-
-        let finalRecords;
-        let secondName = null;
-        let thirdName = null;
-
-        if (!hasDuplicateNames && finalists.length) {
-          // --- Normal case: unique names, use finalists list + real season scores ---
-          // Sort: finalists (no ELIM) at top, earliest eliminated last
-          records.sort((a, b) => b.elimIndex - a.elimIndex);
-
-          const finalistsSet = new Set(finalists);
-
-          const finalistRecords = records
-            .filter((r) => finalistsSet.has(r.name))
-            .map((r) => {
-              const fallback = seasonScoreFromRecord(r.record);
-              const seasonScore = seasonScoreMap.has(r.name)
-                ? seasonScoreMap.get(r.name)
-                : fallback;
-              return { ...r, seasonScore };
-            });
-
-          // Sort finalists by season score, then ensure the actual winner is first
-          finalistRecords.sort((a, b) => b.seasonScore - a.seasonScore);
-          const winnerIdx = finalistRecords.findIndex((r) => r.name === winnerName);
-          if (winnerIdx > 0) {
-            const [w] = finalistRecords.splice(winnerIdx, 1);
-            finalistRecords.unshift(w);
+        eliminated.sort((a, b) => {
+          if (a.elimIndex !== b.elimIndex) {
+            return a.elimIndex - b.elimIndex;
           }
+          return a.rowIndex - b.rowIndex;
+        });
 
-          const finishOrderNames = finalistRecords.map((r) => r.name);
-          secondName = finishOrderNames[1] || null;
-          thirdName = finishOrderNames[2] || null;
-
-          const finalistsByName = new Set(finishOrderNames);
-          const nonFinalistsOrdered = records.filter(
-            (r) => !finalistsByName.has(r.name)
-          );
-
-          finalRecords = [
-            ...finalistRecords.map(({ name, record, elimIndex }) => ({
-              name,
-              record,
-              elimIndex
-            })),
-            ...nonFinalistsOrdered
-          ];
-        } else {
-          // --- Cursed case: duplicate names (e.g. multiple Test Queens) ---
-          // Decide finalists purely by track records (no ELIM).
-          const nonEliminated = records.filter((r) => r.elimIndex === Infinity);
-          const eliminated = records.filter((r) => r.elimIndex !== Infinity);
-
-          const finalistRecords = nonEliminated.map((r) => ({
-            ...r,
-            seasonScore: seasonScoreFromRecord(r.record)
-          }));
-
-          // Sort finalists by season score desc; tie-breaker: later elimIndex / rowIndex
-          finalistRecords.sort((a, b) => {
-            if (b.seasonScore !== a.seasonScore) {
-              return b.seasonScore - a.seasonScore;
-            }
-            if (b.elimIndex !== a.elimIndex) {
-              return b.elimIndex - a.elimIndex;
-            }
-            return a.rowIndex - b.rowIndex;
-          });
-
-          // Winner: best of these (all share the same name string anyway)
-          const winnerRec = finalistRecords[0] || null;
-          if (winnerRec) {
-            winnerName = winnerRec.name;
-          }
-          secondName = finalistRecords[1]?.name || null;
-          thirdName = finalistRecords[2]?.name || null;
-
-          // Sort eliminated by elimination order (earlier ELIM first)
-          eliminated.sort((a, b) => {
-            if (a.elimIndex !== b.elimIndex) {
-              return a.elimIndex - b.elimIndex;
-            }
-            return a.rowIndex - b.rowIndex;
-          });
-
-          finalRecords = [...finalistRecords, ...eliminated].map(
-            ({ name, record, elimIndex }) => ({ name, record, elimIndex })
-          );
-        }
-
-        if (finalRecords.length) {
-          let maxEpisodes = 0;
-          for (const r of finalRecords) {
-            if (r.record.length > maxEpisodes) maxEpisodes = r.record.length;
-          }
-
-          // Use canonical episode count if we have it; fall back to max record length.
-          const numEpisodeCols = seasonEpisodeCount || maxEpisodes;
-
-          const table = document.createElement("table");
-          table.className = "track-record-table";
-
-          const thead = document.createElement("thead");
-          const headRow = document.createElement("tr");
-
-          const thName = document.createElement("th");
-          thName.textContent = "Contestant";
-          headRow.appendChild(thName);
-
-          for (let i = 0; i < numEpisodeCols; i++) {
-            const th = document.createElement("th");
-            th.textContent = String(i + 1);
-            headRow.appendChild(th);
-          }
-          const thFinale = document.createElement("th");
-          thFinale.textContent = "Finale";
-          headRow.appendChild(thFinale);
-
-          thead.appendChild(headRow);
-          table.appendChild(thead);
-
-          const tbody = document.createElement("tbody");
-          for (const r of finalRecords) {
-            const tr = document.createElement("tr");
-
-            const tdName = document.createElement("td");
-            tdName.textContent = r.name;
-            tdName.className = "track-name";
-            tr.appendChild(tdName);
-
-            for (let i = 0; i <= numEpisodeCols; i++) {
-              const td = document.createElement("td");
-
-              if (i < numEpisodeCols) {
-                const rawStatus = r.record[i] || "";
-                const hasImmunity = rawStatus.endsWith("(IMM)");
-                const baseStatus = hasImmunity
-                  ? rawStatus.replace(/\(IMM\)$/, "")
-                  : rawStatus;
-
-                const cls =
-                  "status-" + (baseStatus ? baseStatus.toLowerCase() : "empty");
-                td.className = cls;
-
-                if (!baseStatus) {
-                  td.textContent = "";
-                } else if (hasImmunity) {
-                  const mainDiv = document.createElement("div");
-                  mainDiv.textContent = baseStatus;
-                  const immDiv = document.createElement("div");
-                  immDiv.textContent = "(IMM)";
-                  immDiv.className = "status-immunity-tag";
-                  td.appendChild(mainDiv);
-                  td.appendChild(immDiv);
-                } else {
-                  td.textContent = baseStatus;
-                }
-              } else {
-                // Finale column: 1st / 2nd / 3rd
-                let text = "";
-                let cls = "status-empty";
-                if (r.name === winnerName) {
-                  text = "WINNER";
-                  cls = "status-finale-winner";
-                } else if (r.name === secondName) {
-                  text = "RUNNER-UP";
-                  cls = "status-finale-runner"; // silver
-                } else if (r.name === thirdName) {
-                  text = "RUNNER-UP";
-                  cls = "status-finale-runner-bronze"; // bronze
-                }
-                td.className = cls;
-                td.textContent = text;
-              }
-
-              tr.appendChild(td);
-            }
-
-            tbody.appendChild(tr);
-          }
-
-          table.appendChild(tbody);
-          card.appendChild(table);
-        }
+        finalRecords = [...finalistRecords, ...eliminated].map(
+          ({ name, record, elimIndex }) => ({ name, record, elimIndex })
+        );
       }
+
+      if (!finalRecords.length) return;
+
+      let maxEpisodes = 0;
+      for (const r of finalRecords) {
+        if (r.record.length > maxEpisodes) maxEpisodes = r.record.length;
+      }
+
+      const numEpisodeCols = seasonEpisodeCount || maxEpisodes;
+
+      const table = document.createElement("table");
+      table.className = "track-record-table";
+
+      const thead = document.createElement("thead");
+      const headRow = document.createElement("tr");
+
+      const thName = document.createElement("th");
+      thName.textContent = "Contestant";
+      headRow.appendChild(thName);
+
+      for (let i = 0; i < numEpisodeCols; i++) {
+        const th = document.createElement("th");
+        th.textContent = String(i + 1);
+        headRow.appendChild(th);
+      }
+      const thFinale = document.createElement("th");
+      thFinale.textContent = "Finale";
+      headRow.appendChild(thFinale);
+
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      for (const r of finalRecords) {
+        const tr = document.createElement("tr");
+
+        const tdName = document.createElement("td");
+        tdName.textContent = r.name;
+        tdName.className = "track-name";
+        tr.appendChild(tdName);
+
+        for (let i = 0; i <= numEpisodeCols; i++) {
+          const td = document.createElement("td");
+
+          if (i < numEpisodeCols) {
+            const rawStatus = r.record[i] || "";
+            const hasImmunity = rawStatus.endsWith("(IMM)");
+            const baseStatus = hasImmunity
+              ? rawStatus.replace(/\(IMM\)$/, "")
+              : rawStatus;
+
+            const cls =
+              "status-" + (baseStatus ? baseStatus.toLowerCase() : "empty");
+            td.className = cls;
+
+            if (!baseStatus) {
+              td.textContent = "";
+            } else if (hasImmunity) {
+              const mainDiv = document.createElement("div");
+              mainDiv.textContent = baseStatus;
+              const immDiv = document.createElement("div");
+              immDiv.textContent = "(IMM)";
+              immDiv.className = "status-immunity-tag";
+              td.appendChild(mainDiv);
+              td.appendChild(immDiv);
+            } else {
+              td.textContent = baseStatus;
+            }
+          } else {
+            let text = "";
+            let cls = "status-empty";
+            if (r.name === winnerName) {
+              text = "WINNER";
+              cls = "status-finale-winner";
+            } else if (r.name === secondName) {
+              text = "RUNNER-UP";
+              cls = "status-finale-runner"; // silver
+            } else if (r.name === thirdName) {
+              text = "RUNNER-UP";
+              cls = "status-finale-runner-bronze"; // bronze
+            }
+            td.className = cls;
+            td.textContent = text;
+          }
+
+          tr.appendChild(td);
+        }
+
+        tbody.appendChild(tr);
+      }
+
+      table.appendChild(tbody);
+      card.appendChild(table);
     }
 
     function getNextLabel(step, index, total) {
@@ -1920,7 +1999,6 @@
       if (currentCast.length > 0) {
         queens = currentCast;
       } else {
-        // fallback to full default cast if user didn't build one
         queens = defaultQueens;
       }
 
@@ -1959,11 +2037,13 @@
       customQueens = loadCustomQueens();
       allQueens = [...defaultQueens, ...customQueens];
 
+      initEditFlagCheckboxes();
+
       syncCastSizeLabel();
       updateCastCount();
       renderCustomQueenSelect();
       renderCastList();
-      renderSearchResults(""); // will show "Start typing to search queens."
+      renderSearchResults("");
     });
   </script>
 </body>
