@@ -1,4 +1,4 @@
-am<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -660,7 +660,7 @@ am<!DOCTYPE html>
 
             <label>
               Image URL:
-              <input id="customImageUrl" type="url" placeholder="https://example.com/placeholder.png" />
+              <input id="customImageUrl" type="url" placeholder="https://example.com/image.png" />
             </label>
 
             <div class="custom-actions">
@@ -706,6 +706,7 @@ am<!DOCTYPE html>
 
   <!-- UI / Rendering -->
   <script>
+    const DEFAULT_QUEEN_IMAGE = "https://i.imgur.com/kXv2EFQ.png";
     const modeSelect = document.getElementById("modeSelect");
     const viewSelect = document.getElementById("viewSelect");
     const immunityToggle = document.getElementById("immunityToggle");
@@ -1118,8 +1119,8 @@ am<!DOCTYPE html>
     function updatePreviewFromSelect() {
       const id = customQueenSelect.value;
       const q = customQueens.find((cq) => cq.id === id);
-      if (q && q.imageUrl) {
-        customPreviewImage.src = q.imageUrl;
+      if (q) {
+        customPreviewImage.src = q.imageUrl || DEFAULT_QUEEN_IMAGE;
         customPreviewImage.alt = q.name;
       } else {
         customPreviewImage.src = "";
