@@ -414,14 +414,14 @@
     }
 
     .track-record-table .status-elim {
-      background: #000;
-      color: #fff;
+      background: #804224;
+      color: #ffe0d2;
       font-weight: 700;
     }
 
     .track-record-table .status-rtu {
-      background: #6a1b9a;
-      color: #e1bee7;
+      background: #CC8400;
+      color: #fff3d5;
     }
 
     /* Cast builder / search styling */
@@ -552,8 +552,7 @@
     }
 
     .search-result-card.added {
-      background: #2e7d32;
-      box-shadow: 0 0 0 2px #66bb6a;
+      /* No persistent green highlight anymore; keep styling identical to normal card */
     }
 
     .queen-row {
@@ -1194,20 +1193,18 @@
     }
 
     function initEditFlagCheckboxes() {
-      if (typeof ALL_EDIT_FLAGS !== "undefined" && Array.isArray(ALL_EDIT_FLAGS)) {
-        EDIT_FLAGS_LIST = ALL_EDIT_FLAGS;
-      } else {
-        EDIT_FLAGS_LIST = [
-          "front_runner",
-          "late_bloomer",
-          "lip_sync_assassin",
-          "fan_favorite",
-          "villain",
-          "robbed",
-          "underestimated",
-          "messy"
-        ];
-      }
+      EDIT_FLAGS_LIST = Array.isArray(window.ALL_EDIT_FLAGS)
+        ? window.ALL_EDIT_FLAGS
+        : [
+            "front_runner",
+            "late_bloomer",
+            "lip_sync_assassin",
+            "fan_favorite",
+            "villain",
+            "robbed",
+            "underestimated",
+            "messy"
+          ];
       editCheckboxes.clear();
       editFlagsContainer.innerHTML = "";
       EDIT_FLAGS_LIST.forEach((flag) => {
@@ -1621,7 +1618,7 @@
         removeBtn.textContent = "Remove";
         removeBtn.style.marginTop = "0.35rem";
         removeBtn.style.borderRadius = "999px";
-        removeBtn.style.border = "1px solid #444";
+        removeBtn.style.border = "1px solid "#444";
         removeBtn.style.background = "#242424";
         removeBtn.style.color = "#eee";
         removeBtn.style.fontSize = "0.75rem";
@@ -1640,7 +1637,6 @@
 
       if (!allQueens.length) return;
 
-      // NEW: don't show the whole roster by default.
       if (!term) {
         const p = document.createElement("p");
         p.textContent = "Start typing to search queens.";
@@ -1650,9 +1646,9 @@
         return;
       }
 
-      const filtered = allQueens.filter((q) =>
-        q.name.toLowerCase().includes(term)
-      );
+      const filtered = allQueens.filter((q) => {
+        return q.name.toLowerCase().includes(term);
+      });
 
       if (!filtered.length) {
         const p = document.createElement("p");
@@ -1667,10 +1663,6 @@
         const card = document.createElement("div");
         card.className = "search-result-card";
         card.dataset.id = q.id;
-
-        if (currentCast.some((c) => c.id === q.id)) {
-          card.classList.add("added");
-        }
 
         const title = document.createElement("div");
         title.textContent = q.name;
@@ -1728,10 +1720,9 @@
     });
 
     loadSampleBtn.addEventListener("click", () => {
-      const sampleIds =
-        typeof SAMPLE_CAST !== "undefined" && Array.isArray(SAMPLE_CAST)
-          ? SAMPLE_CAST
-          : [];
+      const sampleIds = (typeof SAMPLE_CAST !== "undefined" && Array.isArray(SAMPLE_CAST))
+        ? SAMPLE_CAST
+        : (Array.isArray(window.SAMPLE_CAST) ? window.SAMPLE_CAST : []);
       if (sampleIds.length) {
         currentCast = sampleIds.map((id) => {
           const q = allQueens.find((qq) => qq.id === id);
@@ -1793,7 +1784,8 @@
     }
 
     function simulateSeasonFromUI() {
-      if (typeof simulateSeason !== "function") {
+      const simFn = window.simulateSeason || (typeof simulateSeason === "function" ? simulateSeason : null);
+      if (typeof simFn !== "function") {
         alert("simulateSeason is not defined. Please check sim.js is loaded.");
         return;
       }
@@ -1805,7 +1797,7 @@
       }
 
       const options = getOptionsFromUI();
-      const result = simulateSeason(queens, options);
+      const result = simFn(queens, options);
       const log = typeof result === "string" ? result : result.log || "";
       const meta = typeof result === "string" ? null : result;
 
@@ -2160,40 +2152,6 @@
       });
     }
 
-    function renderResultsLines(lines, card) {
-      const block = document.createElement("div");
-      block.className = "results-block";
-
-      let headingAdded = false;
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-
-        if (trimmed.startsWith("Results:")) {
-          const h = document.createElement("div");
-          h.className = "results-heading";
-          h.textContent = "Results";
-          block.appendChild(h);
-          headingAdded = true;
-          continue;
-        }
-
-        const p = document.createElement("div");
-        p.className = "results-row";
-        p.textContent = trimmed;
-        block.appendChild(p);
-      }
-
-      if (!headingAdded && lines.length) {
-        const h = document.createElement("div");
-        h.className = "results-heading";
-        h.textContent = "Results";
-        block.insertBefore(h, block.firstChild);
-      }
-
-      card.appendChild(block);
-    }
-
     function renderMiniLines(step, card) {
       const block = document.createElement("div");
       block.className = "results-block";
@@ -2329,208 +2287,11 @@
       }
     }
 
-    function renderEpisodeMaxi(step, card) {
-      const lines = (step.lines || []).filter((l) => l && l.trim());
-      if (!lines.length) return;
-
-      // First descriptive line
-      const first = lines[0];
-      const p = document.createElement("p");
-      p.textContent = first.trim();
-      card.appendChild(p);
-
-      const remaining = lines.slice(1);
-      renderQueenLinesBlock(remaining, card);
-    }
-
-    function renderEpisodeJudging(step, card) {
-      renderQueenLinesBlock(step.lines || [], card);
-    }
-
-    function renderEpisodeBringBack(step, card) {
-      renderQueenLinesBlock(step.lines || [], card);
-    }
-
-    function renderEpisodeLipsync(step, card) {
-      renderQueenLinesBlock(step.lines || [], card);
-    }
-
-    function renderEpisodeResults(step, card) {
-      renderQueenLinesBlock(step.lines || [], card);
-    }
-
-    function getNextLabel(step, index, total) {
-      if (index === total - 1) return "Back to start";
-      switch (step.type) {
-        case "cast":
-          return "Start Episode 1";
-        case "episode_setup":
-          return "Mini-challenge";
-        case "episode_mini":
-          return "Maxi-challenge";
-        case "episode_maxi":
-          return "Judging";
-        case "episode_judging":
-          return "Bring back my girls";
-        case "episode_bring_back":
-          return "Lipsync";
-        case "episode_lipsync":
-          return "Results";
-        case "episode_results":
-          return "Next episode";
-        case "final3":
-          return "Grand Finale";
-        case "finale":
-          return "Back to start";
-        default:
-          return "Next";
-      }
-    }
-
-    function renderCurrentStep() {
-      seasonContainer.innerHTML = "";
-      if (!currentSteps.length) {
-        seasonContainer.textContent = "No steps available.";
-        return;
-      }
-      const step = currentSteps[currentStepIndex];
-
-      const card = document.createElement("div");
-      card.className = "episode-card step-" + step.type;
-
-      const meta = document.createElement("div");
-      meta.className = "step-meta";
-      meta.textContent =
-        "Step " + (currentStepIndex + 1) + " of " + currentSteps.length;
-      card.appendChild(meta);
-
-      let titleText = "";
-      let bodyLines = [];
-
-      switch (step.type) {
-        case "cast":
-          titleText = "Cast Reveal";
-          bodyLines = step.lines || [];
-          break;
-        case "episode_setup":
-          titleText = `Episode ${step.epNum} — ${step.name}`;
-          bodyLines = [
-            `In Episode ${step.epNum}, the queens face the ${step.name}.`,
-            "",
-            "Proceed to see how they perform.",
-          ];
-          break;
-        case "episode_mini":
-          titleText = `Episode ${step.epNum} — Mini-challenge`;
-          bodyLines = step.lines || [];
-          break;
-        case "episode_maxi":
-          titleText = `Episode ${step.epNum} — Maxi-challenge`;
-          bodyLines = step.lines || [];
-          break;
-        case "episode_judging":
-          titleText = `Episode ${step.epNum} — Judging`;
-          bodyLines = step.lines || [];
-          break;
-        case "episode_bring_back":
-          titleText = `Episode ${step.epNum} — Bring back my girls!`;
-          bodyLines = step.lines || [];
-          break;
-        case "episode_lipsync":
-          titleText = `Episode ${step.epNum} — The time has come…`;
-          bodyLines = step.lines || [];
-          break;
-        case "episode_results":
-          titleText = `Episode ${step.epNum} — Results`;
-          bodyLines = step.lines || [];
-          break;
-        case "final3":
-          titleText = "Final 3 Revealed";
-          bodyLines = step.lines || [];
-          break;
-        case "finale":
-          titleText = "Grand Finale & Track Records";
-          bodyLines = step.lines || [];
-          break;
-        default:
-          titleText = "Season";
-          bodyLines = step.lines || [];
-      }
-
-      const h = document.createElement("h3");
-      h.textContent = titleText;
-      card.appendChild(h);
-
-      if (bodyLines.length) {
-        if (step.type === "episode_setup") {
-          const p = document.createElement("p");
-          p.textContent = bodyLines.join("\n");
-          card.appendChild(p);
-        } else if (step.type === "episode_mini") {
-          renderMiniLines(step, card);
-        } else if (step.type === "episode_maxi") {
-          renderEpisodeMaxi(step, card);
-        } else if (step.type === "episode_judging") {
-          renderEpisodeJudging(step, card);
-        } else if (step.type === "episode_bring_back") {
-          renderEpisodeBringBack(step, card);
-        } else if (step.type === "episode_lipsync") {
-          renderEpisodeLipsync(step, card);
-        } else if (step.type === "episode_results") {
-          renderEpisodeResults(step, card);
-        } else if (step.type === "finale") {
-          renderFinaleLines(bodyLines, card);
-        } else {
-          const pre = document.createElement("pre");
-          pre.textContent = bodyLines.join("\n");
-          card.appendChild(pre);
-        }
-      }
-
-      const nav = document.createElement("div");
-      nav.className = "step-nav";
-
-      const backBtn = document.createElement("button");
-      backBtn.textContent = "Back";
-      backBtn.disabled = currentStepIndex === 0;
-      backBtn.addEventListener("click", () => {
-        if (currentStepIndex > 0) {
-          currentStepIndex--;
-          renderCurrentStep();
-        }
-      });
-
-      const nextBtn = document.createElement("button");
-      nextBtn.textContent = getNextLabel(
-        step,
-        currentStepIndex,
-        currentSteps.length
-      );
-      nextBtn.addEventListener("click", () => {
-        if (currentStepIndex === currentSteps.length - 1) {
-          currentStepIndex = 0;
-        } else {
-          currentStepIndex++;
-        }
-        renderCurrentStep();
-      });
-
-      nav.appendChild(backBtn);
-      nav.appendChild(nextBtn);
-      card.appendChild(nav);
-
-      seasonContainer.appendChild(card);
-    }
-
     function renderSeasonFull(log) {
       currentSteps = buildStepsFromLog(log);
       currentStepIndex = 0;
       renderCurrentStep();
     }
-
-    // ----------
-    // Summary view
-    // ----------
 
     function renderSeasonSummary(log) {
       const { header, episodes, finale } = parseSeasonLog(log);
@@ -2640,10 +2401,6 @@
       seasonContainer.innerHTML = "";
       seasonContainer.appendChild(summaryEl);
     }
-
-    // ----------
-    // Track record helpers
-    // ----------
 
     function buildTrackRecordFromLog(logText) {
       const lines = (logText || "").split(/\r?\n/);
@@ -2776,7 +2533,9 @@
         data.episodes.forEach((ep) => {
           const cell = document.createElement("td");
           const status = ep.placements[qName] || "";
-          cell.textContent = status;
+          // Keep internal code as RTU but display RTRN in the table.
+          const displayStatus = status === "RTU" ? "RTRN" : status;
+          cell.textContent = displayStatus;
           if (!status) {
             cell.className = "status-empty";
           } else {
@@ -2816,6 +2575,177 @@
       container.appendChild(table);
     }
 
+    function getNextLabel(step, index, total) {
+      if (index === total - 1) return "Back to start";
+      switch (step.type) {
+        case "cast":
+          return "Start Episode 1";
+        case "episode_setup":
+          return "Mini-challenge";
+        case "episode_mini":
+          return "Maxi-challenge";
+        case "episode_maxi":
+          return "Judging";
+        case "episode_judging":
+          return "Bring back my girls";
+        case "episode_bring_back":
+          return "Lipsync";
+        case "episode_lipsync":
+          return "Results";
+        case "episode_results":
+          return "Next episode";
+        case "final3":
+          return "Grand Finale";
+        case "finale":
+          return "Back to start";
+        default:
+          return "Next";
+      }
+    }
+
+    function renderCurrentStep() {
+      seasonContainer.innerHTML = "";
+      if (!currentSteps.length) {
+        seasonContainer.textContent = "No steps available.";
+        return;
+      }
+      const step = currentSteps[currentStepIndex];
+
+      const card = document.createElement("div");
+      card.className = "episode-card step-" + step.type;
+
+      const meta = document.createElement("div");
+      meta.className = "step-meta";
+      meta.textContent =
+        "Step " + (currentStepIndex + 1) + " of " + currentSteps.length;
+      card.appendChild(meta);
+
+      let titleText = "";
+      let bodyLines = [];
+
+      switch (step.type) {
+        case "cast":
+          titleText = "Cast Reveal";
+          bodyLines = step.lines || [];
+          break;
+        case "episode_setup":
+          titleText = `Episode ${step.epNum} — ${step.name}`;
+          bodyLines = [
+            `In Episode ${step.epNum}, the queens face the ${step.name}.`,
+            "",
+            "Proceed to see how they perform.",
+          ];
+          break;
+        case "episode_mini":
+          titleText = `Episode ${step.epNum} — Mini-challenge`;
+          bodyLines = step.lines || [];
+          break;
+        case "episode_maxi":
+          titleText = `Episode ${step.epNum} — Maxi-challenge`;
+          bodyLines = step.lines || [];
+          break;
+        case "episode_judging":
+          titleText = `Episode ${step.epNum} — Judging`;
+          bodyLines = step.lines || [];
+          break;
+        case "episode_bring_back":
+          titleText = `Episode ${step.epNum} — Bring back my girls!`;
+          bodyLines = step.lines || [];
+          break;
+        case "episode_lipsync":
+          titleText = `Episode ${step.epNum} — The time has come…`;
+          bodyLines = step.lines || [];
+          break;
+        case "episode_results":
+          titleText = `Episode ${step.epNum} — Results`;
+          bodyLines = step.lines || [];
+          break;
+        case "final3":
+          titleText = "Final 3 Revealed";
+          bodyLines = step.lines || [];
+          break;
+        case "finale":
+          titleText = "Grand Finale & Track Records";
+          bodyLines = step.lines || [];
+          break;
+        default:
+          titleText = "Season";
+          bodyLines = step.lines || [];
+      }
+
+      const h = document.createElement("h3");
+      h.textContent = titleText;
+      card.appendChild(h);
+
+      if (bodyLines.length) {
+        if (step.type === "episode_setup") {
+          const p = document.createElement("p");
+          p.textContent = bodyLines.join("\n");
+          card.appendChild(p);
+        } else if (step.type === "episode_mini") {
+          renderMiniLines(step, card);
+        } else if (step.type === "episode_maxi") {
+          const lines = (step.lines || []).filter((l) => l && l.trim());
+          if (lines.length) {
+            const first = lines[0];
+            const p = document.createElement("p");
+            p.textContent = first.trim();
+            card.appendChild(p);
+            const remaining = lines.slice(1);
+            renderQueenLinesBlock(remaining, card);
+          }
+        } else if (step.type === "episode_judging") {
+          renderQueenLinesBlock(step.lines || [], card);
+        } else if (step.type === "episode_bring_back") {
+          renderQueenLinesBlock(step.lines || [], card);
+        } else if (step.type === "episode_lipsync") {
+          renderQueenLinesBlock(step.lines || [], card);
+        } else if (step.type === "episode_results") {
+          renderQueenLinesBlock(step.lines || [], card);
+        } else if (step.type === "finale") {
+          renderFinaleLines(bodyLines, card);
+        } else {
+          const pre = document.createElement("pre");
+          pre.textContent = bodyLines.join("\n");
+          card.appendChild(pre);
+        }
+      }
+
+      const nav = document.createElement("div");
+      nav.className = "step-nav";
+
+      const backBtn = document.createElement("button");
+      backBtn.textContent = "Back";
+      backBtn.disabled = currentStepIndex === 0;
+      backBtn.addEventListener("click", () => {
+        if (currentStepIndex > 0) {
+          currentStepIndex--;
+          renderCurrentStep();
+        }
+      });
+
+      const nextBtn = document.createElement("button");
+      nextBtn.textContent = getNextLabel(
+        step,
+        currentStepIndex,
+        currentSteps.length
+      );
+      nextBtn.addEventListener("click", () => {
+        if (currentStepIndex === currentSteps.length - 1) {
+          currentStepIndex = 0;
+        } else {
+          currentStepIndex++;
+        }
+        renderCurrentStep();
+      });
+
+      nav.appendChild(backBtn);
+      nav.appendChild(nextBtn);
+      card.appendChild(nav);
+
+      seasonContainer.appendChild(card);
+    }
+
     // =========================
     // Initial data load
     // =========================
@@ -2825,16 +2755,21 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-      if (typeof DEFAULT_QUEENS === "undefined" || !Array.isArray(DEFAULT_QUEENS)) {
-        console.warn("DEFAULT_QUEENS is not defined or not an array.");
-        defaultQueens = [];
+      // DEFAULT_QUEENS is defined as a global const in queens.js, not on window.
+      let sourceDefault = [];
+      if (typeof DEFAULT_QUEENS !== "undefined" && Array.isArray(DEFAULT_QUEENS)) {
+        sourceDefault = DEFAULT_QUEENS;
+      } else if (Array.isArray(window.DEFAULT_QUEENS)) {
+        sourceDefault = window.DEFAULT_QUEENS;
       } else {
-        defaultQueens = DEFAULT_QUEENS.map(q => ({
-          ...q,
-          imageUrl: (q.imageUrl && q.imageUrl.trim()) ? q.imageUrl.trim() : DEFAULT_QUEEN_IMAGE
-        }));
+        console.warn("DEFAULT_QUEENS is not defined or not an array.");
+        sourceDefault = [];
       }
 
+      defaultQueens = sourceDefault.map(q => ({
+        ...q,
+        imageUrl: (q.imageUrl && q.imageUrl.trim()) ? q.imageUrl.trim() : DEFAULT_QUEEN_IMAGE
+      }));
       customQueens = loadCustomQueens().map(q => ({
         ...q,
         imageUrl: (q.imageUrl && q.imageUrl.trim()) ? q.imageUrl.trim() : DEFAULT_QUEEN_IMAGE
