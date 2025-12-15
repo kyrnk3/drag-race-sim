@@ -1,207 +1,186 @@
 // queens.js
+// Default queens for the Drag Race simulator.
+// Includes fixed DESIGN stats (0–10).
+
 window.QUEENS = [
   {
-    "name": "Cherry Bomb",
-    "stats": {
-      "runway": 8,
-      "comedy": 6,
-      "acting": 7,
-      "dance": 5,
-      "singing": 4,
-      "improv": 7,
-      "lipsync": 7
+    name: "Cherry Bomb",
+    stats: {
+      runway: 8,
+      comedy: 6,
+      acting: 7,
+      dance: 5,
+      singing: 4,
+      improv: 7,
+      lipsync: 7,
+      design: 8
     },
-    "traits": {
-      "drama_prone": true,
-      "producer_fave": false
-    },
-    "edits": ["fan_favorite", "underestimated"]
+    traits: { drama_prone: true, producer_fave: false },
+    edits: ["fan_favorite", "underestimated"]
   },
   {
-    "name": "Velvet Noir",
-    "stats": {
-      "runway": 9,
-      "comedy": 4,
-      "acting": 6,
-      "dance": 6,
-      "singing": 5,
-      "improv": 5,
-      "lipsync": 6
+    name: "Velvet Noir",
+    stats: {
+      runway: 9,
+      comedy: 4,
+      acting: 6,
+      dance: 6,
+      singing: 5,
+      improv: 5,
+      lipsync: 6,
+      design: 9
     },
-    "traits": {
-      "drama_prone": false,
-      "producer_fave": false
-    },
-    "edits": ["front_runner"]
+    traits: { drama_prone: false, producer_fave: false },
+    edits: ["front_runner"]
   },
   {
-    "name": "Baby Blue",
-    "stats": {
-      "runway": 6,
-      "comedy": 8,
-      "acting": 5,
-      "dance": 7,
-      "singing": 6,
-      "improv": 8,
-      "lipsync": 8
+    name: "Baby Blue",
+    stats: {
+      runway: 6,
+      comedy: 8,
+      acting: 5,
+      dance: 7,
+      singing: 6,
+      improv: 8,
+      lipsync: 8,
+      design: 5
     },
-    "traits": {
-      "drama_prone": true,
-      "producer_fave": false
-    },
-    "edits": ["late_bloomer"]
+    traits: { drama_prone: true, producer_fave: false },
+    edits: ["late_bloomer"]
   },
   {
-    "name": "Saint Mirage",
-    "stats": {
-      "runway": 7,
-      "comedy": 5,
-      "acting": 8,
-      "dance": 4,
-      "singing": 7,
-      "improv": 6,
-      "lipsync": 7
+    name: "Saint Mirage",
+    stats: {
+      runway: 7,
+      comedy: 5,
+      acting: 8,
+      dance: 4,
+      singing: 7,
+      improv: 6,
+      lipsync: 7,
+      design: 6
     },
-    "traits": {
-      "drama_prone": false,
-      "producer_fave": false
-    },
-    "edits": ["underestimated"]
+    traits: { drama_prone: false, producer_fave: false },
+    edits: ["underestimated"]
   },
   {
-    "name": "Electra Shock",
-    "stats": {
-      "runway": 5,
-      "comedy": 6,
-      "acting": 5,
-      "dance": 9,
-      "singing": 6,
-      "improv": 5,
-      "lipsync": 10
+    name: "Electra Shock",
+    stats: {
+      runway: 5,
+      comedy: 6,
+      acting: 5,
+      dance: 9,
+      singing: 6,
+      improv: 5,
+      lipsync: 10,
+      design: 4
     },
-    "traits": {
-      "drama_prone": false,
-      "producer_fave": false
-    },
-    "edits": ["lip_sync_assassin", "messy"]
+    traits: { drama_prone: false, producer_fave: false },
+    edits: ["lip_sync_assassin", "messy"]
   },
   {
-    "name": "Mysteria Moore",
-    "stats": {
-      "runway": 7,
-      "comedy": 7,
-      "acting": 6,
-      "dance": 6,
-      "singing": 8,
-      "improv": 7,
-      "lipsync": 8
+    name: "Mysteria Moore",
+    stats: {
+      runway: 7,
+      comedy: 7,
+      acting: 6,
+      dance: 6,
+      singing: 8,
+      improv: 7,
+      lipsync: 8,
+      design: 7
     },
-    "traits": {
-      "drama_prone": false,
-      "producer_fave": true
-    },
-    "edits": ["front_runner"]
+    traits: { drama_prone: false, producer_fave: true },
+    edits: ["front_runner"]
   },
   {
-    "name": "Opal Horizon",
-    "stats": {
-      "runway": 9,
-      "comedy": 3,
-      "acting": 6,
-      "dance": 5,
-      "singing": 6,
-      "improv": 4,
-      "lipsync": 6
+    name: "Opal Horizon",
+    stats: {
+      runway: 9,
+      comedy: 3,
+      acting: 6,
+      dance: 5,
+      singing: 6,
+      improv: 4,
+      lipsync: 6,
+      design: 9
     },
-    "traits": {
-      "drama_prone": false,
-      "producer_fave": false
-    },
-    "edits": ["robbed"]
+    traits: { drama_prone: false, producer_fave: false },
+    edits: ["robbed"]
   },
   {
-    "name": "Disco Vixen",
-    "stats": {
-      "runway": 7,
-      "comedy": 5,
-      "acting": 5,
-      "dance": 9,
-      "singing": 7,
-      "improv": 6,
-      "lipsync": 9
+    name: "Disco Vixen",
+    stats: {
+      runway: 7,
+      comedy: 5,
+      acting: 5,
+      dance: 9,
+      singing: 7,
+      improv: 6,
+      lipsync: 9,
+      design: 6
     },
-    "traits": {
-      "drama_prone": true,
-      "producer_fave": false
-    },
-    "edits": ["lip_sync_assassin", "messy"]
+    traits: { drama_prone: true, producer_fave: false },
+    edits: ["lip_sync_assassin", "messy"]
   },
   {
-    "name": "Molly Mocktail",
-    "stats": {
-      "runway": 6,
-      "comedy": 9,
-      "acting": 7,
-      "dance": 5,
-      "singing": 5,
-      "improv": 9,
-      "lipsync": 8
+    name: "Molly Mocktail",
+    stats: {
+      runway: 6,
+      comedy: 9,
+      acting: 7,
+      dance: 5,
+      singing: 5,
+      improv: 9,
+      lipsync: 8,
+      design: 5
     },
-    "traits": {
-      "drama_prone": true,
-      "producer_fave": false
-    },
-    "edits": ["villain", "fan_favorite"]
+    traits: { drama_prone: true, producer_fave: false },
+    edits: ["villain", "fan_favorite"]
   },
   {
-    "name": "Ivory Anthem",
-    "stats": {
-      "runway": 7,
-      "comedy": 4,
-      "acting": 6,
-      "dance": 6,
-      "singing": 9,
-      "improv": 5,
-      "lipsync": 7
+    name: "Ivory Anthem",
+    stats: {
+      runway: 7,
+      comedy: 4,
+      acting: 6,
+      dance: 6,
+      singing: 9,
+      improv: 5,
+      lipsync: 7,
+      design: 6
     },
-    "traits": {
-      "drama_prone": false,
-      "producer_fave": true
-    },
-    "edits": ["late_bloomer"]
+    traits: { drama_prone: false, producer_fave: true },
+    edits: ["late_bloomer"]
   },
   {
-    "name": "Pixel Pixie",
-    "stats": {
-      "runway": 5,
-      "comedy": 8,
-      "acting": 6,
-      "dance": 6,
-      "singing": 4,
-      "improv": 8,
-      "lipsync": 8
+    name: "Pixel Pixie",
+    stats: {
+      runway: 5,
+      comedy: 8,
+      acting: 6,
+      dance: 6,
+      singing: 4,
+      improv: 8,
+      lipsync: 8,
+      design: 4
     },
-    "traits": {
-      "drama_prone": true,
-      "producer_fave": false
-    },
-    "edits": ["messy", "fan_favorite"]
+    traits: { drama_prone: true, producer_fave: false },
+    edits: ["messy", "fan_favorite"]
   },
   {
-    "name": "Crimson Crown",
-    "stats": {
-      "runway": 8,
-      "comedy": 5,
-      "acting": 8,
-      "dance": 7,
-      "singing": 7,
-      "improv": 6,
-      "lipsync": 8
+    name: "Crimson Crown",
+    stats: {
+      runway: 8,
+      comedy: 5,
+      acting: 8,
+      dance: 7,
+      singing: 7,
+      improv: 6,
+      lipsync: 8,
+      design: 7
     },
-    "traits": {
-      "drama_prone": false,
-      "producer_fave": false
-    },
-    "edits": ["front_runner", "robbed"]
+    traits: { drama_prone: false, producer_fave: false },
+    edits: ["front_runner", "robbed"]
   }
 ];
