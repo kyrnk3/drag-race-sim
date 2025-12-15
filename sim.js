@@ -36,7 +36,7 @@ const CHALLENGES = window.CHALLENGES || [];
 // Mini-challenges from mini-challenges.js
 const MINI_CHALLENGES = window.MINI_CHALLENGES || [];
 
-// Will store all queens for SAFE padding logic.
+// Will store all queens for SAFE padding logic & track-record meta.
 let allQueensGlobal = [];
 
 // =========================
@@ -639,6 +639,7 @@ function resolveLipSync(bottom2, challenge, phase, twistState) {
 }
 
 function updateTrackRecord(winner, highs, low, bottom2, eliminatedList, immuneSet) {
+  // Core placements
   for (const q of bottom2) {
     q.track_record.push("BTM");
   }
@@ -652,13 +653,17 @@ function updateTrackRecord(winner, highs, low, bottom2, eliminatedList, immuneSe
     winner.track_record.push("WIN");
   }
 
+  // Everybody else who is still in and not explicitly placed is SAFE.
   const involved = new Set([...highs, ...bottom2]);
   if (winner) involved.add(winner);
   if (low) involved.add(low);
 
   for (const q of allQueensGlobal) {
     if (q.eliminated) continue;
-    if (!involved.has(q) && q.track_record.length < (winner ? winner.track_record.length : bottom2[0].track_record.length)) {
+    const targetLen = winner
+      ? winner.track_record.length
+      : bottom2[0].track_record.length;
+    if (!involved.has(q) && q.track_record.length < targetLen) {
       q.track_record.push("SAFE");
     }
   }
@@ -681,7 +686,6 @@ function updateTrackRecord(winner, highs, low, bottom2, eliminatedList, immuneSe
     if (lastIdx >= 0) {
       elim.track_record[lastIdx] = "ELIM";
     } else {
-      // *** FIXED LINE: added missing ) ***
       elim.track_record.push("ELIM");
     }
     elim.eliminated = true;
@@ -736,7 +740,7 @@ function simulateEpisode(
 
   log.push(`\n========== Episode ${episodeNum} — ${challenge.name} ==========\n`);
 
-  // Mini-challenge phase (no elimination impact yet)
+  // Mini-challenge phase
   const miniChallenge = chooseMiniChallenge(queensRemaining, episodeNum, usedMiniOneOffIdsSet);
   if (miniChallenge) {
     if (MINI_ONE_OFF_CHALLENGES.has(miniChallenge.id)) {
@@ -753,10 +757,7 @@ function simulateEpisode(
     const miniRanked = Array.from(miniScores.entries()).sort((a, b) => b[1] - a[1]);
     const miniWinner = miniRanked[0][0];
 
-    log.push("  Mini-challenge scores:\n");
-    for (const [queen, score] of miniRanked) {
-      log.push(`    ${queen.name.padEnd(14)} ${score.toFixed(2)}\n`);
-    }
+    // We *don’t* log raw numbers here; just the winner.
     log.push(`  Mini-challenge winner: ${miniWinner.name}\n`);
   }
 
@@ -768,11 +769,6 @@ function simulateEpisode(
 
   let ranked = Array.from(scores.entries()).sort((a, b) => b[1] - a[1]);
   ranked = adjustRankedForEdits(ranked);
-
-  log.push("\nScores this week:\n");
-  for (const [queen, score] of ranked) {
-    log.push(`  ${queen.name.padEnd(14)} ${score.toFixed(2)}\n`);
-  }
 
   const n = ranked.length;
   const winner = ranked[0][0];
@@ -914,16 +910,11 @@ function simulateFinale(finalists, log) {
   }
 
   const combinedScores = new Map();
-  log.push("\nFinal lip sync performance:\n");
   for (const q of finalists) {
     const season = seasonScores.get(q);
     const rawLip = lipScores.get(q);
     const combined = rawLip + 0.4 * season + randUniform(-0.8, 0.8);
     combinedScores.set(q, combined);
-    log.push(
-      `  ${q.name.padEnd(14)} season=${season.toFixed(1).padStart(4)}  ` +
-      `raw_lip=${rawLip.toFixed(2).padStart(5)}  combined=${combined.toFixed(2).padStart(5)}\n`
-    );
   }
 
   let provisionalWinner = null;
@@ -968,7 +959,98 @@ function simulateFinale(finalists, log) {
   }
 
   log.push(`\n${winner.name} devours the stage and snatches the crown! 👑\n`);
-  return winner;
+  return { winner, seasonScores, lipScores, combinedScores };
+}
+
+// Build structured track-record data for the UI table.
+function buildTrackRecordMeta(allQueens, winner, finalists) {
+  if (!allQueens || !allQueens.length) {
+    return { queenOrder: [], episodes: [] };
+  }
+
+  // Determine how many main episodes actually happened.
+  let mainEpisodeCount = 0;
+  for (const q of allQueens) {
+    if (q.track_record && q.track_record.length > mainEpisodeCount) {
+      mainEpisodeCount = q.track_record.length;
+    }
+  }
+
+  const finalistsSet = new Set(finalists || []);
+
+  // Label duplicates nicely so cursed seasons don't collapse into one row.
+  const nameCounts = new Map();
+  for (const q of allQueens) {
+    const base = q.name || "Unknown";
+    nameCounts.set(base, (nameCounts.get(base) || 0) + 1);
+  }
+
+  const usedCounts = new Map();
+  const queenLabelMap = new Map();
+  function makeLabel(q) {
+    const base = q.name || "Unknown";
+    const total = nameCounts.get(base) || 1;
+    if (total === 1) return base;
+    const used = (usedCounts.get(base) || 0) + 1;
+    usedCounts.set(base, used);
+    return `${base} #${used}`;
+  }
+  for (const q of allQueens) {
+    queenLabelMap.set(q, makeLabel(q));
+  }
+
+  // Split finalists vs non-finalists, order by placement.
+  const nonFinalists = allQueens.filter(q => !finalistsSet.has(q));
+  nonFinalists.sort((a, b) => {
+    const ea = a.track_record.indexOf("ELIM");
+    const eb = b.track_record.indexOf("ELIM");
+    // Later elimination (higher index) should rank higher.
+    return eb - ea;
+  });
+
+  const otherFinalists = finalists.filter(q => q !== winner);
+  otherFinalists.sort((a, b) => computeSeasonScore(b) - computeSeasonScore(a));
+
+  const orderingObjs = [winner, ...otherFinalists, ...nonFinalists].filter(Boolean);
+  const queenOrder = orderingObjs.map(q => queenLabelMap.get(q));
+
+  const episodes = [];
+
+  // Main episodes
+  for (let ep = 0; ep < mainEpisodeCount; ep++) {
+    const placements = {};
+    for (const q of orderingObjs) {
+      const label = queenLabelMap.get(q);
+      const status = q.track_record[ep] || "";
+      placements[label] = status;
+    }
+    episodes.push({
+      index: ep,
+      isFinale: false,
+      name: `Episode ${ep + 1}`,
+      placements
+    });
+  }
+
+  // Finale column: Winner (gold), runner-up (silver), third (bronze). Others blank.
+  const finalePlacements = {};
+  orderingObjs.forEach((q, idx) => {
+    const label = queenLabelMap.get(q);
+    let status = "";
+    if (idx === 0) status = "WIN";   // winner
+    else if (idx === 1 && finalists.length > 1) status = "RU2"; // 2nd place
+    else if (idx === 2 && finalists.length > 2) status = "RU3"; // 3rd place
+    finalePlacements[label] = status;
+  });
+
+  episodes.push({
+    index: mainEpisodeCount,
+    isFinale: true,
+    name: "Finale",
+    placements: finalePlacements
+  });
+
+  return { queenOrder, episodes };
 }
 
 // =========================
@@ -1125,7 +1207,9 @@ function simulateSeason(queenDefs, options = {}) {
     log.push(`  - ${q.name} (track record: ${formatTrackRecord(q)})\n`);
   }
 
-  const winner = simulateFinale(queens, log);
+  const finalists = queens.slice();
+  const finaleResult = simulateFinale(finalists, log);
+  const winner = finaleResult.winner;
 
   log.push(`\nAnd the winner of this season is... ${winner.name}!! 🏁👑\n`);
   log.push("\nFull track records:\n");
@@ -1133,7 +1217,12 @@ function simulateSeason(queenDefs, options = {}) {
     log.push(`  ${q.name.padEnd(14)} ${formatTrackRecord(q)}\n`);
   }
 
-  return log.join("");
+  const trackRecord = buildTrackRecordMeta(allQueensGlobal, winner, finalists);
+
+  return {
+    log: log.join(""),
+    trackRecord
+  };
 }
 
 // expose to window
