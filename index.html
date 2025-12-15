@@ -2545,7 +2545,7 @@
           { key: "BTM", label: "Bottom:" },
           { key: "SAFE", label: "Safe:" },
           { key: "ELIM", label: "Sashay away:" },
-          { key: "RTU", label: "Returned:" },
+          { key: "RTRN", label: "Returned:" },
         ];
 
         for (const ptn of patterns) {
@@ -2665,9 +2665,9 @@
           }
 
           const status = (ep.placements && ep.placements[qName]) || "";
-          const displayStatus = status === "RTU" ? "RTRN" : status;
+          const displayStatus = status === "RTRN" ? "RTRN" : status;
 
-          cell.textContent = displayStatus;
+          cell.innerHTML = displayStatus + (placement.immune ? '<br><small>(IMM)</small>' : '');
           if (!status) {
             cell.className = "status-empty";
           } else {
@@ -2690,7 +2690,7 @@
               case "ELIM":
                 cell.className = "status-elim";
                 break;
-              case "RTU":
+              case "RTRN":
                 cell.className = "status-rtu";
                 break;
               default:
