@@ -681,7 +681,8 @@ function updateTrackRecord(winner, highs, low, bottom2, eliminatedList, immuneSe
     if (lastIdx >= 0) {
       elim.track_record[lastIdx] = "ELIM";
     } else {
-      elim.track_record.push("ELIM";
+      // *** FIXED LINE: added missing ) ***
+      elim.track_record.push("ELIM");
     }
     elim.eliminated = true;
   }
