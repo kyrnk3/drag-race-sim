@@ -1022,7 +1022,7 @@ function buildTrackRecordMeta(allQueens, winner, finalists) {
     for (const q of orderingObjs) {
       const label = queenLabelMap.get(q);
       const status = q.track_record[ep] || "";
-      placements[label] = status;
+      placements[label] = { status: status, immune: immuneMap && immuneMap[label] === true };
     }
     episodes.push({
       index: ep,
