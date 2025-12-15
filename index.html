@@ -14,10 +14,6 @@
       margin: 0;
     }
 
-    .hidden {
-      display: none;
-    }
-
     .app {
       max-width: 960px;
       margin: 0 auto;
@@ -26,80 +22,275 @@
 
     h1, h2, h3 {
       text-align: center;
-      margin-top: 0;
+      font-weight: 700;
+      letter-spacing: 0.03em;
     }
 
-    .controls {
-      background: #1b1b1b;
-      padding: 1rem;
-      border-radius: 8px;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 0 0 1px #222;
+    h1 {
+      margin-bottom: 0.5rem;
     }
 
-    .control-row {
+    h2 {
+      margin-top: 1.5rem;
       margin-bottom: 0.75rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
     }
 
-    select {
-      background: #000;
-      color: #eee;
-      border-radius: 4px;
-      border: 1px solid #444;
-      padding: 0.2rem 0.4rem;
-    }
-
-    input[type="number"],
-    input[type="text"],
-    input[type="url"],
-    input[type="range"] {
-      background: #000;
-      color: #eee;
-      border-radius: 4px;
-      border: 1px solid #444;
-      padding: 0.25rem 0.4rem;
-      font-size: 0.85rem;
+    a {
+      color: #ff80ab;
     }
 
     button {
-      padding: 0.4rem 0.8rem;
-      border-radius: 4px;
+      font-family: inherit;
+    }
+
+    /* ---- Layout / containers ---- */
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      justify-content: space-between;
+      background: #1e1e1e;
+      padding: 0.75rem 1rem;
+      border-radius: 999px;
+      box-shadow: 0 0 0 1px #333;
+      margin-bottom: 1rem;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .toolbar label {
+      font-size: 0.85rem;
+      color: #ccc;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .toolbar select {
+      background: #222;
+      color: #eee;
+      border-radius: 999px;
+      border: 1px solid #444;
+      padding: 0.2rem 0.7rem;
+      font-size: 0.85rem;
+    }
+
+    .toolbar input[type="checkbox"] {
+      transform: translateY(1px);
+    }
+
+    .primary-button {
+      border-radius: 999px;
       border: none;
-      cursor: pointer;
-      background: #e91e63;
+      padding: 0.5rem 1.4rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+      background: linear-gradient(135deg, #ff4081, #ff80ab);
       color: #fff;
+      cursor: pointer;
+      box-shadow: 0 0 0 1px #000, 0 0 10px rgba(255, 64, 129, 0.4);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.08s ease;
+    }
+
+    .primary-button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+      box-shadow: 0 0 0 1px #000, 0 0 16px rgba(255, 64, 129, 0.65);
+    }
+
+    .primary-button:disabled {
+      opacity: 0.6;
+      cursor: default;
+      transform: none;
+      box-shadow: 0 0 0 1px #000;
+    }
+
+    .pill-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid #444;
+      background: #181818;
+      font-size: 0.8rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .pill-toggle input[type="checkbox"] {
+      margin: 0;
+    }
+
+    /* ---- Episode cards ---- */
+
+    .season-output {
+      margin-top: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .episode-card,
+    details.episode-card {
+      background: #181818;
+      border-radius: 24px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 0.75rem;
+      border: 1px solid #333;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5);
+    }
+
+    .episode-card h3 {
+      margin-top: 0.1rem;
+      margin-bottom: 0.6rem;
+      font-size: 1.1rem;
+    }
+
+    .episode-card pre {
+      white-space: pre-wrap;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.85rem;
+      background: #121212;
+      padding: 0.75rem 0.9rem;
+      border-radius: 14px;
+      line-height: 1.5;
+      border: 1px solid #333;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .episode-card strong {
+      color: #fff;
+    }
+
+    .episode-card .meta-line {
+      font-size: 0.8rem;
+      color: #bbb;
+      margin-bottom: 0.5rem;
+    }
+
+    .episode-card .results-heading {
+      font-size: 0.95rem;
+      margin-bottom: 0.35rem;
+      color: #ff80ab;
       font-weight: 600;
     }
 
-    button:hover:not(:disabled) {
-      filter: brightness(1.1);
+    .episode-card .results-row {
+      font-size: 0.9rem;
+      margin-bottom: 0.15rem;
     }
 
-    button:disabled {
-      opacity: 0.4;
-      cursor: default;
+    .episode-card .participant-row {
+      margin-top: 0.4rem;
+      font-size: 0.85rem;
     }
 
-    .muted {
-      font-size: 0.8rem;
+    .episode-card .episode-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      border-radius: 999px;
+      padding: 0.1rem 0.6rem;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: #242424;
+      border: 1px solid #444;
+      color: #ccc;
+    }
+
+    .episode-card .episode-pill span {
       opacity: 0.8;
     }
 
-    /* Episode / step cards */
-    .episode-card {
-      background: #161616;
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      margin-bottom: 0.75rem;
-      box-shadow: 0 0 0 1px #222;
-      border-left: 3px solid #444;
+    .episode-card .step-meta {
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-bottom: 0.3rem;
+      text-align: right;
     }
 
-    .header-card {
+    .episode-card.step-cast {
+      border-left: 4px solid #ff80ab;
+    }
+
+    .episode-card.step-episode_setup {
+      border-left: 4px solid #90caf9;
+    }
+
+    .episode-card.step-episode_mini {
+      border-left: 4px solid #ffb74d;
+    }
+
+    .episode-card.step-episode_results {
+      border-left: 4px solid #66bb6a;
+    }
+
+    .episode-card.step-finale {
+      border-left: 4px solid #e57373;
+    }
+
+    .results-block {
+      margin-top: 0.4rem;
+    }
+
+    .step-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.75rem;
+      gap: 0.75rem;
+    }
+
+    .step-nav button {
+      flex: 1;
+      border-radius: 999px;
+      border: none;
+      padding: 0.45rem 0.8rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #262626;
+      color: #eee;
+      box-shadow: 0 0 0 1px #000;
+      transition: background 0.08s ease, transform 0.08s ease, box-shadow 0.08s ease;
+    }
+
+    .step-nav button:hover:not(:disabled) {
+      background: #333;
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 1px #000, 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+
+    .step-nav button:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+
+    .step-nav button:last-child {
+      background: linear-gradient(135deg, #ff4081, #ff80ab);
+      color: #fff;
+    }
+
+    .step-nav button:last-child:hover:not(:disabled) {
+      filter: brightness(1.05);
+    }
+
+    /* Collapsible summary styling */
+
+    details.episode-card {
+      position: relative;
+      border-left: 4px solid #4db6ac;
+    }
+
+    details.episode-card.summary-final {
       border-left-color: #e91e63;
     }
 
@@ -130,84 +321,40 @@
 
     .episode-card pre {
       white-space: pre-wrap;
-      font-size: 0.8rem;
-      margin: 0.5rem 0 0;
-      font-family: Menlo, Consolas, monospace;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.85rem;
+      background: #121212;
+      padding: 0.75rem 0.9rem;
+      border-radius: 14px;
+      line-height: 1.5;
+      border: 1px solid #333;
+      max-height: 500px;
+      overflow-y: auto;
     }
 
-    /* Full-view step styling */
-    .step-cast {
-      border-left-color: #e91e63;
-    }
+    /* Track record styling */
 
-    .step-episode_setup {
-      border-left-color: #9c27b0;
-    }
-
-    .step-episode_mini {
-      border-left-color: #4caf50;
-    }
-
-    .step-episode_results {
-      border-left-color: #ff9800;
-    }
-
-    .step-final3 {
-      border-left-color: #03a9f4;
-    }
-
-    .step-finale {
-      border-left-color: #ffc107;
-      box-shadow: 0 0 12px rgba(255, 215, 0, 0.2);
-    }
-
-    .step-meta {
-      font-size: 0.8rem;
-      opacity: 0.8;
-      margin-bottom: 0.25rem;
-    }
-
-    .episode-card h3 {
-      margin: 0.25rem 0 0.5rem;
-      text-align: left;
-    }
-
-    .episode-card p {
-      margin: 0.5rem 0 0;
-      font-size: 0.9rem;
-      line-height: 1.4;
-    }
-
-    .results-block {
+    .track-record-toggle {
       margin-top: 0.5rem;
-      font-size: 0.9rem;
-    }
-
-    .results-heading {
-      font-weight: 700;
-      margin-bottom: 0.3rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      text-align: right;
       font-size: 0.8rem;
-      opacity: 0.85;
+      color: #ccc;
     }
 
-    .results-row {
-      margin: 0.15rem 0;
+    .track-record-toggle label {
+      cursor: pointer;
+      user-select: none;
     }
 
-    .results-row strong {
-      margin-right: 0.35rem;
-    }
-
-    .step-nav {
+    .track-record-table-wrapper {
       margin-top: 0.75rem;
-      display: flex;
-      justify-content: space-between;
-      gap: 0.5rem;
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid #333;
+      background: #121212;
+      padding: 0.25rem;
     }
 
-    /* Track record table styling */
     .track-record-table {
       width: 100%;
       border-collapse: collapse;
@@ -241,170 +388,160 @@
     }
 
     .track-record-table .status-win {
-      background: #3f51b5;
-      color: #fff;
-      font-weight: 700;
+      background: #2e7d32;
+      color: #c8e6c9;
+      font-weight: 600;
     }
 
     .track-record-table .status-high {
-      background: #8bc6ff;
-      color: #000;
+      background: #1565c0;
+      color: #bbdefb;
     }
 
     .track-record-table .status-safe {
-      background: #d0d0d0;
-      color: #000;
+      background: #424242;
     }
 
     .track-record-table .status-low {
-      background: #ffccdf;
-      color: #000;
+      background: #f57c00;
+      color: #ffe0b2;
     }
 
-    .track-record-table .status-btm {
-      background: #ff7043;
-      color: #000;
-      font-weight: 700;
+    .track-record-table .status-bottom {
+      background: #c62828;
+      color: #ffcdd2;
+      font-weight: 600;
     }
 
     .track-record-table .status-elim {
-      background: #424242;
+      background: #000;
       color: #fff;
       font-weight: 700;
     }
 
-    .track-record-table .status-finale-winner {
-      background: #ffd54f; /* gold */
-      color: #000;
-      font-weight: 700;
+    .track-record-table .status-rtu {
+      background: #6a1b9a;
+      color: #e1bee7;
     }
 
-    .track-record-table .status-finale-runner {
-      background: #cfd8dc; /* silver */
-      color: #000;
-      font-weight: 600;
+    /* Cast builder / search styling */
+
+    .builder-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.3fr);
+      gap: 1.25rem;
     }
 
-    .track-record-table .status-finale-runner-bronze {
-      background: #ffb74d; /* bronze */
-      color: #000;
-      font-weight: 600;
-    }
-
-    /* Immunity tag styling */
-    .track-record-table .status-immunity-tag {
-      font-size: 0.65rem;
-      opacity: 0.8;
-      margin-top: 0.1rem;
-      letter-spacing: 0.05em;
-    }
-
-    /* ---- Cast builder / custom queen UI ---- */
-    .cast-builder-layout {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    @media (min-width: 900px) {
-      .cast-builder-layout {
-        flex-direction: row;
+    @media (max-width: 880px) {
+      .builder-layout {
+        grid-template-columns: minmax(0, 1fr);
       }
     }
 
-    .cast-column {
-      flex: 2;
+    .builder-panel {
+      background: #181818;
+      border-radius: 24px;
+      padding: 1rem 1.25rem 1.25rem;
+      border: 1px solid #333;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5);
     }
 
-    .custom-column {
-      flex: 1.6;
+    .builder-panel h3 {
+      margin-top: 0.1rem;
+      margin-bottom: 0.75rem;
+      text-align: left;
     }
 
-    .cast-search-row {
+    .subheading {
+      font-size: 0.85rem;
+      color: #bbb;
+      margin-top: -0.3rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .search-input-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.5rem;
+      gap: 0.6rem;
       align-items: center;
-      justify-content: flex-start;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.4rem;
     }
 
-    .cast-search-row input[type="text"] {
-      min-width: 200px;
-    }
-
-    .cast-builder-buttons {
-      display: flex;
-      gap: 0.4rem;
-      flex-wrap: wrap;
-    }
-
-    .cast-size-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      flex-wrap: wrap;
-      margin-top: 0.75rem;
-      justify-content: space-between;
-    }
-
-    .cast-size-inner {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      flex-wrap: wrap;
-    }
-
-    .queen-card {
-      background: #171717;
-      border-radius: 10px;
-      padding: 0.5rem;
-      text-align: center;
-      box-shadow: 0 0 0 1px #262626;
-      position: relative;
-    }
-
-    .queen-card img {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      object-fit: cover;
-      display: block;
-      margin: 0 auto 0.35rem;
-      box-shadow: 0 0 0 2px #000;
-    }
-
-    .queen-name {
-      font-size: 0.82rem;
-      font-weight: 600;
-      word-break: break-word;
-    }
-
-    .queen-card .custom-badge {
-      position: absolute;
-      top: 4px;
-      right: 6px;
-      font-size: 0.6rem;
-      background: #ff9800;
-      color: #000;
-      padding: 0.1rem 0.25rem;
+    .search-input-row input[type="text"] {
+      flex: 1;
+      min-width: 220px;
       border-radius: 999px;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
+      border: 1px solid #444;
+      background: #111;
+      color: #eee;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.9rem;
     }
 
-    /* Search results grid */
+    .search-input-row .small-label {
+      font-size: 0.8rem;
+      color: #bbb;
+    }
+
+    .search-input-row .pill-button {
+      border-radius: 999px;
+      border: 1px solid #444;
+      background: #242424;
+      color: #eee;
+      padding: 0.3rem 0.85rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      transition: background 0.08s ease, transform 0.08s ease, box-shadow 0.08s ease;
+    }
+
+    .search-input-row .pill-button:hover {
+      background: #333;
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 1px #000, 0 0 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .search-input-row .pill-button.danger {
+      border-color: #f44336;
+      color: #ffcdd2;
+    }
+
+    .search-input-row .pill-button.danger:hover {
+      background: #b71c1c;
+      box-shadow: 0 0 0 1px #000, 0 0 8px rgba(244, 67, 54, 0.8);
+    }
+
+    .search-input-row .pill-button.secondary {
+      border-color: #90caf9;
+      color: #e3f2fd;
+    }
+
+    .search-input-row .pill-button.secondary:hover {
+      background: #0d47a1;
+      box-shadow: 0 0 0 1px #000, 0 0 8px rgba(144, 202, 249, 0.8);
+    }
+
     .search-results {
-      margin-top: 0.5rem;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 0.5rem;
-      max-height: 220px;
+      margin-top: 0.4rem;
+      max-height: 260px;
       overflow-y: auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 0.55rem;
+      padding-right: 0.25rem;
     }
 
     .search-result-card {
+      background: #111;
+      border-radius: 16px;
+      padding: 0.5rem 0.6rem;
+      border: 1px solid #333;
+      font-size: 0.82rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
       cursor: pointer;
       transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
     }
@@ -417,6 +554,41 @@
     .search-result-card.added {
       background: #2e7d32;
       box-shadow: 0 0 0 2px #66bb6a;
+    }
+
+    .queen-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem;
+      margin: 0.5rem 0 0.25rem;
+    }
+
+    .queen-avatar {
+      text-align: center;
+      font-size: 0.75rem;
+      max-width: 90px;
+    }
+
+    .queen-avatar img {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #ff4081;
+      display: block;
+      margin: 0 auto 0.25rem;
+      background: #000;
+    }
+
+    .queen-avatar-name {
+      white-space: normal;
+    }
+
+    .queen-row-caption {
+      text-align: center;
+      margin-bottom: 0.75rem;
+      font-size: 0.8rem;
     }
 
     /* Current cast list */
@@ -436,91 +608,221 @@
       min-width: 120px;
     }
 
-    .cast-remove-btn {
-      position: absolute;
-      top: 4px;
-      left: 6px;
-      width: 18px;
-      height: 18px;
+    .cast-queen-card img {
+      width: 80px;
+      height: 80px;
       border-radius: 50%;
-      border: none;
+      object-fit: cover;
+      border: 3px solid #ff4081;
+      box-shadow: 0 0 0 2px #000;
+      margin-bottom: 0.35rem;
       background: #000;
+    }
+
+    .cast-queen-name {
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .cast-queen-meta {
+      font-size: 0.7rem;
+      color: #bbb;
+    }
+
+    .cast-empty-hint {
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      color: #aaa;
+      opacity: 0.9;
+    }
+
+    .cast-controls {
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      color: #ccc;
+    }
+
+    .cast-controls strong {
       color: #fff;
-      font-size: 0.7rem;
-      line-height: 1;
-      cursor: pointer;
-      padding: 0;
     }
 
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.15rem 0.4rem;
-      border-radius: 999px;
-      background: #222;
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      opacity: 0.85;
+    /* Custom queen editor */
+
+    .custom-editor {
+      margin-top: 0.5rem;
+      padding-top: 0.6rem;
+      border-top: 1px solid #333;
     }
 
-    .custom-form {
+    .custom-editor-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-bottom: 0.4rem;
+      align-items: flex-start;
+    }
+
+    .custom-editor-row label {
+      font-size: 0.8rem;
+      color: #ccc;
       display: flex;
       flex-direction: column;
-      gap: 0.35rem;
+      gap: 0.25rem;
+      min-width: 130px;
+      flex: 1;
     }
 
-    .custom-form label {
+    .custom-editor-row input[type="text"],
+    .custom-editor-row input[type="number"],
+    .custom-editor-row input[type="url"],
+    .custom-editor-row select {
+      border-radius: 999px;
+      border: 1px solid #444;
+      background: #111;
+      color: #eee;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    .custom-editor-row input[type="number"] {
+      max-width: 70px;
+    }
+
+    .custom-editor-row input[type="url"] {
+      min-width: 100px;
       font-size: 0.8rem;
     }
 
     .stat-grid {
       display: grid;
-      grid-template-columns: 1fr 0.7fr;
-      gap: 0.25rem 0.5rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      row-gap: 0.25rem;
+      column-gap: 0.75rem;
       align-items: center;
-    }
-
-    .custom-actions {
-      display: flex;
-      gap: 0.4rem;
-      flex-wrap: wrap;
-      margin-top: 0.25rem;
-    }
-
-    .custom-select-row {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      margin-top: 0.5rem;
-      flex-wrap: wrap;
-      justify-content: space-between;
-    }
-
-    .custom-preview {
-      text-align: center;
-      margin-top: 0.5rem;
-    }
-
-    .custom-preview img {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      object-fit: cover;
-      box-shadow: 0 0 0 2px #000;
-      display: block;
-      margin: 0 auto;
-    }
-
-    .traits-row {
-      display: flex;
-      gap: 0.75rem;
-      flex-wrap: wrap;
       font-size: 0.8rem;
     }
 
-    .traits-row label {
+    .stat-grid label span {
+      display: inline-block;
+      min-width: 70px;
+    }
+
+    .stat-grid input {
+      max-width: 60px;
+    }
+
+    .stat-hint {
+      font-size: 0.75rem;
+      color: #aaa;
+      margin-top: 0.15rem;
+    }
+
+    .editor-actions {
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .editor-actions button {
+      border-radius: 999px;
+      border: 1px solid #444;
+      background: #242424;
+      color: #eee;
+      padding: 0.35rem 0.9rem;
+      font-size: 0.85rem;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      transition: background 0.08s ease, transform 0.08s ease, box-shadow 0.08s ease;
+    }
+
+    .editor-actions button:hover {
+      background: #333;
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 1px #000, 0 0 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .editor-actions button.danger {
+      border-color: #f44336;
+      color: #ffcdd2;
+    }
+
+    .editor-actions button.danger:hover {
+      background: #b71c1c;
+      box-shadow: 0 0 0 1px #000, 0 0 8px rgba(244, 67, 54, 0.8);
+    }
+
+    .editor-actions button.secondary {
+      border-color: #90caf9;
+      color: #e3f2fd;
+    }
+
+    .editor-actions button.secondary:hover {
+      background: #0d47a1;
+      box-shadow: 0 0 0 1px #000, 0 0 8px rgba(144, 202, 249, 0.8);
+    }
+
+    .custom-queen-list {
+      margin-top: 0.6rem;
+      max-height: 220px;
+      overflow-y: auto;
+      border-radius: 12px;
+      border: 1px solid #333;
+      padding: 0.5rem;
+      background: #111;
+    }
+
+    .custom-queen-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) auto;
+      align-items: center;
+      gap: 0.4rem 0.75rem;
+      padding: 0.3rem 0.4rem;
+      border-bottom: 1px solid #222;
+      font-size: 0.83rem;
+    }
+
+    .custom-queen-row:last-child {
+      border-bottom: none;
+    }
+
+    .custom-queen-main {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem 0.6rem;
+      align-items: center;
+    }
+
+    .custom-queen-name {
+      font-weight: 600;
+    }
+
+    .custom-queen-stats {
+      font-size: 0.75rem;
+      color: #bbb;
+    }
+
+    .custom-queen-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+
+    .custom-queen-actions button {
+      border-radius: 999px;
+      border: 1px solid #444;
+      background: #242424;
+      color: #eee;
+      padding: 0.2rem 0.55rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    .custom-queen-actions button:hover {
+      background: #333;
     }
 
     .edit-flags {
@@ -538,13 +840,14 @@
   </style>
 </head>
 <body>
-  <!-- HOME / BUILDER PAGE -->
-  <main id="homePage" class="app">
+  <div class="app">
     <h1>Drag Race Season Simulator</h1>
+    <p style="text-align:center; font-size:0.85rem; color:#ccc; max-width:42rem; margin:0.25rem auto 1.25rem;">
+      Build a cast, tune the chaos, then simulate a full season in either a quick summary or step-by-step episode view.
+    </p>
 
-    <!-- Top-level run options -->
-    <section class="controls">
-      <div class="control-row">
+    <div class="toolbar">
+      <div class="toolbar-group">
         <label>
           Mode:
           <select id="modeSelect">
@@ -557,176 +860,182 @@
           View:
           <select id="viewSelect">
             <option value="summary">Summary</option>
-            <option value="full">Full</option>
+            <option value="full">Full (step-by-step)</option>
           </select>
         </label>
+      </div>
 
-        <label>
+      <div class="toolbar-group">
+        <label class="pill-toggle">
           <input type="checkbox" id="immunityToggle" checked />
-          Immunity (early episodes)
+          <span>Immunity (early episodes)</span>
         </label>
 
-        <label>
+        <label class="pill-toggle">
           <input type="checkbox" id="doubleTwistsToggle" checked />
-          Double shantays/sashays
+          <span>Double shantays/sashays</span>
         </label>
+
+        <button id="simulateButton" class="primary-button">Simulate Season</button>
       </div>
+    </div>
 
-      <div class="control-row">
-        <span class="muted">
-          Build a cast using the GUI below. If you don't choose anyone, the default sample cast will be used.
-        </span>
-      </div>
+    <div class="builder-layout">
+      <section class="builder-panel">
+        <h3>Cast Builder &amp; Custom Queens</h3>
+        <p class="subheading">
+          Build a cast using the search. If you don't choose anyone, the default sample cast will be used.
+        </p>
 
-      <div class="control-row">
-        <button id="simulateButton">Simulate Season</button>
-      </div>
-    </section>
-
-    <!-- Cast builder + custom queens -->
-    <section class="controls">
-      <h2>Cast Builder & Custom Queens</h2>
-
-      <div class="cast-builder-layout">
-        <!-- Left: cast picker (search + current cast) -->
-        <div class="cast-column">
-          <div class="cast-search-row">
-            <label>
-              <span class="muted">Type a name…</span><br />
-              <input id="queenSearchInput" type="text" placeholder="Start typing to search queens…" />
-            </label>
-
-            <div class="cast-builder-buttons">
-              <button id="btnRandomAll">Random</button>
-              <button id="btnRandomCustoms">Random customs</button>
-              <button id="btnLoadSampleCast">Load sample cast</button>
-              <button id="btnClearCast">Clear cast</button>
-            </div>
-          </div>
-
-          <div class="muted">
-            Click a queen in the search results to add her to the cast. Use the X button on a cast card to remove her.
-          </div>
-
-          <div id="searchResults" class="search-results"></div>
-
-          <div class="cast-size-wrapper">
-            <div class="cast-size-inner">
-              <label for="castSizeRange">Cast size:</label>
-              <input id="castSizeRange" type="range" min="4" max="20" value="12" />
-              <span id="castSizeLabel" class="chip">12 max</span>
-            </div>
-            <span id="castCountLabel" class="chip">Current cast: 0</span>
-          </div>
-
-          <div id="castList" class="cast-list"></div>
+        <div class="search-input-row">
+          <input
+            id="queenSearchInput"
+            type="text"
+            placeholder="Start typing to search queens..."
+          />
+          <span class="small-label">Cast size: <span id="castSizeLabel">0</span></span>
+          <input id="castSizeRange" type="range" min="6" max="16" step="1" value="12" />
+          <span class="small-label">Current cast: <strong id="castCountLabel">0</strong></span>
         </div>
 
-        <!-- Right: custom queen editor -->
-        <div class="custom-column">
-          <h3>Create or edit a custom queen</h3>
-          <form id="customQueenForm" class="custom-form" onsubmit="return false;">
+        <div class="search-input-row">
+          <button id="randomCastBtn" class="pill-button secondary" type="button">
+            Random
+          </button>
+          <button id="randomCustomCastBtn" class="pill-button secondary" type="button">
+            Random customs
+          </button>
+          <button id="loadSampleBtn" class="pill-button secondary" type="button">
+            Load sample cast
+          </button>
+          <button id="clearCastBtn" class="pill-button danger" type="button">
+            Clear cast
+          </button>
+        </div>
+
+        <div class="search-results" id="searchResults"></div>
+
+        <div class="cast-controls">
+          <div class="cast-empty-hint" id="castEmptyHint">
+            No queens in the cast yet.
+          </div>
+          <div class="cast-list" id="castList"></div>
+        </div>
+      </section>
+
+      <section class="builder-panel">
+        <h3>Create or edit a custom queen</h3>
+        <p class="subheading">
+          Give your OC stats and story beats, then save her to use in any cast.
+        </p>
+
+        <div class="custom-editor">
+          <div class="custom-editor-row">
             <label>
               Name:
-              <input id="customName" type="text" placeholder="Queen name…" />
+              <input id="customName" type="text" placeholder="Queen name..." />
             </label>
-
-            <button type="button" id="btnRandomizeStats">Randomize stats</button>
-            <span class="muted">(Stats should range from 0 to 10)</span>
-
-            <div class="stat-grid">
-              <label for="statActing">Acting:</label>
-              <input id="statActing" type="number" min="0" max="10" />
-              <label for="statComedy">Comedy:</label>
-              <input id="statComedy" type="number" min="0" max="10" />
-              <label for="statDance">Dance:</label>
-              <input id="statDance" type="number" min="0" max="10" />
-              <label for="statDesign">Design:</label>
-              <input id="statDesign" type="number" min="0" max="10" />
-              <label for="statImprov">Improv:</label>
-              <input id="statImprov" type="number" min="0" max="10" />
-              <label for="statRunway">Runway:</label>
-              <input id="statRunway" type="number" min="0" max="10" />
-              <label for="statLipsync">Lip Sync:</label>
-              <input id="statLipsync" type="number" min="0" max="10" />
-            </div>
-
-            <div style="margin-top:0.5rem; display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
-              <span class="muted">Personality / story:</span>
-              <button type="button" id="btnRandomizePersonality">Randomize traits/edits</button>
-            </div>
-            <div class="traits-row">
-              <label><input type="checkbox" id="traitDramaProne" /> Drama-prone</label>
-              <label><input type="checkbox" id="traitProducerFave" /> Producer favorite</label>
-            </div>
-
-            <div class="muted" style="margin-top:0.5rem;">Edit flags:</div>
-            <div id="editFlagsContainer" class="edit-flags"></div>
-
             <label>
               Image URL:
-              <input id="customImageUrl" type="url" placeholder="https://example.com/image.png" />
+              <input id="customImageUrl" type="url" placeholder="https://i.imgur.com/kXv2EFQ.png" />
             </label>
+          </div>
 
-            <div class="custom-actions">
-              <button type="button" id="btnAddQueen">Add queen</button>
-              <button type="button" id="btnUpdateQueen">Update queen</button>
+          <div class="custom-editor-row">
+            <div style="flex:1; min-width:220px;">
+              <div class="stat-grid">
+                <label>
+                  <span>Acting:</span>
+                  <input id="statActing" type="number" min="0" max="10" />
+                </label>
+                <label>
+                  <span>Comedy:</span>
+                  <input id="statComedy" type="number" min="0" max="10" />
+                </label>
+                <label>
+                  <span>Dance:</span>
+                  <input id="statDance" type="number" min="0" max="10" />
+                </label>
+                <label>
+                  <span>Design:</span>
+                  <input id="statDesign" type="number" min="0" max="10" />
+                </label>
+                <label>
+                  <span>Improv:</span>
+                  <input id="statImprov" type="number" min="0" max="10" />
+                </label>
+                <label>
+                  <span>Runway:</span>
+                  <input id="statRunway" type="number" min="0" max="10" />
+                </label>
+                <label>
+                  <span>Lip Sync:</span>
+                  <input id="statLipsync" type="number" min="0" max="10" />
+                </label>
+              </div>
+              <div class="stat-hint">
+                Stats should range from 0 to 10. Higher is better.
+              </div>
             </div>
-          </form>
 
-          <div class="custom-select-row">
-            <div>
-              <strong>Existing custom queens</strong><br />
-              <select id="customQueenSelect">
-                <option value="">(none)</option>
-              </select>
-            </div>
-            <div style="display:flex; gap:0.4rem; align-items:flex-end; flex-wrap:wrap;">
-              <button type="button" id="btnLoadForEdit">Edit</button>
-              <button type="button" id="btnDeleteQueen">Remove</button>
+            <div style="flex:1; min-width:220px;">
+              <label class="small-label" style="font-size:0.8rem; color:#ccc;">
+                Personality / story:
+              </label>
+              <div class="edit-flags" style="margin-bottom:0.4rem;">
+                <label class="edit-flag-label">
+                  <input id="traitDramaProne" type="checkbox" />
+                  drama-prone
+                </label>
+                <label class="edit-flag-label">
+                  <input id="traitProducerFave" type="checkbox" />
+                  producer favorite
+                </label>
+              </div>
+
+              <label class="small-label" style="font-size:0.8rem; color:#ccc;">
+                Edit flags:
+              </label>
+              <div class="edit-flags" id="editFlagsContainer"></div>
             </div>
           </div>
 
-          <div class="custom-preview">
-            <div class="muted">Preview</div>
-            <img id="customPreviewImage" src="" alt="" />
+          <div class="editor-actions">
+            <button type="button" id="randomizeStatsBtn">
+              Randomize stats
+            </button>
+            <button type="button" id="randomizeTraitsBtn">
+              Randomize traits/edits
+            </button>
+            <button type="button" id="addCustomQueenBtn" class="secondary">
+              Add queen
+            </button>
+            <button type="button" id="updateCustomQueenBtn">
+              Update queen
+            </button>
+            <button type="button" id="removeCustomQueenBtn" class="danger">
+              Remove queen
+            </button>
           </div>
+
+          <div class="custom-queen-list" id="customQueenList"></div>
         </div>
-      </div>
-    </section>
-  </main>
+      </section>
+    </div>
 
-  <!-- SIMULATION PAGE -->
-  <main id="simPage" class="app hidden">
-    <h1>Drag Race Season Simulator</h1>
-
-    <section>
+    <section class="season-output">
       <h2>Season Output</h2>
-      <div id="seasonContainer"></div>
-    </section>
-
-    <section class="controls">
-      <div class="control-row" style="justify-content:flex-end;">
-        <button id="btnBackToSetup">Back to cast builder</button>
+      <div id="seasonContainer">
+        <p style="font-size:0.85rem; color:#aaa;">
+          Once you simulate a season, the results will appear here either as a summary
+          or a step-by-step storyline.
+        </p>
       </div>
     </section>
-  </main>
+  </div>
 
-  <!-- Data -->
-  <script src="challenges.js"></script>
-  <script src="mini-challenges.js"></script>
-  <script src="queens.js"></script>
-
-  <!-- Simulator -->
-  <script src="sim.js"></script>
-
-  <!-- UI / Rendering -->
   <script>
     const DEFAULT_QUEEN_IMAGE = "https://i.imgur.com/kXv2EFQ.png";
-
-    const homePageEl = document.getElementById("homePage");
-    const simPageEl = document.getElementById("simPage");
-    const backToSetupBtn = document.getElementById("btnBackToSetup");
 
     const modeSelect = document.getElementById("modeSelect");
     const viewSelect = document.getElementById("viewSelect");
@@ -741,14 +1050,13 @@
     const castSizeRange = document.getElementById("castSizeRange");
     const castSizeLabel = document.getElementById("castSizeLabel");
     const castCountLabel = document.getElementById("castCountLabel");
+
     const castListEl = document.getElementById("castList");
-    const btnRandomAll = document.getElementById("btnRandomAll");
-    const btnRandomCustoms = document.getElementById("btnRandomCustoms");
-    const btnLoadSampleCast = document.getElementById("btnLoadSampleCast");
-    const btnClearCast = document.getElementById("btnClearCast");
+    const castEmptyHintEl = document.getElementById("castEmptyHint");
 
     // Custom queen editor elements
     const customNameInput = document.getElementById("customName");
+    const customImageUrlInput = document.getElementById("customImageUrl");
     const statActing = document.getElementById("statActing");
     const statComedy = document.getElementById("statComedy");
     const statDance = document.getElementById("statDance");
@@ -756,33 +1064,62 @@
     const statImprov = document.getElementById("statImprov");
     const statRunway = document.getElementById("statRunway");
     const statLipsync = document.getElementById("statLipsync");
-    const customImageUrlInput = document.getElementById("customImageUrl");
-    const btnRandomizeStats = document.getElementById("btnRandomizeStats");
-    const btnRandomizePersonality = document.getElementById("btnRandomizePersonality");
-    const btnAddQueen = document.getElementById("btnAddQueen");
-    const btnUpdateQueen = document.getElementById("btnUpdateQueen");
-    const customQueenSelect = document.getElementById("customQueenSelect");
-    const btnLoadForEdit = document.getElementById("btnLoadForEdit");
-    const btnDeleteQueen = document.getElementById("btnDeleteQueen");
-    const customPreviewImage = document.getElementById("customPreviewImage");
+
     const traitDramaProne = document.getElementById("traitDramaProne");
     const traitProducerFave = document.getElementById("traitProducerFave");
+
     const editFlagsContainer = document.getElementById("editFlagsContainer");
 
-    // For Full view
-    let currentSteps = [];
-    let currentStepIndex = 0;
+    const btnRandomizeStats = document.getElementById("randomizeStatsBtn");
+    const btnRandomizePersonality =
+      document.getElementById("randomizeTraitsBtn");
+    const btnAddCustomQueen = document.getElementById("addCustomQueenBtn");
+    const btnUpdateCustomQueen = document.getElementById("updateCustomQueenBtn");
+    const btnRemoveCustomQueen = document.getElementById("removeCustomQueenBtn");
 
-    // Number of main episodes actually logged (Episode 1..N)
-    let seasonEpisodeCount = 0;
+    const randomCastBtn = document.getElementById("randomCastBtn");
+    const randomCustomCastBtn = document.getElementById("randomCustomCastBtn");
+    const loadSampleBtn = document.getElementById("loadSampleBtn");
+    const clearCastBtn = document.getElementById("clearCastBtn");
 
-    // ---- Queen data for cast builder ----
-    const CUSTOM_STORAGE_KEY = "drag_race_sim_custom_queens";
+    const customQueenListEl = document.getElementById("customQueenList");
+
+    const CUSTOM_STORAGE_KEY = "drag_sim_custom_queens_v1";
+    const EDIT_FLAGS_STORAGE_KEY = "drag_sim_edit_flags_v1";
 
     let defaultQueens = [];
     let customQueens = [];
     let allQueens = [];
     let currentCast = [];
+
+    const queenNameMap = new Map();
+
+    function normalizeQueenName(name) {
+      return (name || "").toLowerCase().trim();
+    }
+
+    function rebuildQueenNameMap() {
+      queenNameMap.clear();
+      allQueens.forEach((q) => {
+        if (!q || !q.name) return;
+        const key = normalizeQueenName(q.name);
+        if (!queenNameMap.has(key)) queenNameMap.set(key, q);
+      });
+    }
+
+    function getQueenByNameGuess(rawName) {
+      if (!rawName) return null;
+      let key = normalizeQueenName(rawName.replace(/[.!?…]+$/u, ""));
+      let q = queenNameMap.get(key);
+      if (q) return q;
+      // Try stripping leading "The "
+      if (key.startsWith("the ")) {
+        key = key.slice(4);
+        q = queenNameMap.get(key);
+        if (q) return q;
+      }
+      return null;
+    }
 
     const editCheckboxes = new Map();
     let EDIT_FLAGS_LIST = [];
@@ -802,9 +1139,14 @@
         if (!raw) return [];
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed)) return [];
-        return parsed;
+        return parsed.map((q) => ({
+          ...q,
+          id: q.id || slugify(q.name || "queen"),
+          imageUrl:
+            (q.imageUrl && q.imageUrl.trim()) || DEFAULT_QUEEN_IMAGE,
+        }));
       } catch (e) {
-        console.warn("Failed to parse custom queens from storage:", e);
+        console.error("Failed to load custom queens:", e);
         return [];
       }
     }
@@ -813,72 +1155,363 @@
       try {
         localStorage.setItem(CUSTOM_STORAGE_KEY, JSON.stringify(list));
       } catch (e) {
-        console.warn("Failed to save custom queens:", e);
+        console.error("Failed to save custom queens:", e);
+      }
+    }
+
+    function loadEditFlags() {
+      try {
+        const raw = localStorage.getItem(EDIT_FLAGS_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed;
+      } catch (e) {
+        console.error("Failed to load edit flags:", e);
+        return [];
+      }
+    }
+
+    function saveEditFlags(flags) {
+      try {
+        localStorage.setItem(EDIT_FLAGS_STORAGE_KEY, JSON.stringify(flags));
+      } catch (e) {
+        console.error("Failed to save edit flags:", e);
       }
     }
 
     function initEditFlagCheckboxes() {
-      const flagsSource =
-        typeof ALL_EDIT_FLAGS !== "undefined"
-          ? ALL_EDIT_FLAGS
-          : [
-              "front_runner",
-              "late_bloomer",
-              "lip_sync_assassin",
-              "fan_favorite",
-              "villain",
-              "robbed",
-              "underestimated",
-              "messy",
-            ];
-
-      EDIT_FLAGS_LIST = flagsSource.slice();
-
-      editFlagsContainer.innerHTML = "";
+      EDIT_FLAGS_LIST = window.ALL_EDIT_FLAGS || [];
       editCheckboxes.clear();
-
-      flagsSource.forEach((flag) => {
-        const id = "editFlag_" + flag;
+      editFlagsContainer.innerHTML = "";
+      EDIT_FLAGS_LIST.forEach((flag) => {
+        const id = "edit_flag_" + flag;
         const label = document.createElement("label");
         label.className = "edit-flag-label";
-
         const cb = document.createElement("input");
         cb.type = "checkbox";
         cb.id = id;
         cb.value = flag;
-
         label.appendChild(cb);
-        label.appendChild(
-          document.createTextNode(" " + flag.replace(/_/g, " "))
-        );
-
+        label.appendChild(document.createTextNode(" " + flag.replace(/_/g, " ")));
         editFlagsContainer.appendChild(label);
         editCheckboxes.set(flag, cb);
       });
     }
 
+    function getSelectedEditFlags() {
+      const flags = [];
+      editCheckboxes.forEach((cb, flag) => {
+        if (cb.checked) flags.push(flag);
+      });
+      return flags;
+    }
+
+    function setSelectedEditFlags(list) {
+      const set = new Set(list || []);
+      editCheckboxes.forEach((cb, flag) => {
+        cb.checked = set.has(flag);
+      });
+    }
+
+    function buildQueenFromForm(existingId) {
+      const name = (customNameInput.value || "").trim();
+      if (!name) {
+        alert("Please enter a name for the queen.");
+        return null;
+      }
+      const id = existingId || slugify(name);
+
+      function clampStat(v) {
+        const n = parseInt(v, 10);
+        if (isNaN(n)) return 5;
+        return Math.max(0, Math.min(10, n));
+      }
+
+      const stats = {
+        acting: clampStat(statActing.value),
+        comedy: clampStat(statComedy.value),
+        dance: clampStat(statDance.value),
+        design: clampStat(statDesign.value),
+        improv: clampStat(statImprov.value),
+        runway: clampStat(statRunway.value),
+        lipsync: clampStat(statLipsync.value),
+      };
+
+      const traits = {
+        dramaProne: !!traitDramaProne.checked,
+        producerFave: !!traitProducerFave.checked,
+        edits: getSelectedEditFlags(),
+      };
+
+      const imageUrl =
+        (customImageUrlInput.value && customImageUrlInput.value.trim()) ||
+        DEFAULT_QUEEN_IMAGE;
+
+      return {
+        id,
+        name,
+        imageUrl,
+        stats,
+        traits,
+        source: "custom",
+      };
+    }
+
+    function resetCustomForm() {
+      customNameInput.value = "";
+      customImageUrlInput.value = "";
+      [
+        statActing,
+        statComedy,
+        statDance,
+        statDesign,
+        statImprov,
+        statRunway,
+        statLipsync,
+      ].forEach((el) => (el.value = ""));
+      traitDramaProne.checked = false;
+      traitProducerFave.checked = false;
+      setSelectedEditFlags([]);
+      customNameInput.dataset.editingId = "";
+    }
+
+    function randomStat() {
+      return Math.floor(Math.random() * 11);
+    }
+
+    function randomTrait() {
+      return Math.random() < 0.5;
+    }
+
+    function randomEdits() {
+      const flags = [];
+      const available = [...EDIT_FLAGS_LIST];
+      const count = Math.floor(Math.random() * 3);
+      for (let i = 0; i < count && available.length; i++) {
+        const idx = Math.floor(Math.random() * available.length);
+        flags.push(available.splice(idx, 1)[0]);
+      }
+      return flags;
+    }
+
+    btnRandomizeStats.addEventListener("click", () => {
+      statActing.value = randomStat();
+      statComedy.value = randomStat();
+      statDance.value = randomStat();
+      statDesign.value = randomStat();
+      statImprov.value = randomStat();
+      statRunway.value = randomStat();
+      statLipsync.value = randomStat();
+    });
+
+    btnRandomizePersonality.addEventListener("click", () => {
+      // Traits
+      traitDramaProne.checked = Math.random() < 0.35;
+      traitProducerFave.checked = Math.random() < 0.2;
+
+      // Edits: clear, then pick 0–3 random ones
+      editCheckboxes.forEach((cb) => (cb.checked = false));
+
+      if (!EDIT_FLAGS_LIST.length) return;
+      const maxEdits = 3;
+      const count = Math.floor(Math.random() * (maxEdits + 1));
+      const pool = [...EDIT_FLAGS_LIST];
+      for (let i = 0; i < count && pool.length; i++) {
+        const idx = Math.floor(Math.random() * pool.length);
+        const flag = pool.splice(idx, 1)[0];
+        const cb = editCheckboxes.get(flag);
+        if (cb) cb.checked = true;
+      }
+    });
+
+    function addCustomQueenFromForm() {
+      const q = buildQueenFromForm();
+      if (!q) return;
+
+      const existing = customQueens.find((c) => c.id === q.id);
+      if (existing) {
+        if (
+          !confirm(
+            "A custom queen with this ID already exists. Overwrite that queen?"
+          )
+        ) {
+          return;
+        }
+        const idx = customQueens.findIndex((c) => c.id === q.id);
+        customQueens[idx] = q;
+      } else {
+        customQueens.push(q);
+      }
+
+      saveCustomQueens(customQueens);
+      allQueens = [...defaultQueens, ...customQueens];
+      rebuildQueenNameMap();
+      renderCustomQueenList();
+      renderCustomQueenSelect();
+      renderSearchResults(queenSearchInput.value);
+    }
+
+    function updateCustomQueenFromForm() {
+      const editingId = customNameInput.dataset.editingId;
+      if (!editingId) {
+        alert("Select a custom queen to update.");
+        return;
+      }
+      const q = buildQueenFromForm(editingId);
+      if (!q) return;
+
+      const idx = customQueens.findIndex((c) => c.id === editingId);
+      if (idx === -1) {
+        alert("Could not find that custom queen in the list.");
+        return;
+      }
+
+      customQueens[idx] = q;
+      saveCustomQueens(customQueens);
+      allQueens = [...defaultQueens, ...customQueens];
+      rebuildQueenNameMap();
+      renderCustomQueenList();
+      renderCustomQueenSelect();
+      renderSearchResults(queenSearchInput.value);
+      resetCustomForm();
+    }
+
+    function removeCustomQueen() {
+      const editingId = customNameInput.dataset.editingId;
+      if (!editingId) {
+        alert("Select a custom queen to remove.");
+        return;
+      }
+      if (
+        !confirm(
+          "Are you sure you want to remove this custom queen? This cannot be undone."
+        )
+      ) {
+        return;
+      }
+      customQueens = customQueens.filter((q) => q.id !== editingId);
+      saveCustomQueens(customQueens);
+      allQueens = [...defaultQueens, ...customQueens];
+      rebuildQueenNameMap();
+      currentCast = currentCast.filter((q) => q.source !== "custom" || q.id !== editingId);
+      renderCustomQueenList();
+      renderCustomQueenSelect();
+      renderCastList();
+      renderSearchResults(queenSearchInput.value);
+      resetCustomForm();
+    }
+
+    btnAddCustomQueen.addEventListener("click", addCustomQueenFromForm);
+    btnUpdateCustomQueen.addEventListener("click", updateCustomQueenFromForm);
+    btnRemoveCustomQueen.addEventListener("click", removeCustomQueen);
+
+    function renderCustomQueenList() {
+      customQueenListEl.innerHTML = "";
+      if (!customQueens.length) {
+        const p = document.createElement("p");
+        p.textContent = "No custom queens yet.";
+        p.style.fontSize = "0.8rem";
+        p.style.color = "#aaa";
+        customQueenListEl.appendChild(p);
+        return;
+      }
+      customQueens.forEach((q) => {
+        const row = document.createElement("div");
+        row.className = "custom-queen-row";
+        row.dataset.id = q.id;
+
+        const main = document.createElement("div");
+        main.className = "custom-queen-main";
+
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "custom-queen-name";
+        nameSpan.textContent = q.name;
+        main.appendChild(nameSpan);
+
+        const statsSpan = document.createElement("span");
+        statsSpan.className = "custom-queen-stats";
+        const s = q.stats || {};
+        statsSpan.textContent = `A${s.acting ?? 0} / C${s.comedy ?? 0} / D${s.dance ?? 0} / De${
+          s.design ?? 0
+        } / I${s.improv ?? 0} / R${s.runway ?? 0} / L${s.lipsync ?? 0}`;
+        main.appendChild(statsSpan);
+
+        const traits = q.traits || {};
+        const tBits = [];
+        if (traits.dramaProne) tBits.push("drama-prone");
+        if (traits.producerFave) tBits.push("producer favorite");
+        if (Array.isArray(traits.edits) && traits.edits.length) {
+          tBits.push("edits: " + traits.edits.join(", "));
+        }
+        if (tBits.length) {
+          const traitSpan = document.createElement("span");
+          traitSpan.className = "custom-queen-stats";
+          traitSpan.textContent = tBits.join(" • ");
+          main.appendChild(traitSpan);
+        }
+
+        row.appendChild(main);
+
+        const actions = document.createElement("div");
+        actions.className = "custom-queen-actions";
+
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "Edit";
+        editBtn.addEventListener("click", () => {
+          loadCustomQueenIntoForm(q);
+        });
+        actions.appendChild(editBtn);
+
+        const addBtn = document.createElement("button");
+        addBtn.textContent = "Add to cast";
+        addBtn.addEventListener("click", () => {
+          addQueenToCast(q.id, { allowDuplicate: true });
+        });
+        actions.appendChild(addBtn);
+
+        row.appendChild(actions);
+        customQueenListEl.appendChild(row);
+      });
+    }
+
+    function loadCustomQueenIntoForm(q) {
+      customNameInput.value = q.name || "";
+      customNameInput.dataset.editingId = q.id;
+      customImageUrlInput.value =
+        q.imageUrl && q.imageUrl !== DEFAULT_QUEEN_IMAGE ? q.imageUrl : "";
+
+      const s = q.stats || {};
+      statActing.value = s.acting ?? "";
+      statComedy.value = s.comedy ?? "";
+      statDance.value = s.dance ?? "";
+      statDesign.value = s.design ?? "";
+      statImprov.value = s.improv ?? "";
+      statRunway.value = s.runway ?? "";
+      statLipsync.value = s.lipsync ?? "";
+
+      const traits = q.traits || {};
+      traitDramaProne.checked = !!traits.dramaProne;
+      traitProducerFave.checked = !!traits.producerFave;
+
+      setSelectedEditFlags(traits.edits || []);
+    }
+
     function getCastLimit() {
-      return parseInt(castSizeRange.value, 10) || 12;
+      const val = parseInt(castSizeRange.value, 10);
+      if (isNaN(val)) return 12;
+      return Math.min(16, Math.max(6, val));
     }
 
     function syncCastSizeLabel() {
-      const n = getCastLimit();
-      castSizeLabel.textContent = `${n} max`;
-      castCountLabel.textContent = `Current cast: ${currentCast.length}`;
+      castSizeLabel.textContent = getCastLimit();
     }
 
-    castSizeRange.addEventListener("input", () => {
-      const limit = getCastLimit();
-      if (currentCast.length > limit) {
-        currentCast = currentCast.slice(0, limit);
-      }
-      syncCastSizeLabel();
-      updateCastCount();
-      renderCastList();
-    });
+    castSizeRange.addEventListener("input", syncCastSizeLabel);
 
     function updateCastCount() {
-      castCountLabel.textContent = `Current cast: ${currentCast.length}`;
+      castCountLabel.textContent = currentCast.length;
+      castEmptyHintEl.style.display = currentCast.length ? "none" : "block";
     }
 
     function pickRandomQueens(sourceList, n) {
@@ -909,8 +1542,12 @@
           id: base.id + "_copy_" + Date.now() + "_" + Math.floor(Math.random() * 1000)
         };
       } else {
-        if (existing) return;
         q = base;
+      }
+
+      if (existing && !allowDuplicate) {
+        // Already in the cast; do nothing
+        return;
       }
 
       currentCast.push(q);
@@ -929,16 +1566,14 @@
     function renderCastList() {
       castListEl.innerHTML = "";
       if (!currentCast.length) {
-        const p = document.createElement("div");
-        p.className = "muted";
-        p.textContent = "No queens in the cast yet.";
-        castListEl.appendChild(p);
+        castEmptyHintEl.style.display = "block";
         return;
       }
+      castEmptyHintEl.style.display = "none";
 
       currentCast.forEach((q) => {
         const card = document.createElement("div");
-        card.className = "queen-card cast-queen-card";
+        card.className = "cast-queen-card";
 
         const img = document.createElement("img");
         img.src = q.imageUrl || DEFAULT_QUEEN_IMAGE;
@@ -946,21 +1581,25 @@
         card.appendChild(img);
 
         const name = document.createElement("div");
-        name.className = "queen-name";
+        name.className = "cast-queen-name";
         name.textContent = q.name;
         card.appendChild(name);
 
-        if (q.source === "custom") {
-          const badge = document.createElement("span");
-          badge.className = "custom-badge";
-          badge.textContent = "Custom";
-          card.appendChild(badge);
-        }
+        const meta = document.createElement("div");
+        meta.className = "cast-queen-meta";
+        meta.textContent = q.source === "custom" ? "Custom queen" : "Predefined";
+        card.appendChild(meta);
 
         const removeBtn = document.createElement("button");
-        removeBtn.className = "cast-remove-btn";
-        removeBtn.type = "button";
-        removeBtn.textContent = "×";
+        removeBtn.textContent = "Remove";
+        removeBtn.style.marginTop = "0.35rem";
+        removeBtn.style.borderRadius = "999px";
+        removeBtn.style.border = "1px solid #444";
+        removeBtn.style.background = "#242424";
+        removeBtn.style.color = "#eee";
+        removeBtn.style.fontSize = "0.75rem";
+        removeBtn.style.padding = "0.2rem 0.7rem";
+        removeBtn.style.cursor = "pointer";
         removeBtn.addEventListener("click", () => removeQueenFromCast(q.id));
         card.appendChild(removeBtn);
 
@@ -968,63 +1607,63 @@
       });
     }
 
-    function renderSearchResults(filterText) {
-      const text = (filterText || "").trim().toLowerCase();
+    function renderSearchResults(query) {
+      const term = (query || "").toLowerCase().trim();
       searchResultsEl.innerHTML = "";
 
-      if (!text) {
-        const p = document.createElement("div");
-        p.className = "muted";
-        p.textContent = "Start typing to search queens.";
+      if (!allQueens.length) return;
+
+      const filtered = allQueens.filter((q) => {
+        if (!term) return true;
+        return q.name.toLowerCase().includes(term);
+      });
+
+      if (!filtered.length) {
+        const p = document.createElement("p");
+        p.textContent = "No queens found.";
+        p.style.fontSize = "0.8rem";
+        p.style.color = "#aaa";
         searchResultsEl.appendChild(p);
         return;
       }
 
-      let pool = allQueens.filter((q) =>
-        q.name.toLowerCase().includes(text)
-      );
-
-      pool = pool.slice(0, 40);
-
-      if (!pool.length) {
-        const p = document.createElement("div");
-        p.className = "muted";
-        p.textContent = "No queens match that name.";
-        searchResultsEl.appendChild(p);
-        return;
-      }
-
-      pool.forEach((q) => {
+      filtered.forEach((q) => {
         const card = document.createElement("div");
-        card.className = "queen-card search-result-card";
+        card.className = "search-result-card";
         card.dataset.id = q.id;
+
+        if (currentCast.some((c) => c.id === q.id)) {
+          card.classList.add("added");
+        }
+
+        const title = document.createElement("div");
+        title.textContent = q.name;
+        title.style.fontWeight = "600";
+        card.appendChild(title);
 
         const img = document.createElement("img");
         img.src = q.imageUrl || DEFAULT_QUEEN_IMAGE;
         img.alt = q.name;
+        img.style.width = "64px";
+        img.style.height = "64px";
+        img.style.borderRadius = "50%";
+        img.style.objectFit = "cover";
+        img.style.border = "2px solid #ff4081";
+        img.style.boxShadow = "0 0 0 1px #000";
+        img.style.margin = "0.25rem auto 0.35rem";
+        img.style.display = "block";
         card.appendChild(img);
 
-        const name = document.createElement("div");
-        name.className = "queen-name";
-        name.textContent = q.name;
-        card.appendChild(name);
+        const meta = document.createElement("div");
+        meta.style.fontSize = "0.75rem";
+        meta.style.color = "#bbb";
+        meta.textContent = q.source === "custom" ? "Custom queen" : "Predefined";
+        card.appendChild(meta);
 
-        if (q.source === "custom") {
-          const badge = document.createElement("span");
-          badge.className = "custom-badge";
-          badge.textContent = "Custom";
-          card.appendChild(badge);
-        }
-
-        if (currentCast.find((c) => c.id === q.id)) {
-          card.classList.add("added");
-        }
-
-        card.addEventListener("click", (event) => {
-          const allowDuplicate =
-            event && (event.altKey || event.shiftKey || event.ctrlKey);
-          addQueenToCast(q.id, { allowDuplicate });
+        card.addEventListener("click", () => {
+          addQueenToCast(q.id);
         });
+
         searchResultsEl.appendChild(card);
       });
     }
@@ -1033,378 +1672,313 @@
       renderSearchResults(queenSearchInput.value);
     });
 
-    btnRandomAll.addEventListener("click", () => {
-      const limit = getCastLimit();
-      currentCast = pickRandomQueens(allQueens, limit);
+    randomCastBtn.addEventListener("click", () => {
+      if (!defaultQueens.length) return;
+      const size = getCastLimit();
+      currentCast = pickRandomQueens(defaultQueens, size);
       updateCastCount();
       renderCastList();
       renderSearchResults(queenSearchInput.value);
     });
 
-    btnRandomCustoms.addEventListener("click", () => {
-      const limit = getCastLimit();
-      currentCast = pickRandomQueens(customQueens, limit);
+    randomCustomCastBtn.addEventListener("click", () => {
+      if (!customQueens.length) return;
+      const size = getCastLimit();
+      currentCast = pickRandomQueens(customQueens, size);
       updateCastCount();
       renderCastList();
       renderSearchResults(queenSearchInput.value);
     });
 
-    btnLoadSampleCast.addEventListener("click", () => {
-      const limit = getCastLimit();
-      currentCast = defaultQueens.slice(0, limit);
+    loadSampleBtn.addEventListener("click", () => {
+      const sample = window.SAMPLE_CAST || [];
+      if (!sample.length) {
+        alert("No sample cast is defined.");
+        return;
+      }
+      currentCast = sample.map((id) => {
+        const q = allQueens.find((qq) => qq.id === id);
+        return (
+          q || {
+            id,
+            name: id,
+            imageUrl: DEFAULT_QUEEN_IMAGE,
+            source: "unknown",
+          }
+        );
+      });
       updateCastCount();
       renderCastList();
       renderSearchResults(queenSearchInput.value);
     });
 
-    btnClearCast.addEventListener("click", () => {
+    clearCastBtn.addEventListener("click", () => {
+      if (
+        currentCast.length &&
+        !confirm("Clear the entire cast? This can't be undone.")
+      ) {
+        return;
+      }
       currentCast = [];
       updateCastCount();
       renderCastList();
       renderSearchResults(queenSearchInput.value);
     });
 
-    // ---- Custom queen editor ----
-    function randomStat() {
-      return Math.floor(Math.random() * 11); // 0–10
-    }
+    // =========================
+    // Season simulation handling
+    // =========================
 
-    btnRandomizeStats.addEventListener("click", () => {
-      statActing.value = randomStat();
-      statComedy.value = randomStat();
-      statDance.value = randomStat();
-      statDesign.value = randomStat();
-      statImprov.value = randomStat();
-      statRunway.value = randomStat();
-      statLipsync.value = randomStat();
-    });
+    let currentSteps = [];
+    let currentStepIndex = 0;
+    let lastSeasonLog = "";
+    let seasonEpisodeCount = 0;
+    let trackRecordData = null;
 
-    btnRandomizePersonality.addEventListener("click", () => {
-      // Traits
-      traitDramaProne.checked = Math.random() < 0.35;
-      traitProducerFave.checked = Math.random() < 0.2;
-
-      // Edits: clear, then pick 0–3 random ones
-      editCheckboxes.forEach((cb) => (cb.checked = false));
-
-      if (!EDIT_FLAGS_LIST.length) return;
-      const maxEdits = 3;
-      const count = Math.floor(Math.random() * (maxEdits + 1)); // 0..3
-
-      const pool = EDIT_FLAGS_LIST.slice();
-      for (let i = 0; i < count && pool.length; i++) {
-        const idx = Math.floor(Math.random() * pool.length);
-        const flag = pool.splice(idx, 1)[0];
-        const cb = editCheckboxes.get(flag);
-        if (cb) cb.checked = true;
-      }
-    });
-
-    function formToQueen(idOverride) {
-      const name = customNameInput.value.trim();
-      if (!name) return null;
-
-      const stats = {
-        acting: Number(statActing.value) || 0,
-        comedy: Number(statComedy.value) || 0,
-        dance: Number(statDance.value) || 0,
-        design: Number(statDesign.value) || 0,
-        improv: Number(statImprov.value) || 0,
-        runway: Number(statRunway.value) || 0,
-        lipsync: Number(statLipsync.value) || 0,
-      };
-
-      const traits = {
-        drama_prone: !!traitDramaProne.checked,
-        producer_fave: !!traitProducerFave.checked,
-      };
-
-      const edits = [];
-      editCheckboxes.forEach((cb, flag) => {
-        if (cb.checked) edits.push(flag);
-      });
-
-      const id = idOverride || slugify(name);
-
+    function getOptionsFromUI() {
       return {
-        id,
-        name,
-        imageUrl:
-          (customImageUrlInput.value && customImageUrlInput.value.trim())
-            ? customImageUrlInput.value.trim()
-            : DEFAULT_QUEEN_IMAGE,
-        stats,
-        traits,
-        edits,
-        source: "custom",
+        mode: modeSelect.value === "chaos" ? "chaos" : "normal",
+        view: viewSelect.value === "full" ? "full" : "summary",
+        enableImmunity: !!immunityToggle.checked,
+        enableDoubleTwists: !!doubleTwistsToggle.checked,
       };
     }
 
-    function renderCustomQueenSelect() {
-      customQueenSelect.innerHTML = "";
-      const noneOpt = document.createElement("option");
-      noneOpt.value = "";
-      noneOpt.textContent = "(none)";
-      customQueenSelect.appendChild(noneOpt);
-
-      customQueens.forEach((q) => {
-        const opt = document.createElement("option");
-        opt.value = q.id;
-        opt.textContent = q.name;
-        customQueenSelect.appendChild(opt);
-      });
-
-      updatePreviewFromSelect();
+    function getEffectiveCast() {
+      if (currentCast.length) return currentCast;
+      const size = getCastLimit();
+      const pool = defaultQueens.length ? defaultQueens : allQueens;
+      return pickRandomQueens(pool, size);
     }
 
-    function updatePreviewFromSelect() {
-      const id = customQueenSelect.value;
-      const q = customQueens.find((cq) => cq.id === id);
-      if (q) {
-        customPreviewImage.src = q.imageUrl || DEFAULT_QUEEN_IMAGE;
-        customPreviewImage.alt = q.name;
+    function simulateSeasonFromUI() {
+      if (typeof window.simulateSeason !== "function") {
+        alert("simulateSeason is not defined. Please check sim.js is loaded.");
+        return;
+      }
+
+      const queens = getEffectiveCast();
+      if (!queens.length) {
+        alert("No queens available to simulate a season.");
+        return;
+      }
+
+      const options = getOptionsFromUI();
+      const result = window.simulateSeason(queens, options);
+      const log = typeof result === "string" ? result : result.log || "";
+      const meta = typeof result === "string" ? null : result;
+
+      lastSeasonLog = log || "";
+      trackRecordData = meta && meta.trackRecord ? meta.trackRecord : null;
+
+      if (options.view === "full") {
+        renderSeasonFull(lastSeasonLog);
       } else {
-        customPreviewImage.src = "";
-        customPreviewImage.alt = "";
+        renderSeasonSummary(lastSeasonLog);
       }
     }
 
-    customQueenSelect.addEventListener("change", updatePreviewFromSelect);
+    simulateBtn.addEventListener("click", simulateSeasonFromUI);
 
-    btnAddQueen.addEventListener("click", () => {
-      const q = formToQueen();
-      if (!q) {
-        alert("Please enter a name for the queen.");
-        return;
-      }
+    // =========================
+    // Parsing season logs
+    // =========================
 
-      // avoid duplicate custom IDs by default
-      if (customQueens.find((c) => c.id === q.id)) {
-        alert("A custom queen with that name/id already exists. Use Update instead.");
-        return;
-      }
-
-      customQueens.push(q);
-      saveCustomQueens(customQueens);
-      allQueens = [...defaultQueens, ...customQueens];
-      renderCustomQueenSelect();
-      renderSearchResults(queenSearchInput.value);
-    });
-
-    btnUpdateQueen.addEventListener("click", () => {
-      const selectedId = customQueenSelect.value;
-      if (!selectedId) {
-        alert("Select a custom queen to update.");
-        return;
-      }
-      const idx = customQueens.findIndex((q) => q.id === selectedId);
-      if (idx === -1) return;
-      const q = formToQueen(selectedId);
-      if (!q) return;
-      customQueens[idx] = q;
-      saveCustomQueens(customQueens);
-      allQueens = [...defaultQueens, ...customQueens];
-      renderCustomQueenSelect();
-      renderSearchResults(queenSearchInput.value);
-      renderCastList(); // in case stats or image changed
-    });
-
-    btnLoadForEdit.addEventListener("click", () => {
-      const id = customQueenSelect.value;
-      if (!id) return;
-      const q = customQueens.find((cq) => cq.id === id);
-      if (!q) return;
-      customNameInput.value = q.name;
-      customImageUrlInput.value = q.imageUrl || "";
-      statActing.value = q.stats?.acting ?? 0;
-      statComedy.value = q.stats?.comedy ?? 0;
-      statDance.value = q.stats?.dance ?? 0;
-      statDesign.value = q.stats?.design ?? 0;
-      statImprov.value = q.stats?.improv ?? 0;
-      statRunway.value = q.stats?.runway ?? 0;
-      statLipsync.value = q.stats?.lipsync ?? 0;
-
-      traitDramaProne.checked = !!(q.traits && q.traits.drama_prone);
-      traitProducerFave.checked = !!(q.traits && q.traits.producer_fave);
-
-      const editsSet = new Set(Array.isArray(q.edits) ? q.edits : []);
-      editCheckboxes.forEach((cb, flag) => {
-        cb.checked = editsSet.has(flag);
-      });
-    });
-
-    btnDeleteQueen.addEventListener("click", () => {
-      const id = customQueenSelect.value;
-      if (!id) return;
-      if (!confirm("Remove this custom queen?")) return;
-      customQueens = customQueens.filter((q) => q.id !== id);
-      saveCustomQueens(customQueens);
-      allQueens = [...defaultQueens, ...customQueens];
-      currentCast = currentCast.filter((q) => q.id !== id);
-      renderCustomQueenSelect();
-      renderSearchResults(queenSearchInput.value);
-      renderCastList();
-      updateCastCount();
-    });
-
-    // ---------- Parsing helpers (season log) ----------
-
-    function parseSeasonLog(log) {
-      const lines = log.split("\n");
+    function parseSeasonLog(logText) {
+      const lines = (logText || "").split(/
+?
+/);
       const header = [];
       const episodes = [];
       const finale = [];
 
-      let section = "header";
-      let current = null;
+      let currentBlock = header;
+      let currentEpisode = null;
+
+      function startNewEpisode(titleLine) {
+        if (currentEpisode) {
+          episodes.push(currentEpisode);
+        }
+        currentEpisode = {
+          title: titleLine,
+          lines: [titleLine],
+        };
+      }
 
       for (const line of lines) {
-        if (line.startsWith("========== Episode ")) {
-          if (current) episodes.push(current);
-          current = { lines: [line] };
-          section = "episode";
-        } else if (
-          line.startsWith("========== Final 3") ||
-          line.startsWith("========== Grand Finale")
-        ) {
-          if (current) episodes.push(current);
-          current = null;
-          section = "finale";
-          finale.push(line);
+        if (line.startsWith("========== Episode")) {
+          startNewEpisode(line);
+        } else if (line.startsWith("========== Grand Finale")) {
+          if (currentEpisode) {
+            episodes.push(currentEpisode);
+            currentEpisode = null;
+          }
+          currentBlock = finale;
+          currentBlock.push(line);
+        } else if (currentEpisode) {
+          currentEpisode.lines.push(line);
         } else {
-          if (section === "header") header.push(line);
-          else if (section === "episode") current.lines.push(line);
-          else finale.push(line);
+          currentBlock.push(line);
         }
       }
-      if (current) episodes.push(current);
+
+      if (currentEpisode) {
+        episodes.push(currentEpisode);
+      }
+
       return { header, episodes, finale };
     }
 
     function filterHeader(lines) {
-      const out = [];
-      let skip = false;
-      for (const l of lines) {
-        if (l.startsWith("Planned must-have challenges:")) {
-          skip = true;
-          continue;
-        }
-        if (skip) {
-          if (l.trim() === "") skip = false;
-          continue;
-        }
-        out.push(l);
-      }
-      return out.filter((l) => l.trim());
+      return (lines || []).filter((line) => {
+        if (!line.trim()) return false;
+        if (line.startsWith("==========")) return false;
+        if (line.startsWith("Season:")) return true;
+        if (line.startsWith("Cast:")) return true;
+        if (line.startsWith("Format:")) return true;
+        return false;
+      });
     }
 
-    // Hide main-score blocks AND mini-score blocks in episodes, keep mini header + winner.
     function filterEpisode(lines) {
       const out = [];
-      let skipMainScores = false;
-      let skipMiniScores = false;
-
-      for (const l of lines) {
-        const trimmed = l.trim();
-
-        if (trimmed.startsWith("Scores this week:")) {
-          skipMainScores = true;
-          continue;
-        }
-        if (skipMainScores) {
-          if (trimmed === "") {
-            skipMainScores = false;
-          }
-          continue;
-        }
-
-        if (trimmed.startsWith("Mini-challenge scores:")) {
-          skipMiniScores = true;
-          continue;
-        }
-        if (skipMiniScores) {
-          if (trimmed.startsWith("Mini-challenge winner:")) {
-            skipMiniScores = false;
-            out.push(l);
-          }
-          continue;
-        }
-
-        out.push(l);
+      for (const line of lines || []) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        if (trimmed.startsWith("Mini-challenge scores:")) continue;
+        if (trimmed.startsWith("Main challenge scores:")) continue;
+        if (trimmed.startsWith("Runway scores:")) continue;
+        if (trimmed.startsWith("Total scores:")) continue;
+        out.push(line);
       }
       return out;
     }
 
-    // For SUMMARY view only – strip raw lip-sync performance block
-    function filterFinale(lines) {
-      const out = [];
-      let skip = false;
-      for (const l of lines) {
-        if (l.startsWith("Final lip sync performance:")) {
-          skip = true;
+    function parseEpisodeSections(filteredLines) {
+      // Skip the title line if present
+      const lines = filteredLines.slice(1);
+      const maxi = [];
+      const judging = [];
+      const bringBack = [];
+      const lipsync = [];
+      const results = [];
+
+      let section = "none";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        // Start markers
+        if (trimmed.startsWith("The queens will")) {
+          section = "maxi";
+          maxi.push(line);
           continue;
         }
-        if (skip) {
-          if (l.trim() === "") skip = false;
+        if (trimmed.startsWith("Queens' performances")) {
+          section = "maxi";
+          maxi.push(line);
           continue;
         }
-        out.push(l);
+        if (trimmed.startsWith("Based on tonight's performances")) {
+          section = "judging";
+          judging.push(line);
+          continue;
+        }
+        if (trimmed.startsWith("Ladies, I've made some decisions")) {
+          section = "bringBack";
+          bringBack.push(line);
+          continue;
+        }
+        if (trimmed.startsWith("The time has come")) {
+          section = "lipsync";
+          lipsync.push(line);
+          continue;
+        }
+        if (trimmed.startsWith("I've made my decision")) {
+          section = "results";
+          results.push(line);
+          continue;
+        }
+
+        // Route subsequent lines according to current section
+        if (section === "maxi") maxi.push(line);
+        else if (section === "judging") judging.push(line);
+        else if (section === "bringBack") bringBack.push(line);
+        else if (section === "lipsync") lipsync.push(line);
+        else if (section === "results") results.push(line);
       }
-      return out.filter((l) => l.trim());
+
+      return { maxi, judging, bringBack, lipsync, results };
     }
 
-    // ---------- Summary view rendering ----------
+    function parseQueenNamesFromLine(line) {
+      if (!line) return [];
+      let segment = line;
 
-    function renderSeasonSummary(log) {
-      seasonContainer.innerHTML = "";
-      const { header, episodes, finale } = parseSeasonLog(log);
-
-      const cast = filterHeader(header);
-      if (cast.length) {
-        const card = document.createElement("div");
-        card.className = "episode-card header-card";
-        card.innerHTML = `<h3>Cast</h3><pre>${cast.join("\n")}</pre>`;
-        seasonContainer.appendChild(card);
+      // Chop off trailing narrative phrases
+      const cutMarkers = [
+        " had a great performance",
+        " had a good performance",
+        " had a bad performance",
+        " had a great lipsync",
+        " had a good lipsync",
+        " had a bad lipsync",
+        " won the mini-challenge",
+        " won the mini challenge",
+        " you're the bottoms of the week",
+        " you're safe",
+        " you are safe",
+        " I'm sorry my dears",
+        " shantay you stay",
+        " sashay away",
+        " condragulations",
+      ];
+      for (const marker of cutMarkers) {
+        const idx = segment.toLowerCase().indexOf(marker);
+        if (idx !== -1) {
+          segment = segment.slice(0, idx);
+          break;
+        }
       }
 
-      for (const ep of episodes) {
-        const lines = filterEpisode(ep.lines);
-        const title = lines[0] || "";
-        const m = title.match(/Episode (\d+) — (.+?) =+/);
-        const label = m ? `Episode ${m[1]} — ${m[2]}` : title;
-
-        const d = document.createElement("details");
-        d.className = "episode-card";
-
-        const s = document.createElement("summary");
-        s.textContent = label;
-        d.appendChild(s);
-
-        const p = document.createElement("pre");
-        p.textContent = lines.join("\n");
-        d.appendChild(p);
-
-        seasonContainer.appendChild(d);
-      }
-
-      if (finale.length) {
-        const d = document.createElement("details");
-        d.className = "episode-card finale-card";
-        d.open = false;
-
-        const s = document.createElement("summary");
-        s.textContent = "Grand Finale & Track Records";
-        d.appendChild(s);
-
-        const p = document.createElement("pre");
-        p.textContent = filterFinale(finale).join("\n");
-        d.appendChild(p);
-
-        seasonContainer.appendChild(d);
-      }
+      segment = segment.replace(/and/gi, ",");
+      const parts = segment.split(",").map((p) => p.trim()).filter(Boolean);
+      return parts;
     }
 
-    // ---------- Full (step-through) view ----------
+    function renderQueenRow(names, caption, card) {
+      if (!names || !names.length) return;
+      const rowWrap = document.createElement("div");
+      rowWrap.className = "queen-row";
+
+      names.forEach((raw) => {
+        const q = getQueenByNameGuess(raw);
+        const cell = document.createElement("div");
+        cell.className = "queen-avatar";
+
+        const img = document.createElement("img");
+        img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
+        img.alt = q ? q.name : raw;
+        cell.appendChild(img);
+
+        const label = document.createElement("div");
+        label.className = "queen-avatar-name";
+        label.textContent = q ? q.name : raw;
+        cell.appendChild(label);
+
+        rowWrap.appendChild(cell);
+      });
+
+      card.appendChild(rowWrap);
+
+      if (caption) {
+        const cap = document.createElement("div");
+        cap.className = "queen-row-caption";
+        cap.textContent = caption;
+        card.appendChild(cap);
+      }
+    }
 
     function buildStepsFromLog(log) {
       const { header, episodes, finale } = parseSeasonLog(log);
@@ -1425,9 +1999,10 @@
         const epNum = m ? parseInt(m[1], 10) : index + 1;
         const epName = m ? m[2] : "Unknown challenge";
 
+        // Basic episode intro
         steps.push({ type: "episode_setup", epNum, name: epName });
 
-        // Mini-challenge block
+        // Mini-challenge
         let miniLines = [];
         let miniName = null;
         let inMini = false;
@@ -1462,30 +2037,57 @@
           });
         }
 
-        // Main challenge results
-        const resultsLines = [];
-        let inResults = false;
-        for (const line of filtered) {
-          if (line.startsWith("Results:")) {
-            inResults = true;
-            resultsLines.push(line);
-            continue;
-          }
-          if (inResults) {
-            resultsLines.push(line);
-          }
+        // Maxi / judging / bring-back / lipsync / results
+        const { maxi, judging, bringBack, lipsync, results } =
+          parseEpisodeSections(filtered);
+
+        if (maxi.length) {
+          steps.push({
+            type: "episode_maxi",
+            epNum,
+            name: epName,
+            lines: maxi,
+          });
         }
-        const cleanResults = resultsLines.filter((l) => l.trim() !== "");
-        steps.push({
-          type: "episode_results",
-          epNum,
-          name: epName,
-          lines: cleanResults,
-        });
+
+        if (judging.length) {
+          steps.push({
+            type: "episode_judging",
+            epNum,
+            name: epName,
+            lines: judging,
+          });
+        }
+
+        if (bringBack.length) {
+          steps.push({
+            type: "episode_bring_back",
+            epNum,
+            name: epName,
+            lines: bringBack,
+          });
+        }
+
+        if (lipsync.length) {
+          steps.push({
+            type: "episode_lipsync",
+            epNum,
+            name: epName,
+            lines: lipsync,
+          });
+        }
+
+        if (results.length) {
+          steps.push({
+            type: "episode_results",
+            epNum,
+            name: epName,
+            lines: results,
+          });
+        }
       });
 
-      // For Full view we keep raw finale lines (no filterFinale),
-      // so we can parse actual season scores.
+      // Finale / track record summary
       const finaleLines = finale;
       if (finaleLines.length) {
         const idx = finaleLines.findIndex((l) =>
@@ -1502,6 +2104,21 @@
       }
 
       return steps;
+    }
+
+    function renderQueenLinesBlock(lines, card) {
+      const clean = (lines || []).filter((l) => l && l.trim());
+      clean.forEach((line) => {
+        const trimmed = line.trim();
+        const names = parseQueenNamesFromLine(trimmed);
+        if (names.length) {
+          renderQueenRow(names, trimmed, card);
+        } else {
+          const p = document.createElement("p");
+          p.textContent = trimmed;
+          card.appendChild(p);
+        }
+      });
     }
 
     function renderResultsLines(lines, card) {
@@ -1522,21 +2139,10 @@
           continue;
         }
 
-        const row = document.createElement("div");
-        row.className = "results-row";
-
-        const colonIdx = trimmed.indexOf(":");
-        if (colonIdx !== -1) {
-          const label = trimmed.slice(0, colonIdx).trim();
-          const value = trimmed.slice(colonIdx + 1).trim();
-          const strong = document.createElement("strong");
-          strong.textContent = label + ":";
-          row.appendChild(strong);
-          row.appendChild(document.createTextNode(" " + value));
-        } else {
-          row.textContent = trimmed;
-        }
-        block.appendChild(row);
+        const p = document.createElement("div");
+        p.className = "results-row";
+        p.textContent = trimmed;
+        block.appendChild(p);
       }
 
       if (!headingAdded && lines.length) {
@@ -1568,26 +2174,41 @@
       );
       block.appendChild(challengeRow);
 
-      let winnerName = "Unknown";
-      for (const line of step.lines) {
-        const trimmed = line.trim();
-        const lower = trimmed.toLowerCase();
-        if (lower.startsWith("mini-challenge winner:")) {
-          const parts = trimmed.split(":");
-          if (parts.length > 1) {
-            winnerName = parts.slice(1).join(":").trim();
-          }
+      // Try to find line(s) that describe the winner(s)
+      let winnerLine = null;
+      for (const line of step.lines || []) {
+        const lower = line.trim().toLowerCase();
+        if (!lower) continue;
+        if (lower.includes("won the mini-challenge") || lower.includes("mini-challenge winner")) {
+          winnerLine = line;
           break;
         }
       }
 
-      const winnerRow = document.createElement("div");
-      winnerRow.className = "results-row";
-      const winnerLabel = document.createElement("strong");
-      winnerLabel.textContent = "Winner:";
-      winnerRow.appendChild(winnerLabel);
-      winnerRow.appendChild(document.createTextNode(" " + winnerName));
-      block.appendChild(winnerRow);
+      let winnerNames = [];
+      if (winnerLine) {
+        winnerNames = parseQueenNamesFromLine(winnerLine);
+      }
+
+      if (!winnerNames.length) {
+        // Fallback: old style "Mini-challenge winner: Name"
+        for (const line of step.lines || []) {
+          const trimmed = line.trim();
+          const lower = trimmed.toLowerCase();
+          if (lower.startsWith("mini-challenge winner:")) {
+            const parts = trimmed.split(":");
+            if (parts.length > 1) {
+              const tail = parts.slice(1).join(":").trim();
+              winnerNames = tail.split(/,| and /i).map((p) => p.trim()).filter(Boolean);
+            }
+            break;
+          }
+        }
+      }
+
+      if (winnerNames.length) {
+        renderQueenRow(winnerNames, "won the mini-challenge!", card);
+      }
 
       card.appendChild(block);
     }
@@ -1596,362 +2217,107 @@
       const block = document.createElement("div");
       block.className = "results-block";
 
-      const heading = document.createElement("div");
-      heading.className = "results-heading";
-      heading.textContent = "Grand Finale";
-      block.appendChild(heading);
-
-      const finalists = [];
-      let winnerName = "Unknown";
-
-      let inTrackSection = false;
-      const trackLines = [];
-      const seasonScoreMap = new Map();
-
+      let titlePrinted = false;
       for (const line of lines) {
         const trimmed = line.trim();
+        if (!trimmed) continue;
 
-        // Extract exact season scores: "Name  season=  8.0  raw_lip=..."
-        const mSeason = trimmed.match(/^(.+?)\s+season=([0-9.+-]+)/);
-        if (mSeason) {
-          const name = mSeason[1].trim();
-          const seasonScore = parseFloat(mSeason[2]);
-          if (name && !Number.isNaN(seasonScore)) {
-            seasonScoreMap.set(name, seasonScore);
-          }
-        }
-
-        // Start of track-record block
-        if (trimmed === "Full track records:") {
-          inTrackSection = true;
-          continue;
-        }
-        if (inTrackSection) {
-          trackLines.push(trimmed);
+        if (trimmed.startsWith("========== Grand Finale")) {
+          const h = document.createElement("div");
+          h.className = "results-heading";
+          h.textContent = "Grand Finale";
+          block.appendChild(h);
+          titlePrinted = true;
           continue;
         }
 
-        // Finalists bullets: "- Queen Name (track: ...)"
-        if (trimmed.startsWith("- ")) {
-          const noDash = trimmed.slice(2).trim();
-          const trackIdx = noDash.indexOf("(track:");
-          const name = trackIdx === -1 ? noDash : noDash.slice(0, trackIdx).trim();
-          if (name) finalists.push(name);
-        }
-
-        // Winner line: "X devours the stage and snatches the crown! 👑"
-        if (
-          trimmed.endsWith("snatches the crown! 👑") ||
-          trimmed.endsWith("snatches the crown!")
-        ) {
-          const marker = " devours the stage";
-          const idx = trimmed.indexOf(marker);
-          if (idx !== -1) {
-            winnerName = trimmed.slice(0, idx).trim();
-          }
-        }
+        const p = document.createElement("div");
+        p.className = "results-row";
+        p.textContent = trimmed;
+        block.appendChild(p);
       }
 
-      if (finalists.length) {
-        const finalistsRow = document.createElement("div");
-        finalistsRow.className = "results-row";
-        const finalistsLabel = document.createElement("strong");
-        finalistsLabel.textContent = "Finalists:";
-        finalistsRow.appendChild(finalistsLabel);
-        finalistsRow.appendChild(
-          document.createTextNode(" " + finalists.join(", "))
-        );
-        block.appendChild(finalistsRow);
+      if (!titlePrinted) {
+        const h = document.createElement("div");
+        h.className = "results-heading";
+        h.textContent = "Grand Finale";
+        block.insertBefore(h, block.firstChild);
       }
-
-      const winnerRow = document.createElement("div");
-      winnerRow.className = "results-row";
-      const winnerLabel = document.createElement("strong");
-      winnerLabel.textContent = "Winner:";
-      winnerRow.appendChild(winnerLabel);
-      winnerRow.appendChild(document.createTextNode(" " + winnerName));
-      block.appendChild(winnerRow);
 
       card.appendChild(block);
 
-      function seasonScoreFromRecord(rec) {
-        let score = 0;
-        for (const raw of rec) {
-          const r = raw.replace(/\(IMM\)$/, "");
-          if (r === "WIN") score += 3;
-          else if (r === "HIGH") score += 1;
-          else if (r === "LOW") score -= 1;
-          else if (r === "BTM") score -= 2;
-        }
-        return score;
-      }
+      const trackContainer = document.createElement("div");
+      trackContainer.style.marginTop = "1rem";
 
-      // Track records table
-      if (!trackLines.length) return;
+      const toggleWrap = document.createElement("div");
+      toggleWrap.className = "track-record-toggle";
+      const toggleLabel = document.createElement("label");
+      const toggleCheckbox = document.createElement("input");
+      toggleCheckbox.type = "checkbox";
+      toggleCheckbox.checked = false;
+      toggleLabel.appendChild(toggleCheckbox);
+      toggleLabel.appendChild(
+        document.createTextNode(" Show full track records")
+      );
+      toggleWrap.appendChild(toggleLabel);
+      trackContainer.appendChild(toggleWrap);
 
-      const records = [];
-      const statusSet = new Set(["WIN", "HIGH", "SAFE", "LOW", "BTM", "ELIM"]);
+      const tableWrapper = document.createElement("div");
+      tableWrapper.className = "track-record-table-wrapper";
+      tableWrapper.style.display = "none";
+      trackContainer.appendChild(tableWrapper);
 
-      for (let lineIdx = 0; lineIdx < trackLines.length; lineIdx++) {
-        const line = trackLines[lineIdx];
-        if (!line) continue;
-        const parts = line.split(/\s+/);
-        if (!parts.length) continue;
+      toggleCheckbox.addEventListener("change", () => {
+        tableWrapper.style.display = toggleCheckbox.checked ? "block" : "none";
+      });
 
-        let firstStatusIdx = -1;
-        for (let i = 0; i < parts.length; i++) {
-          const base = parts[i].replace(/\(IMM\)$/, "");
-          if (statusSet.has(base)) {
-            firstStatusIdx = i;
-            break;
-          }
-        }
-        if (firstStatusIdx === -1) continue;
+      card.appendChild(trackContainer);
 
-        const name = parts.slice(0, firstStatusIdx).join(" ");
-        const rec = parts.slice(firstStatusIdx);
-        if (!name) continue;
-
-        const elimIdx = rec.findIndex((s) => {
-          const base = s.replace(/\(IMM\)$/, "");
-          return base === "ELIM";
-        });
-
-        records.push({
-          name,
-          record: rec,
-          elimIndex: elimIdx === -1 ? Infinity : elimIdx,
-          rowIndex: lineIdx,
-        });
-      }
-
-      if (!records.length) return;
-
-      // Detect duplicate names (cursed Test Queen season, etc.)
-      const nameCounts = new Map();
-      for (const r of records) {
-        nameCounts.set(r.name, (nameCounts.get(r.name) || 0) + 1);
-      }
-      const hasDuplicateNames = Array.from(nameCounts.values()).some((c) => c > 1);
-
-      let finalRecords = [];
-
-      if (!hasDuplicateNames && finalists.length) {
-        // --- Normal case: unique names, use finalists list + real season scores ---
-        const finalistsSet = new Set(finalists);
-
-        let finalistRecords = records
-          .filter((r) => finalistsSet.has(r.name))
-          .map((r) => {
-            const fallback = seasonScoreFromRecord(r.record);
-            const seasonScore = seasonScoreMap.has(r.name)
-              ? seasonScoreMap.get(r.name)
-              : fallback;
-            return { ...r, seasonScore, finaleStatus: null };
-          });
-
-        // Sort finalists by season score, then ensure the actual winner is first
-        finalistRecords.sort((a, b) => b.seasonScore - a.seasonScore);
-        const winnerIdx = finalistRecords.findIndex((r) => r.name === winnerName);
-        if (winnerIdx > 0) {
-          const [w] = finalistRecords.splice(winnerIdx, 1);
-          finalistRecords.unshift(w);
-        }
-
-        // Tag placements for finale column (by record, not by name)
-        if (finalistRecords[0]) finalistRecords[0].finaleStatus = "winner";
-        if (finalistRecords[1]) finalistRecords[1].finaleStatus = "runner_silver";
-        if (finalistRecords[2]) finalistRecords[2].finaleStatus = "runner_bronze";
-
-        const finalistsByName = new Set(finalistRecords.map((r) => r.name));
-
-        // Non-finalists ordered by elimination: later elimination = higher placement
-        const nonFinalistsOrdered = records
-          .filter((r) => !finalistsByName.has(r.name))
-          .sort((a, b) => {
-            if (a.elimIndex !== b.elimIndex) {
-              return b.elimIndex - a.elimIndex; // later ELIM => higher place
-            }
-            return a.rowIndex - b.rowIndex;
-          })
-          .map((r) => ({ ...r, finaleStatus: null }));
-
-        finalRecords = [...finalistRecords, ...nonFinalistsOrdered];
+      if (trackRecordData && Array.isArray(trackRecordData.episodes)) {
+        renderTrackRecordTable(tableWrapper, trackRecordData);
       } else {
-        // --- Cursed case: duplicate names (e.g. multiple Test Queens) ---
-        // Decide finalists purely by track records (no ELIM).
-        const nonEliminated = records.filter((r) => r.elimIndex === Infinity);
-        const eliminated = records.filter((r) => r.elimIndex !== Infinity);
-
-        let finalistRecords = nonEliminated.map((r) => ({
-          ...r,
-          seasonScore: seasonScoreFromRecord(r.record),
-          finaleStatus: null,
-        }));
-
-        // Sort finalists by season score desc; tie-breaker: later elimIndex / rowIndex
-        finalistRecords.sort((a, b) => {
-          if (b.seasonScore !== a.seasonScore) {
-            return b.seasonScore - a.seasonScore;
-          }
-          if (b.elimIndex !== a.elimIndex) {
-            return b.elimIndex - a.elimIndex;
-          }
-          return a.rowIndex - b.rowIndex;
-        });
-
-        // Tag placements by *record*, not name (fixes "all Test Queens = WINNER")
-        if (finalistRecords[0]) finalistRecords[0].finaleStatus = "winner";
-        if (finalistRecords[1]) finalistRecords[1].finaleStatus = "runner_silver";
-        if (finalistRecords[2]) finalistRecords[2].finaleStatus = "runner_bronze";
-
-        // Winner line summary still just uses the shared name string
-        const winnerRec = finalistRecords[0] || null;
-        if (winnerRec) {
-          winnerName = winnerRec.name;
+        const fallback = buildTrackRecordFromLog(lastSeasonLog);
+        if (fallback) {
+          renderTrackRecordTable(tableWrapper, fallback);
+        } else {
+          const p = document.createElement("p");
+          p.textContent =
+            "Track record data was not available for this season.";
+          p.style.fontSize = "0.8rem";
+          p.style.color = "#aaa";
+          tableWrapper.appendChild(p);
         }
-
-        // Eliminated ordered from best to worst (later ELIM = higher placement)
-        const eliminatedOrdered = eliminated
-          .sort((a, b) => {
-            if (a.elimIndex !== b.elimIndex) {
-              return b.elimIndex - a.elimIndex;
-            }
-            return a.rowIndex - b.rowIndex;
-          })
-          .map((r) => ({ ...r, finaleStatus: null }));
-
-        finalRecords = [...finalistRecords, ...eliminatedOrdered];
       }
-
-      if (!finalRecords.length) return;
-
-      let maxEpisodes = 0;
-      for (const r of finalRecords) {
-        if (r.record.length > maxEpisodes) maxEpisodes = r.record.length;
-      }
-
-      // Use canonical episode count if we have it; fall back to max record length.
-      const numEpisodeCols = seasonEpisodeCount || maxEpisodes;
-
-      const table = document.createElement("table");
-      table.className = "track-record-table";
-
-      const thead = document.createElement("thead");
-      const headRow = document.createElement("tr");
-
-      const thName = document.createElement("th");
-      thName.textContent = "Contestant";
-      headRow.appendChild(thName);
-
-      for (let i = 0; i < numEpisodeCols; i++) {
-        const th = document.createElement("th");
-        th.textContent = String(i + 1);
-        headRow.appendChild(th);
-      }
-      const thFinale = document.createElement("th");
-      thFinale.textContent = "Finale";
-      headRow.appendChild(thFinale);
-
-      thead.appendChild(headRow);
-      table.appendChild(thead);
-
-      const tbody = document.createElement("tbody");
-      for (const r of finalRecords) {
-        const tr = document.createElement("tr");
-
-        const tdName = document.createElement("td");
-        tdName.textContent = r.name;
-        tdName.className = "track-name";
-        tr.appendChild(tdName);
-
-        for (let i = 0; i <= numEpisodeCols; i++) {
-          const td = document.createElement("td");
-
-          if (i < numEpisodeCols) {
-            const rawStatus = r.record[i] || "";
-            const hasImmunity = rawStatus.endsWith("(IMM)");
-            const baseStatus = hasImmunity
-              ? rawStatus.replace(/\(IMM\)$/, "")
-              : rawStatus;
-
-            const cls =
-              "status-" + (baseStatus ? baseStatus.toLowerCase() : "empty");
-            td.className = cls;
-
-            if (!baseStatus) {
-              td.textContent = "";
-            } else if (hasImmunity) {
-              const mainDiv = document.createElement("div");
-              mainDiv.textContent = baseStatus;
-              const immDiv = document.createElement("div");
-              immDiv.textContent = "(IMM)";
-              immDiv.className = "status-immunity-tag";
-              td.appendChild(mainDiv);
-              td.appendChild(immDiv);
-            } else {
-              td.textContent = baseStatus;
-            }
-          } else {
-            // Finale column: use per-row finaleStatus instead of name checks
-            let text = "";
-            let cls = "status-empty";
-            if (r.finaleStatus === "winner") {
-              text = "WINNER";
-              cls = "status-finale-winner";
-            } else if (r.finaleStatus === "runner_silver") {
-              text = "RUNNER-UP";
-              cls = "status-finale-runner";
-            } else if (r.finaleStatus === "runner_bronze") {
-              text = "RUNNER-UP";
-              cls = "status-finale-runner-bronze";
-            }
-            td.className = cls;
-            td.textContent = text;
-          }
-
-          tr.appendChild(td);
-        }
-
-        tbody.appendChild(tr);
-      }
-
-      table.appendChild(tbody);
-      card.appendChild(table);
     }
 
-    function getNextLabel(step, index, total) {
-      const isLast = index === total - 1;
-      if (isLast) return "Restart Season";
+    function renderEpisodeMaxi(step, card) {
+      const lines = (step.lines || []).filter((l) => l && l.trim());
+      if (!lines.length) return;
 
-      const nextStep = currentSteps[index + 1] || null;
+      // First descriptive line
+      const first = lines[0];
+      const p = document.createElement("p");
+      p.textContent = first.trim();
+      card.appendChild(p);
 
-      switch (step.type) {
-        case "cast":
-          if (nextStep && nextStep.type === "episode_setup") {
-            return "Proceed to Episode 1";
-          }
-          return "Proceed";
-        case "episode_setup":
-          if (nextStep && nextStep.type === "episode_mini") {
-            return "Proceed to Mini-Challenge";
-          }
-          if (nextStep && nextStep.type === "episode_results") {
-            return "Proceed to Judging";
-          }
-          return "Proceed";
-        case "episode_mini":
-          if (nextStep && nextStep.type === "episode_results") {
-            return "Proceed to Judging";
-          }
-          return "Proceed";
-        case "episode_results":
-          return "Next Episode";
-        case "final3":
-          return "Proceed to Grand Finale";
-        default:
-          return "Proceed";
-      }
+      const remaining = lines.slice(1);
+      renderQueenLinesBlock(remaining, card);
+    }
+
+    function renderEpisodeJudging(step, card) {
+      renderQueenLinesBlock(step.lines || [], card);
+    }
+
+    function renderEpisodeBringBack(step, card) {
+      renderQueenLinesBlock(step.lines || [], card);
+    }
+
+    function renderEpisodeLipsync(step, card) {
+      renderQueenLinesBlock(step.lines || [], card);
+    }
+
+    function renderEpisodeResults(step, card) {
+      renderQueenLinesBlock(step.lines || [], card);
     }
 
     function renderCurrentStep() {
@@ -1971,63 +2337,87 @@
         "Step " + (currentStepIndex + 1) + " of " + currentSteps.length;
       card.appendChild(meta);
 
-      const h = document.createElement("h3");
       let titleText = "";
       let bodyLines = [];
 
       switch (step.type) {
         case "cast":
           titleText = "Cast Reveal";
-          bodyLines = step.lines;
+          bodyLines = step.lines || [];
           break;
         case "episode_setup":
           titleText = `Episode ${step.epNum} — ${step.name}`;
           bodyLines = [
             `In Episode ${step.epNum}, the queens face the ${step.name}.`,
             "",
-            "Proceed to see the judging and results.",
+            "Proceed to see how they perform.",
           ];
           break;
         case "episode_mini":
-          titleText = `Episode ${step.epNum} — Mini-Challenge: ${
-            step.miniName || "Mini-Challenge"
-          }`;
-          bodyLines = step.lines;
+          titleText = `Episode ${step.epNum} — Mini-challenge`;
+          bodyLines = step.lines || [];
+          break;
+        case "episode_maxi":
+          titleText = `Episode ${step.epNum} — Maxi-challenge`;
+          bodyLines = step.lines || [];
+          break;
+        case "episode_judging":
+          titleText = `Episode ${step.epNum} — Judging`;
+          bodyLines = step.lines || [];
+          break;
+        case "episode_bring_back":
+          titleText = `Episode ${step.epNum} — Bring back my girls!`;
+          bodyLines = step.lines || [];
+          break;
+        case "episode_lipsync":
+          titleText = `Episode ${step.epNum} — The time has come…`;
+          bodyLines = step.lines || [];
           break;
         case "episode_results":
-          titleText = `Episode ${step.epNum} — Judging & Results`;
-          bodyLines = step.lines;
+          titleText = `Episode ${step.epNum} — Results`;
+          bodyLines = step.lines || [];
           break;
         case "final3":
           titleText = "Final 3 Revealed";
-          bodyLines = step.lines;
+          bodyLines = step.lines || [];
           break;
         case "finale":
           titleText = "Grand Finale & Track Records";
-          bodyLines = step.lines;
+          bodyLines = step.lines || [];
           break;
         default:
           titleText = "Season";
-          bodyLines = [];
+          bodyLines = step.lines || [];
       }
 
+      const h = document.createElement("h3");
       h.textContent = titleText;
       card.appendChild(h);
 
       if (bodyLines.length) {
         if (step.type === "episode_setup") {
           const p = document.createElement("p");
-          p.textContent = bodyLines.join("\n");
+          p.textContent = bodyLines.join("
+");
           card.appendChild(p);
-        } else if (step.type === "episode_results") {
-          renderResultsLines(bodyLines, card);
         } else if (step.type === "episode_mini") {
           renderMiniLines(step, card);
+        } else if (step.type === "episode_maxi") {
+          renderEpisodeMaxi(step, card);
+        } else if (step.type === "episode_judging") {
+          renderEpisodeJudging(step, card);
+        } else if (step.type === "episode_bring_back") {
+          renderEpisodeBringBack(step, card);
+        } else if (step.type === "episode_lipsync") {
+          renderEpisodeLipsync(step, card);
+        } else if (step.type === "episode_results") {
+          renderEpisodeResults(step, card);
         } else if (step.type === "finale") {
           renderFinaleLines(bodyLines, card);
         } else {
           const pre = document.createElement("pre");
-          pre.textContent = bodyLines.join("\n");
+          pre.textContent = bodyLines.join("
+");
           card.appendChild(pre);
         }
       }
@@ -2073,66 +2463,355 @@
       renderCurrentStep();
     }
 
-    // ---------- Main simulate handler ----------
+    // ----------
+    // Summary view
+    // ----------
 
-    simulateBtn.addEventListener("click", () => {
-      let queens;
-      if (currentCast.length > 0) {
-        queens = currentCast;
-      } else {
-        // fallback to full default cast if user didn't build one
-        queens = defaultQueens;
+    function renderSeasonSummary(log) {
+      const { header, episodes, finale } = parseSeasonLog(log);
+      const summaryEl = document.createElement("div");
+
+      // Header / season info
+      const headerCard = document.createElement("details");
+      headerCard.className = "episode-card";
+      headerCard.open = true;
+
+      const headerSummary = document.createElement("summary");
+      headerSummary.textContent = "Season overview";
+      headerCard.appendChild(headerSummary);
+
+      const pre = document.createElement("pre");
+      pre.textContent = filterHeader(header).join("
+") || "(No overview available.)";
+      headerCard.appendChild(pre);
+
+      summaryEl.appendChild(headerCard);
+
+      // Episodes
+      episodes.forEach((ep, index) => {
+        const epCard = document.createElement("details");
+        epCard.className = "episode-card";
+        epCard.open = false;
+
+        const titleLine = ep.lines.find((l) =>
+          l.startsWith("========== Episode")
+        );
+        const m = titleLine
+          ? titleLine.match(/Episode (\d+) — (.+?) =+/)
+          : null;
+        const epNum = m ? parseInt(m[1], 10) : index + 1;
+        const epName = m ? m[2] : "Unknown challenge";
+
+        const summary = document.createElement("summary");
+        summary.textContent = `Episode ${epNum}: ${epName}`;
+        epCard.appendChild(summary);
+
+        const bodyPre = document.createElement("pre");
+        bodyPre.textContent = filterEpisode(ep.lines).join("
+");
+        epCard.appendChild(bodyPre);
+
+        summaryEl.appendChild(epCard);
+      });
+
+      // Finale / track record
+      if (finale.length) {
+        const finaleCard = document.createElement("details");
+        finaleCard.className = "episode-card summary-final finale-card";
+        finaleCard.open = true;
+
+        const summary = document.createElement("summary");
+        summary.textContent = "Grand Finale & track records";
+        finaleCard.appendChild(summary);
+
+        const bodyPre = document.createElement("pre");
+        bodyPre.textContent = finale.join("
+");
+        finaleCard.appendChild(bodyPre);
+
+        const trackContainer = document.createElement("div");
+        trackContainer.style.marginTop = "1rem";
+
+        const toggleWrap = document.createElement("div");
+        toggleWrap.className = "track-record-toggle";
+        const toggleLabel = document.createElement("label");
+        const toggleCheckbox = document.createElement("input");
+        toggleCheckbox.type = "checkbox";
+        toggleCheckbox.checked = false;
+        toggleLabel.appendChild(toggleCheckbox);
+        toggleLabel.appendChild(
+          document.createTextNode(" Show full track records")
+        );
+        toggleWrap.appendChild(toggleLabel);
+        trackContainer.appendChild(toggleWrap);
+
+        const tableWrapper = document.createElement("div");
+        tableWrapper.className = "track-record-table-wrapper";
+        tableWrapper.style.display = "none";
+        trackContainer.appendChild(tableWrapper);
+
+        toggleCheckbox.addEventListener("change", () => {
+          tableWrapper.style.display = toggleCheckbox.checked ? "block" : "none";
+        });
+
+        finaleCard.appendChild(trackContainer);
+
+        if (trackRecordData && Array.isArray(trackRecordData.episodes)) {
+          renderTrackRecordTable(tableWrapper, trackRecordData);
+        } else {
+          const fallback = buildTrackRecordFromLog(lastSeasonLog);
+          if (fallback) {
+            renderTrackRecordTable(tableWrapper, fallback);
+          } else {
+            const p = document.createElement("p");
+            p.textContent =
+              "Track record data was not available for this season.";
+            p.style.fontSize = "0.8rem";
+            p.style.color = "#aaa";
+            tableWrapper.appendChild(p);
+          }
+        }
+
+        summaryEl.appendChild(finaleCard);
       }
 
-      if (!queens || !queens.length) {
-        alert("No queens available to simulate a season.");
+      seasonContainer.innerHTML = "";
+      seasonContainer.appendChild(summaryEl);
+    }
+
+    // ----------
+    // Track record helpers
+    // ----------
+
+    function buildTrackRecordFromLog(logText) {
+      const lines = (logText || "").split(/
+?
+/);
+      const queenNames = new Set();
+      const episodes = [];
+
+      let currentEpisode = null;
+      let epIdx = 0;
+
+      function finalizeEpisode() {
+        if (!currentEpisode) return;
+        episodes.push(currentEpisode);
+        currentEpisode = null;
+      }
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+
+        if (trimmed.startsWith("========== Episode")) {
+          finalizeEpisode();
+          currentEpisode = {
+            index: epIdx++,
+            placements: {},
+          };
+          continue;
+        }
+
+        if (!currentEpisode) continue;
+
+        if (trimmed.startsWith("Results:")) {
+          continue;
+        }
+
+        const patterns = [
+          { key: "WIN", label: "Winner:" },
+          { key: "HIGH", label: "High:" },
+          { key: "LOW", label: "Low:" },
+          { key: "BTM", label: "Bottom:" },
+          { key: "SAFE", label: "Safe:" },
+          { key: "ELIM", label: "Sashay away:" },
+          { key: "RTU", label: "Returned:" },
+        ];
+
+        for (const ptn of patterns) {
+          if (trimmed.startsWith(ptn.label)) {
+            const list = trimmed
+              .slice(ptn.label.length)
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean);
+            list.forEach((name) => {
+              queenNames.add(name);
+              currentEpisode.placements[name] = ptn.key;
+            });
+          }
+        }
+      }
+
+      finalizeEpisode();
+
+      if (!episodes.length || !queenNames.size) return null;
+
+      const queenOrder = Array.from(queenNames);
+      const episodeCount = episodes.length;
+
+      const tableEpisodes = [];
+      for (let i = 0; i < episodeCount; i++) {
+        const ep = episodes[i] || { placements: {} };
+        const placement = {};
+        queenOrder.forEach((q) => {
+          placement[q] = ep.placements[q] || "";
+        });
+
+        const isFinale = i === episodeCount - 1;
+        tableEpisodes.push({
+          index: i,
+          isFinale,
+          name: isFinale ? "Finale" : "Episode " + (i + 1),
+          placements: placement,
+        });
+      }
+
+      return {
+        queenOrder,
+        episodes: tableEpisodes,
+      };
+    }
+
+    function renderTrackRecordTable(container, data) {
+      container.innerHTML = "";
+      if (!data || !Array.isArray(data.episodes)) {
+        const p = document.createElement("p");
+        p.textContent = "No track record data available.";
+        p.style.fontSize = "0.8rem";
+        p.style.color = "#aaa";
+        container.appendChild(p);
         return;
       }
 
-      const mode = modeSelect.value;
-      const view = viewSelect.value;
-      const immunityEnabled = immunityToggle.checked;
-      const doubleLipSyncTwistsEnabled = doubleTwistsToggle.checked;
+      const table = document.createElement("table");
+      table.className = "track-record-table";
 
-      const log = window.simulateSeason(queens, {
-        mode,
-        immunityEnabled,
-        doubleLipSyncTwistsEnabled,
+      const thead = document.createElement("thead");
+      const headRow = document.createElement("tr");
+
+      const thName = document.createElement("th");
+      thName.textContent = "Queen";
+      thName.className = "track-name";
+      headRow.appendChild(thName);
+
+      data.episodes.forEach((ep) => {
+        const th = document.createElement("th");
+        th.textContent = ep.name || "Ep " + (ep.index + 1);
+        headRow.appendChild(th);
       });
 
-      if (view === "summary") {
-        renderSeasonSummary(log);
-      } else {
-        renderSeasonFull(log);
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+
+      data.queenOrder.forEach((qName) => {
+        const row = document.createElement("tr");
+
+        const nameCell = document.createElement("td");
+        nameCell.textContent = qName;
+        nameCell.className = "track-name";
+        row.appendChild(nameCell);
+
+        data.episodes.forEach((ep) => {
+          const cell = document.createElement("td");
+          const status = ep.placements[qName] || "";
+          cell.textContent = status;
+          if (!status) {
+            cell.className = "status-empty";
+          } else {
+            switch (status) {
+              case "WIN":
+                cell.className = "status-win";
+                break;
+              case "HIGH":
+                cell.className = "status-high";
+                break;
+              case "SAFE":
+                cell.className = "status-safe";
+                break;
+              case "LOW":
+                cell.className = "status-low";
+                break;
+              case "BTM":
+                cell.className = "status-bottom";
+                break;
+              case "ELIM":
+                cell.className = "status-elim";
+                break;
+              case "RTU":
+                cell.className = "status-rtu";
+                break;
+              default:
+                cell.className = "status-empty";
+            }
+          }
+          row.appendChild(cell);
+        });
+
+        tbody.appendChild(row);
+      });
+
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
+
+    // =========================
+    // Utility: next button label
+    // =========================
+
+    function getNextLabel(step, index, total) {
+      if (index === total - 1) return "Back to start";
+      switch (step.type) {
+        case "cast":
+          return "Start Episode 1";
+        case "episode_setup":
+          return "Mini-challenge";
+        case "episode_mini":
+          return "Maxi-challenge";
+        case "episode_maxi":
+          return "Judging";
+        case "episode_judging":
+          return "Bring back my girls";
+        case "episode_bring_back":
+          return "Lipsync";
+        case "episode_lipsync":
+          return "Results";
+        case "episode_results":
+          return "Next episode";
+        case "final3":
+          return "Grand Finale";
+        case "finale":
+          return "Back to start";
+        default:
+          return "Next";
+      }
+    }
+
+    // =========================
+    // Initial data load
+    // =========================
+
+    function renderCustomQueenSelect() {
+      // Deprecated in this refactor; kept as a no-op placeholder
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!window.DEFAULT_QUEENS || !Array.isArray(window.DEFAULT_QUEENS)) {
+        console.warn("DEFAULT_QUEENS is not defined or not an array.");
+        window.DEFAULT_QUEENS = [];
       }
 
-      // Switch to simulation page "view"
-      homePageEl.classList.add("hidden");
-      simPageEl.classList.remove("hidden");
-      window.scrollTo(0, 0);
-    });
-
-    // Back to setup from sim page
-    backToSetupBtn.addEventListener("click", () => {
-      simPageEl.classList.add("hidden");
-      homePageEl.classList.remove("hidden");
-      window.scrollTo(0, 0);
-    });
-
-    // Auto-load queens and initialise cast builder
-    window.addEventListener("DOMContentLoaded", () => {
-      const baseDefs = window.QUEENS || [];
-      defaultQueens = baseDefs.map((q, idx) => ({
+      defaultQueens = window.DEFAULT_QUEENS.map(q => ({
         ...q,
-        id: q.id || slugify(q.name || "queen-" + idx),
-        imageUrl: q.imageUrl || DEFAULT_QUEEN_IMAGE,
-        source: "default",
+        imageUrl: (q.imageUrl && q.imageUrl.trim()) ? q.imageUrl.trim() : DEFAULT_QUEEN_IMAGE
       }));
       customQueens = loadCustomQueens().map(q => ({
         ...q,
         imageUrl: (q.imageUrl && q.imageUrl.trim()) ? q.imageUrl.trim() : DEFAULT_QUEEN_IMAGE
       }));
       allQueens = [...defaultQueens, ...customQueens];
+      rebuildQueenNameMap();
 
       syncCastSizeLabel();
       updateCastCount();
