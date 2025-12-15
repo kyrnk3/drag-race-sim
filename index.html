@@ -643,7 +643,7 @@
     const castSizeLabel = document.getElementById("castSizeLabel");
     const queenGrid = document.getElementById("queenGrid");
     const btnRandomAll = document.getElementById("btnRandomAll");
-    the const btnRandomCustoms = document.getElementById("btnRandomCustoms");
+    const btnRandomCustoms = document.getElementById("btnRandomCustoms");
     const btnClearCast = document.getElementById("btnClearCast");
 
     // Custom queen editor elements
@@ -675,7 +675,8 @@
     // ---- Queen data for cast builder ----
     const CUSTOM_STORAGE_KEY = "drag_race_sim_custom_queens";
 
-    let defaultQueens = [];
+    let baseQueenDefs = [];   // canonical from queens.js
+    let defaultQueens = [];   // with ids / imageUrl / source
     let customQueens = [];
     let allQueens = [];
     let currentCast = [];
@@ -750,7 +751,6 @@
           card.appendChild(badge);
         }
 
-        // highlight if selected
         if (currentCast.find((c) => c.id === q.id)) {
           card.classList.add("selected");
         }
@@ -768,10 +768,7 @@
         currentCast.splice(existingIndex, 1);
         if (cardEl) cardEl.classList.remove("selected");
       } else {
-        if (currentCast.length >= limit) {
-          // optional: feedback; for now, just ignore
-          return;
-        }
+        if (currentCast.length >= limit) return;
         const q = allQueens.find((q) => q.id === id);
         if (!q) return;
         currentCast.push(q);
@@ -812,14 +809,14 @@
       if (!name) return null;
 
       const stats = {
-        acting: Number(statActing.value) || 0,
-        comedy: Number(statComedy.value) || 0,
-        dance: Number(statDance.value) || 0,
-        design: Number(statDesign.value) || 0,
-        improv: Number(statImprov.value) || 0,
-        runway: Number(statRunway.value) || 0,
+        acting:  Number(statActing.value)  || 0,
+        comedy:  Number(statComedy.value)  || 0,
+        dance:   Number(statDance.value)   || 0,
+        design:  Number(statDesign.value)  || 0,
+        improv:  Number(statImprov.value)  || 0,
+        runway:  Number(statRunway.value)  || 0,
         singing: Number(statSinging.value) || 0,
-        lipsync: Number(statLipsync.value) || 0,
+        lipsync: Number(statLipsync.value) || 0
       };
 
       const id = idOverride || slugify(name);
@@ -829,7 +826,9 @@
         name,
         imageUrl: customImageUrlInput.value.trim(),
         stats,
-        source: "custom",
+        traits: {},
+        edits: [],
+        source: "custom"
       };
     }
 
@@ -839,12 +838,12 @@
     }
 
     btnRandomizeStats.addEventListener("click", () => {
-      statActing.value = randomStat();
-      statComedy.value = randomStat();
-      statDance.value = randomStat();
-      statDesign.value = randomStat();
-      statImprov.value = randomStat();
-      statRunway.value = randomStat();
+      statActing.value  = randomStat();
+      statComedy.value  = randomStat();
+      statDance.value   = randomStat();
+      statDesign.value  = randomStat();
+      statImprov.value  = randomStat();
+      statRunway.value  = randomStat();
       statSinging.value = randomStat();
       statLipsync.value = randomStat();
     });
@@ -917,12 +916,12 @@
       if (!q) return;
       customNameInput.value = q.name;
       customImageUrlInput.value = q.imageUrl || "";
-      statActing.value = q.stats?.acting ?? 0;
-      statComedy.value = q.stats?.comedy ?? 0;
-      statDance.value = q.stats?.dance ?? 0;
-      statDesign.value = q.stats?.design ?? 0;
-      statImprov.value = q.stats?.improv ?? 0;
-      statRunway.value = q.stats?.runway ?? 0;
+      statActing.value  = q.stats?.acting  ?? 0;
+      statComedy.value  = q.stats?.comedy  ?? 0;
+      statDance.value   = q.stats?.dance   ?? 0;
+      statDesign.value  = q.stats?.design  ?? 0;
+      statImprov.value  = q.stats?.improv  ?? 0;
+      statRunway.value  = q.stats?.runway  ?? 0;
       statSinging.value = q.stats?.singing ?? 0;
       statLipsync.value = q.stats?.lipsync ?? 0;
     });
@@ -939,8 +938,13 @@
       renderCastPicker();
     });
 
-    // ---------- Parsing helpers ----------
+    // ---- Existing JSON / season rendering logic ----
 
+    loadDefaultBtn.addEventListener("click", () => {
+      queensInput.value = JSON.stringify(baseQueenDefs, null, 2);
+    });
+
+    // ---------- Parsing helpers ----------
     function parseSeasonLog(log) {
       const lines = log.split("\n");
       const header = [];
@@ -1046,7 +1050,6 @@
     }
 
     // ---------- Summary view rendering ----------
-
     function renderSeasonSummary(log) {
       seasonContainer.innerHTML = "";
       const { header, episodes, finale } = parseSeasonLog(log);
@@ -1097,7 +1100,6 @@
     }
 
     // ---------- Full (step-through) view ----------
-
     function buildStepsFromLog(log) {
       const { header, episodes, finale } = parseSeasonLog(log);
       const steps = [];
@@ -1418,7 +1420,7 @@
         // Sort: finalists (no ELIM) at top, earliest eliminated last
         records.sort((a, b) => b.elimIndex - a.elimIndex);
 
-        // Decide finale ranking (WINNER / RUNNER-UP) using real season scores where possible
+        // Decide finale ranking using real season scores where possible
         const finalistsSet = new Set(finalists);
 
         const finalistRecords = records
@@ -1463,7 +1465,6 @@
             if (r.record.length > maxEpisodes) maxEpisodes = r.record.length;
           }
 
-          // Use canonical episode count if we have it; fall back to max record length.
           const numEpisodeCols = seasonEpisodeCount || maxEpisodes;
 
           const table = document.createElement("table");
@@ -1533,10 +1534,10 @@
                   cls = "status-finale-winner";
                 } else if (r.name === secondName) {
                   text = "RUNNER-UP";
-                  cls = "status-finale-runner"; // silver
+                  cls = "status-finale-runner";
                 } else if (r.name === thirdName) {
                   text = "RUNNER-UP";
-                  cls = "status-finale-runner-bronze"; // bronze
+                  cls = "status-finale-runner-bronze";
                 }
                 td.className = cls;
                 td.textContent = text;
@@ -1708,7 +1709,6 @@
     }
 
     // ---------- Main simulate handler ----------
-
     simulateBtn.addEventListener("click", () => {
       let queens;
       if (currentCast.length > 0) {
@@ -1742,17 +1742,18 @@
 
     // Auto-load sample cast and initialise cast builder
     window.addEventListener("DOMContentLoaded", () => {
-      defaultQueens = (window.QUEENS || []).map((q, idx) => ({
-        // carry through all original properties, but add id/source/imageUrl
+      baseQueenDefs = window.QUEENS || [];
+      defaultQueens = baseQueenDefs.map((q, idx) => ({
         ...q,
         id: q.id || slugify(q.name || "queen-" + idx),
         imageUrl: q.imageUrl || "",
-        source: "default",
+        source: "default"
       }));
       customQueens = loadCustomQueens();
       allQueens = [...defaultQueens, ...customQueens];
 
-      queensInput.value = JSON.stringify(defaultQueens, null, 2);
+      // Show canonical defs (without id/source/imageUrl) in the JSON box
+      queensInput.value = JSON.stringify(baseQueenDefs, null, 2);
 
       syncCastSizeLabel();
       renderCustomQueenSelect();
