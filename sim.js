@@ -316,6 +316,7 @@ function planRequiredSchedule(numQueens) {
   const totalEpisodes = numQueens - 3;
 
   function queensAtEpisode(k) {
+    // Baseline assumption: 1 elimination per episode.
     return numQueens - (k - 1);
   }
 
@@ -570,8 +571,8 @@ function resolveLipSync(bottom2, challenge, phase, twistState) {
 
   let twist = "none";
 
-  const highThreshold = 7.5;
-  const lowThreshold = 3.5;
+  const highThreshold = 8.0;
+  const lowThreshold = 3.0;
 
   const bothSlay = (sWinner >= highThreshold && sLoser >= highThreshold);
   const bothBomb = (sWinner <= lowThreshold && sLoser <= lowThreshold);
@@ -582,7 +583,7 @@ function resolveLipSync(bottom2, challenge, phase, twistState) {
     twistState.doubleShantayEnabled &&
     !twistState.usedDoubleShantay
   ) {
-    let chance = 0.18; // base low–medium chance
+    let chance = 0.12; // base low–medium chance
 
     // Boost if the provisional loser is a protected narrative fave
     if (hasDoubleShantayTag(eliminated)) {
@@ -978,8 +979,16 @@ function simulateSeason(queenDefs, options = {}) {
   const usedOneOffIdsSet = new Set();
   const usedMiniOneOffIdsSet = new Set();
 
-  const totalEpisodes = queens.length - 3;
-  const requiredSchedule = planRequiredSchedule(queens.length);
+  const startingQueens = queens.length;
+  const totalEpisodes = startingQueens - 3; // baseline, used for phase + scheduling
+  const requiredSchedule = planRequiredSchedule(startingQueens);
+
+  const eliminationsNeeded = startingQueens - 3; // want a Top 3
+  let eliminationsDone = 0;
+
+  // Safety cap: allows extra episodes from double shantays,
+  // but prevents infinite seasons if something goes wrong.
+  const maxEpisodes = startingQueens + 10;
 
   const log = [];
 
@@ -1012,7 +1021,7 @@ function simulateSeason(queenDefs, options = {}) {
   log.push("\n");
 
   if (Object.keys(requiredSchedule).length) {
-    log.push("Planned must-have challenges:\n");
+    log.push("Planned must-have challenges (baseline assumptions):\n");
     const eps = Object.keys(requiredSchedule)
       .map(e => parseInt(e, 10))
       .sort((a, b) => a - b);
@@ -1028,7 +1037,12 @@ function simulateSeason(queenDefs, options = {}) {
     log.push("Immunity twist: disabled for this run.\n\n");
   }
 
-  while (queens.length > 3 && episodeNum <= totalEpisodes) {
+  // NEW: loop is driven by eliminations, not a fixed episode cap.
+  while (
+    queens.length > 3 &&
+    eliminationsDone < eliminationsNeeded &&
+    episodeNum <= maxEpisodes
+  ) {
     const queensRemaining = queens.length;
 
     // Decide who (if anyone) is immune this episode
@@ -1071,6 +1085,9 @@ function simulateSeason(queenDefs, options = {}) {
         queens.splice(idx, 1);
       }
     }
+
+    // Count how many eliminations actually occurred this week.
+    eliminationsDone += eliminatedList.length;
 
     episodeNum += 1;
   }
