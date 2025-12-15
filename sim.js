@@ -23,6 +23,7 @@ const ALL_EDIT_FLAGS = [
   "messy"
 ];
 
+// Core challenge stats (lipsync is derived / added on top of these)
 const STAT_NAMES = ["runway", "comedy", "acting", "dance", "singing", "improv"];
 
 // Main challenges from challenges.js
@@ -50,6 +51,10 @@ function choice(array) {
   return array[Math.floor(Math.random() * array.length)];
 }
 
+function clampStat(x) {
+  return Math.max(1, Math.min(10, x));
+}
+
 // =========================
 // Queen class
 // =========================
@@ -57,7 +62,8 @@ function choice(array) {
 class Queen {
   constructor(name, stats, dramaProne = false, producerFave = false, edits = []) {
     this.name = name;
-    this.stats = stats; // {runway, comedy, acting, dance, singing, improv}
+    // stats: {runway, comedy, acting, dance, singing, improv, lipsync}
+    this.stats = stats;
     this.drama_prone = dramaProne;
     this.producer_fave = producerFave;
     this.edits = new Set(edits || []);
@@ -93,8 +99,36 @@ function generateRandomEdits(existingEdits) {
   return newEdits;
 }
 
+// Build a lipsync stat from existing performance stats.
+function generateLipsyncFromStats(stats, editsSet) {
+  const dance = stats.dance != null ? stats.dance : 5;
+  const comedy = stats.comedy != null ? stats.comedy : 5;
+  const singing = stats.singing != null ? stats.singing : 5;
+
+  // Core: queens who can move (dance), emote/perform (comedy), and sell lyrics (singing)
+  let base =
+    dance * 0.45 +
+    comedy * 0.35 +
+    singing * 0.20;
+
+  // Normalize-ish and add some personality noise
+  base = base + randUniform(-1.0, 1.0);
+
+  // Lip sync assassins get a strong natural boost
+  if (editsSet && editsSet.has("lip_sync_assassin")) {
+    base += 1.5;
+  }
+
+  // Messy queens are swingy – they can flop or eat
+  if (editsSet && editsSet.has("messy")) {
+    base += randUniform(-0.7, 0.7);
+  }
+
+  return clampStat(Math.round(base));
+}
+
 function generateRandomStats(editsSet) {
-  // Base random stats 3–9
+  // Base random stats 3–9 for core stats (not lipsync yet)
   const stats = {};
   for (const name of STAT_NAMES) {
     stats[name] = randInt(3, 9);
@@ -116,6 +150,7 @@ function generateRandomStats(editsSet) {
   }
 
   if (editsSet.has("lip_sync_assassin")) {
+    // Still boost dance/improv a bit – they're usually killers in performance
     stats["dance"] = Math.min(10, stats["dance"] + 2);
     stats["improv"] = Math.min(10, stats["improv"] + 1);
   }
@@ -123,8 +158,11 @@ function generateRandomStats(editsSet) {
   // late_bloomer handled via timing, not raw stats
 
   for (const k of STAT_NAMES) {
-    stats[k] = Math.max(1, Math.min(10, stats[k]));
+    stats[k] = clampStat(stats[k]);
   }
+
+  // Now derive lipsync from the resulting performance profile
+  stats.lipsync = generateLipsyncFromStats(stats, editsSet);
 
   return stats;
 }
@@ -156,7 +194,7 @@ function buildQueensFromDefs(queenDefs, options) {
     let needRandom = chaosMode || (autoGenStats && !statsEntry);
 
     if (!needRandom && statsEntry) {
-      // If any stat is missing, randomize
+      // If any *core* stat is missing, randomize all stats.
       for (const k of STAT_NAMES) {
         if (!(k in statsEntry)) {
           needRandom = true;
@@ -167,11 +205,20 @@ function buildQueensFromDefs(queenDefs, options) {
 
     let stats;
     if (needRandom) {
+      // Full random, including derived lipsync
       stats = generateRandomStats(editsSet);
     } else {
+      // Copy provided core stats
       stats = {};
       for (const k of STAT_NAMES) {
         stats[k] = statsEntry[k];
+      }
+
+      // Lipsync: use provided value if present, otherwise derive from provided stats
+      if ("lipsync" in statsEntry) {
+        stats.lipsync = statsEntry.lipsync;
+      } else {
+        stats.lipsync = generateLipsyncFromStats(stats, editsSet);
       }
     }
 
@@ -706,14 +753,15 @@ function computeSeasonScore(q) {
 function getLipsyncChallenge() {
   const found = CHALLENGES.find(c => c.id === "lipsync");
   if (found) return found;
+  // Fallback if no explicit lipsync challenge defined in CHALLENGES
   return {
     id: "lipsync",
     name: "Lipsync Challenge",
     weights: {
-      dance: 0.45,
-      improv: 0.25,
-      acting: 0.15,
-      runway: 0.15
+      lipsync: 0.5,
+      dance: 0.25,
+      improv: 0.15,
+      runway: 0.10
     },
     variance: 2.3
   };
