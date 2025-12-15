@@ -1318,17 +1318,18 @@
       heading.textContent = "Grand Finale";
       block.appendChild(heading);
 
-      const finalists = [];
-      let winnerName = "Unknown";
+      // Parsed from the log
+      const finalistsFromText = [];
+      let winnerNameFromText = "Unknown";
 
       let inTrackSection = false;
       const trackLines = [];
-      const seasonScoreMap = new Map();
+      const seasonScoreMap = new Map(); // only safe when names are unique
 
       for (const line of lines) {
         const trimmed = line.trim();
 
-        // Extract exact season scores: "Name  season=  8.0  raw_lip=..."
+        // Extract season scores from "Final lip sync performance" block
         const mSeason = trimmed.match(/^(.+?)\s+season=([0-9.+-]+)/);
         if (mSeason) {
           const name = mSeason[1].trim();
@@ -1353,7 +1354,7 @@
           const noDash = trimmed.slice(2).trim();
           const trackIdx = noDash.indexOf("(track:");
           const name = trackIdx === -1 ? noDash : noDash.slice(0, trackIdx).trim();
-          if (name) finalists.push(name);
+          if (name) finalistsFromText.push(name);
         }
 
         // Winner line: "X devours the stage and snatches the crown! 👑"
@@ -1364,32 +1365,10 @@
           const marker = " devours the stage";
           const idx = trimmed.indexOf(marker);
           if (idx !== -1) {
-            winnerName = trimmed.slice(0, idx).trim();
+            winnerNameFromText = trimmed.slice(0, idx).trim();
           }
         }
       }
-
-      if (finalists.length) {
-        const finalistsRow = document.createElement("div");
-        finalistsRow.className = "results-row";
-        const finalistsLabel = document.createElement("strong");
-        finalistsLabel.textContent = "Finalists:";
-        finalistsRow.appendChild(finalistsLabel);
-        finalistsRow.appendChild(
-          document.createTextNode(" " + finalists.join(", "))
-        );
-        block.appendChild(finalistsRow);
-      }
-
-      const winnerRow = document.createElement("div");
-      winnerRow.className = "results-row";
-      const winnerLabel = document.createElement("strong");
-      winnerLabel.textContent = "Winner:";
-      winnerRow.appendChild(winnerLabel);
-      winnerRow.appendChild(document.createTextNode(" " + winnerName));
-      block.appendChild(winnerRow);
-
-      card.appendChild(block);
 
       // Helper: fallback season score from record only (if needed)
       function seasonScoreFromRecord(rec) {
@@ -1404,47 +1383,123 @@
         return score;
       }
 
-      // Track records table
-      if (trackLines.length) {
-        const records = [];
-        const statusSet = new Set(["WIN", "HIGH", "SAFE", "LOW", "BTM", "ELIM"]);
+      // Build track-record rows from "Full track records" block
+      const records = [];
+      const statusSet = new Set(["WIN", "HIGH", "SAFE", "LOW", "BTM", "ELIM"]);
 
-        for (const line of trackLines) {
-          if (!line) continue;
-          const parts = line.split(/\s+/);
-          if (!parts.length) continue;
+      for (const line of trackLines) {
+        if (!line) continue;
+        const parts = line.split(/\s+/);
+        if (!parts.length) continue;
 
-          let firstStatusIdx = -1;
-          for (let i = 0; i < parts.length; i++) {
-            const base = parts[i].replace(/\(IMM\)$/, "");
-            if (statusSet.has(base)) {
-              firstStatusIdx = i;
-              break;
-            }
+        let firstStatusIdx = -1;
+        for (let i = 0; i < parts.length; i++) {
+          const base = parts[i].replace(/\(IMM\)$/, "");
+          if (statusSet.has(base)) {
+            firstStatusIdx = i;
+            break;
           }
-          if (firstStatusIdx === -1) continue;
-
-          const name = parts.slice(0, firstStatusIdx).join(" ");
-          const rec = parts.slice(firstStatusIdx);
-          if (!name) continue;
-
-          const elimIdx = rec.findIndex((s) => {
-            const base = s.replace(/\(IMM\)$/, "");
-            return base === "ELIM";
-          });
-
-          records.push({
-            name,
-            record: rec,
-            elimIndex: elimIdx === -1 ? Infinity : elimIdx,
-          });
         }
+        if (firstStatusIdx === -1) continue;
+
+        const name = parts.slice(0, firstStatusIdx).join(" ");
+        const rec = parts.slice(firstStatusIdx);
+        if (!name) continue;
+
+        const elimIdx = rec.findIndex((s) => {
+          const base = s.replace(/\(IMM\)$/, "");
+          return base === "ELIM";
+        });
+
+        records.push({
+          name,
+          record: rec,
+          elimIndex: elimIdx === -1 ? Infinity : elimIdx
+        });
+      }
+
+      // Detect duplicate names
+      const nameCounts = new Map();
+      for (const r of records) {
+        nameCounts.set(r.name, (nameCounts.get(r.name) || 0) + 1);
+      }
+      const hasDuplicateNames = Array.from(nameCounts.values()).some((c) => c > 1);
+
+      // Variables used for table + header rendering
+      let displayFinalists = finalistsFromText.slice();
+      let displayWinnerName = winnerNameFromText;
+      let finalRecords = records;
+
+      // For Finale column:
+      let useRowIdentityForFinale = false;
+      let winnerRowRef = null;
+      let secondRowRef = null;
+      let thirdRowRef = null;
+      let secondName = null;
+      let thirdName = null;
+
+      if (!records.length) {
+        // No track records parsed – fallback to simple text header.
+        if (displayFinalists.length) {
+          const finalistsRow = document.createElement("div");
+          finalistsRow.className = "results-row";
+          const finalistsLabel = document.createElement("strong");
+          finalistsLabel.textContent = "Finalists:";
+          finalistsRow.appendChild(finalistsLabel);
+          finalistsRow.appendChild(
+            document.createTextNode(" " + displayFinalists.join(", "))
+          );
+          block.appendChild(finalistsRow);
+        }
+
+        const winnerRow = document.createElement("div");
+        winnerRow.className = "results-row";
+        const winnerLabel = document.createElement("strong");
+        winnerLabel.textContent = "Winner:";
+        winnerRow.appendChild(winnerLabel);
+        winnerRow.appendChild(document.createTextNode(" " + displayWinnerName));
+        block.appendChild(winnerRow);
+
+        card.appendChild(block);
+        return;
+      }
+
+      if (hasDuplicateNames) {
+        // --- CLONE-FRIENDLY BRANCH (names not unique) ---
+        // Treat each row as a distinct contestant.
+
+        // Finalists = rows with no ELIM in their record
+        const finalistRows = records.filter((r) =>
+          !r.record.some((s) => s.replace(/\(IMM\)$/, "") === "ELIM")
+        );
+
+        // Sort finalists by record-based season score
+        const sortedFinalists = finalistRows
+          .map((r) => ({ row: r, score: seasonScoreFromRecord(r.record) }))
+          .sort((a, b) => b.score - a.score);
+
+        winnerRowRef = sortedFinalists[0]?.row || null;
+        secondRowRef = sortedFinalists[1]?.row || null;
+        thirdRowRef = sortedFinalists[2]?.row || null;
+
+        if (finalistRows.length) {
+          displayFinalists = finalistRows.map((r) => r.name);
+        }
+
+        if (winnerRowRef) {
+          displayWinnerName = winnerRowRef.name;
+        }
+
+        finalRecords = records; // keep natural order
+        useRowIdentityForFinale = true;
+      } else {
+        // --- ORIGINAL BRANCH (all names unique) ---
+        // Use logged season scores + finalists list for more accuracy.
 
         // Sort: finalists (no ELIM) at top, earliest eliminated last
         records.sort((a, b) => b.elimIndex - a.elimIndex);
 
-        // Decide finale ranking using real season scores where possible
-        const finalistsSet = new Set(finalists);
+        const finalistsSet = new Set(displayFinalists);
 
         const finalistRecords = records
           .filter((r) => finalistsSet.has(r.name))
@@ -1456,103 +1511,144 @@
             return { ...r, seasonScore };
           });
 
-        // Sort finalists by season score, then ensure the actual winner is first
+        // Sort finalists by season score, then ensure the actual logged winner is first
         finalistRecords.sort((a, b) => b.seasonScore - a.seasonScore);
-        const winnerIdx = finalistRecords.findIndex((r) => r.name === winnerName);
+        const winnerIdx = finalistRecords.findIndex((r) => r.name === displayWinnerName);
         if (winnerIdx > 0) {
           const [w] = finalistRecords.splice(winnerIdx, 1);
           finalistRecords.unshift(w);
         }
 
         const finishOrderNames = finalistRecords.map((r) => r.name);
-        const secondName = finishOrderNames[1] || null;
-        const thirdName = finishOrderNames[2] || null;
+        secondName = finishOrderNames[1] || null;
+        thirdName = finishOrderNames[2] || null;
 
-        // Rebuild records so finalists appear in finish order at the top
         const finalistsByName = new Set(finishOrderNames);
         const nonFinalistsOrdered = records.filter(
           (r) => !finalistsByName.has(r.name)
         );
-        const finalRecords = [
+        finalRecords = [
           ...finalistRecords.map(({ name, record, elimIndex }) => ({
             name,
             record,
-            elimIndex,
+            elimIndex
           })),
-          ...nonFinalistsOrdered,
+          ...nonFinalistsOrdered
         ];
+      }
 
-        if (finalRecords.length) {
-          let maxEpisodes = 0;
-          for (const r of finalRecords) {
-            if (r.record.length > maxEpisodes) maxEpisodes = r.record.length;
-          }
+      // --- Header text using displayFinalists / displayWinnerName ---
 
-          const numEpisodeCols = seasonEpisodeCount || maxEpisodes;
+      if (displayFinalists.length) {
+        const finalistsRow = document.createElement("div");
+        finalistsRow.className = "results-row";
+        const finalistsLabel = document.createElement("strong");
+        finalistsLabel.textContent = "Finalists:";
+        finalistsRow.appendChild(finalistsLabel);
+        finalistsRow.appendChild(
+          document.createTextNode(" " + displayFinalists.join(", "))
+        );
+        block.appendChild(finalistsRow);
+      }
 
-          const table = document.createElement("table");
-          table.className = "track-record-table";
+      const winnerRow = document.createElement("div");
+      winnerRow.className = "results-row";
+      const winnerLabel = document.createElement("strong");
+      winnerLabel.textContent = "Winner:";
+      winnerRow.appendChild(winnerLabel);
+      winnerRow.appendChild(document.createTextNode(" " + displayWinnerName));
+      block.appendChild(winnerRow);
 
-          const thead = document.createElement("thead");
-          const headRow = document.createElement("tr");
+      card.appendChild(block);
 
-          const thName = document.createElement("th");
-          thName.textContent = "Contestant";
-          headRow.appendChild(thName);
+      // --- Track-record table ---
 
-          for (let i = 0; i < numEpisodeCols; i++) {
-            const th = document.createElement("th");
-            th.textContent = String(i + 1);
-            headRow.appendChild(th);
-          }
-          const thFinale = document.createElement("th");
-          thFinale.textContent = "Finale";
-          headRow.appendChild(thFinale);
+      if (finalRecords.length) {
+        let maxEpisodes = 0;
+        for (const r of finalRecords) {
+          if (r.record.length > maxEpisodes) maxEpisodes = r.record.length;
+        }
 
-          thead.appendChild(headRow);
-          table.appendChild(thead);
+        const numEpisodeCols = seasonEpisodeCount || maxEpisodes;
 
-          const tbody = document.createElement("tbody");
-          for (const r of finalRecords) {
-            const tr = document.createElement("tr");
+        const table = document.createElement("table");
+        table.className = "track-record-table";
 
-            const tdName = document.createElement("td");
-            tdName.textContent = r.name;
-            tdName.className = "track-name";
-            tr.appendChild(tdName);
+        const thead = document.createElement("thead");
+        const headRow = document.createElement("tr");
 
-            for (let i = 0; i <= numEpisodeCols; i++) {
-              const td = document.createElement("td");
+        const thName = document.createElement("th");
+        thName.textContent = "Contestant";
+        headRow.appendChild(thName);
 
-              if (i < numEpisodeCols) {
-                const rawStatus = r.record[i] || "";
-                const hasImmunity = rawStatus.endsWith("(IMM)");
-                const baseStatus = hasImmunity
-                  ? rawStatus.replace(/\(IMM\)$/, "")
-                  : rawStatus;
+        for (let i = 0; i < numEpisodeCols; i++) {
+          const th = document.createElement("th");
+          th.textContent = String(i + 1);
+          headRow.appendChild(th);
+        }
+        const thFinale = document.createElement("th");
+        thFinale.textContent = "Finale";
+        headRow.appendChild(thFinale);
 
-                const cls =
-                  "status-" + (baseStatus ? baseStatus.toLowerCase() : "empty");
-                td.className = cls;
+        thead.appendChild(headRow);
+        table.appendChild(thead);
 
-                if (!baseStatus) {
-                  td.textContent = "";
-                } else if (hasImmunity) {
-                  const mainDiv = document.createElement("div");
-                  mainDiv.textContent = baseStatus;
-                  const immDiv = document.createElement("div");
-                  immDiv.textContent = "(IMM)";
-                  immDiv.className = "status-immunity-tag";
-                  td.appendChild(mainDiv);
-                  td.appendChild(immDiv);
-                } else {
-                  td.textContent = baseStatus;
+        const tbody = document.createElement("tbody");
+        for (const r of finalRecords) {
+          const tr = document.createElement("tr");
+
+          const tdName = document.createElement("td");
+          tdName.textContent = r.name;
+          tdName.className = "track-name";
+          tr.appendChild(tdName);
+
+          for (let i = 0; i <= numEpisodeCols; i++) {
+            const td = document.createElement("td");
+
+            if (i < numEpisodeCols) {
+              const rawStatus = r.record[i] || "";
+              const hasImmunity = rawStatus.endsWith("(IMM)");
+              const baseStatus = hasImmunity
+                ? rawStatus.replace(/\(IMM\)$/, "")
+                : rawStatus;
+
+              const cls =
+                "status-" + (baseStatus ? baseStatus.toLowerCase() : "empty");
+              td.className = cls;
+
+              if (!baseStatus) {
+                td.textContent = "";
+              } else if (hasImmunity) {
+                const mainDiv = document.createElement("div");
+                mainDiv.textContent = baseStatus;
+                const immDiv = document.createElement("div");
+                immDiv.textContent = "(IMM)";
+                immDiv.className = "status-immunity-tag";
+                td.appendChild(mainDiv);
+                td.appendChild(immDiv);
+              } else {
+                td.textContent = baseStatus;
+              }
+            } else {
+              // Finale column
+              let text = "";
+              let cls = "status-empty";
+
+              if (useRowIdentityForFinale) {
+                // Clone-safe path: compare by row identity
+                if (r === winnerRowRef) {
+                  text = "WINNER";
+                  cls = "status-finale-winner";
+                } else if (r === secondRowRef) {
+                  text = "RUNNER-UP";
+                  cls = "status-finale-runner";
+                } else if (r === thirdRowRef) {
+                  text = "RUNNER-UP";
+                  cls = "status-finale-runner-bronze";
                 }
               } else {
-                // Finale column: 1st / 2nd / 3rd
-                let text = "";
-                let cls = "status-empty";
-                if (r.name === winnerName) {
+                // Normal path: compare by name
+                if (r.name === displayWinnerName) {
                   text = "WINNER";
                   cls = "status-finale-winner";
                 } else if (r.name === secondName) {
@@ -1562,19 +1658,20 @@
                   text = "RUNNER-UP";
                   cls = "status-finale-runner-bronze";
                 }
-                td.className = cls;
-                td.textContent = text;
               }
 
-              tr.appendChild(td);
+              td.className = cls;
+              td.textContent = text;
             }
 
-            tbody.appendChild(tr);
+            tr.appendChild(td);
           }
 
-          table.appendChild(tbody);
-          card.appendChild(table);
+          tbody.appendChild(tr);
         }
+
+        table.appendChild(tbody);
+        card.appendChild(table);
       }
     }
 
