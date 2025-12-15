@@ -2697,24 +2697,30 @@
         return;
       }
     
-      // Use sim.js as the source of truth – do NOT try to trim with seasonEpisodeCount.
-      const episodesArr = data.episodes.filter(Boolean);
+      // Work on a copy so we don't mutate the original meta.
+      const episodesArr = data.episodes.slice();
     
-      // Look for an explicit finale episode.
-      let finaleIndex = episodesArr.findIndex(ep => ep && ep.isFinale);
-      const hasExplicitFinale = finaleIndex !== -1;
-    
-      let mainEpisodes, finaleEpisode;
-      if (hasExplicitFinale) {
-        finaleEpisode = episodesArr[finaleIndex];
-        mainEpisodes = episodesArr.slice(0, finaleIndex);
-      } else {
-        // No finale marked – just treat everything as main episodes.
-        mainEpisodes = episodesArr.slice();
-        finaleEpisode = null;
+      // Find the finale episode (by flag; fallback to last element).
+      let finaleIndex = episodesArr.findIndex((ep) => ep && ep.isFinale);
+      if (finaleIndex === -1) {
+        finaleIndex = episodesArr.length - 1;
       }
     
-      const allEpisodes = finaleEpisode ? [...mainEpisodes, finaleEpisode] : mainEpisodes;
+      // Canonical count of *main* episodes (non-finale) should come from the log,
+      // via seasonEpisodeCount. If it's not set, fall back to "everything before finale".
+      let mainCount;
+      if (typeof seasonEpisodeCount === "number" && seasonEpisodeCount > 0) {
+        mainCount = Math.min(seasonEpisodeCount, finaleIndex);
+      } else {
+        mainCount = finaleIndex;
+      }
+      if (mainCount < 0) mainCount = 0;
+    
+      const mainEpisodes = episodesArr.slice(0, mainCount);
+      const finaleEpisode = episodesArr[finaleIndex];
+      const allEpisodes = finaleEpisode
+        ? [...mainEpisodes, finaleEpisode]
+        : mainEpisodes;
     
       const table = document.createElement("table");
       table.className = "track-record-table";
@@ -2730,14 +2736,10 @@
     
       allEpisodes.forEach((ep, idx) => {
         const th = document.createElement("th");
-        const isFinaleCol = hasExplicitFinale && ep === finaleEpisode;
-        if (isFinaleCol) {
-          th.textContent = "Finale";
-        } else if (ep && ep.name) {
-          th.textContent = ep.name;
-        } else {
-          th.textContent = "Ep " + (ep.index + 1);
-        }
+        const isFinale =
+          (ep && ep.isFinale) || idx === allEpisodes.length - 1;
+        th.textContent =
+          (ep && ep.name) || (isFinale ? "Finale" : "Episode " + (idx + 1));
         headRow.appendChild(th);
       });
     
@@ -2747,7 +2749,7 @@
       // ---------- Body ----------
       const tbody = document.createElement("tbody");
     
-      (data.queenOrder || []).forEach((qName, rowIndex) => {
+      data.queenOrder.forEach((qName, rowIndex) => {
         const row = document.createElement("tr");
     
         const nameCell = document.createElement("td");
@@ -2755,12 +2757,13 @@
         nameCell.className = "track-name";
         row.appendChild(nameCell);
     
-        allEpisodes.forEach((ep) => {
+        allEpisodes.forEach((ep, colIndex) => {
           const cell = document.createElement("td");
-          const isFinaleCol = hasExplicitFinale && ep === finaleEpisode;
+          const isFinale =
+            (ep && ep.isFinale) || colIndex === allEpisodes.length - 1;
     
-          if (isFinaleCol) {
-            // Finale column is strictly placement: winner + runners-up.
+          if (isFinale) {
+            // Finale column: winner + two runners-up coloured by row order
             let finaleStatus = "";
             let finaleClass = "status-empty";
     
@@ -2784,7 +2787,7 @@
             return;
           }
     
-          // Normal competitive episode cell.
+          // Normal competitive episode cell
           const rawPlacement =
             ep &&
             ep.placements &&
