@@ -61,6 +61,18 @@
       padding: 0.2rem 0.4rem;
     }
 
+    input[type="number"],
+    input[type="text"],
+    input[type="url"],
+    input[type="range"] {
+      background: #000;
+      color: #eee;
+      border-radius: 4px;
+      border: 1px solid #444;
+      padding: 0.25rem 0.4rem;
+      font-size: 0.85rem;
+    }
+
     button {
       padding: 0.4rem 0.8rem;
       border-radius: 4px;
@@ -80,6 +92,12 @@
       cursor: default;
     }
 
+    .muted {
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+
+    /* Episode / step cards */
     .episode-card {
       background: #161616;
       border-radius: 8px;
@@ -288,12 +306,174 @@
       margin-top: 0.1rem;
       letter-spacing: 0.05em;
     }
+
+    /* ---- Cast builder / custom queen UI ---- */
+    .cast-builder-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    @media (min-width: 800px) {
+      .cast-builder-layout {
+        flex-direction: row;
+      }
+    }
+
+    .cast-column {
+      flex: 2;
+    }
+
+    .custom-column {
+      flex: 1.6;
+    }
+
+    .queen-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+      max-height: 480px;
+      overflow-y: auto;
+    }
+
+    .queen-card {
+      background: #171717;
+      border-radius: 10px;
+      padding: 0.5rem;
+      text-align: center;
+      box-shadow: 0 0 0 1px #262626;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
+      position: relative;
+    }
+
+    .queen-card img {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      margin: 0 auto 0.35rem;
+      box-shadow: 0 0 0 2px #000;
+    }
+
+    .queen-name {
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .queen-card .custom-badge {
+      position: absolute;
+      top: 4px;
+      right: 6px;
+      font-size: 0.6rem;
+      background: #ff9800;
+      color: #000;
+      padding: 0.1rem 0.25rem;
+      border-radius: 999px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .queen-card.selected {
+      background: #e91e63;
+      box-shadow: 0 0 0 2px #ff4081;
+      transform: translateY(-1px);
+    }
+
+    .queen-card.selected .queen-name {
+      color: #fff;
+    }
+
+    .cast-builder-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+
+    .cast-size-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .cast-builder-buttons {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .custom-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .custom-form label {
+      font-size: 0.8rem;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 0.7fr;
+      gap: 0.25rem 0.5rem;
+      align-items: center;
+    }
+
+    .custom-actions {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-top: 0.25rem;
+    }
+
+    .custom-select-row {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+
+    .custom-preview {
+      text-align: center;
+      margin-top: 0.5rem;
+    }
+
+    .custom-preview img {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 0 0 2px #000;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.15rem 0.4rem;
+      border-radius: 999px;
+      background: #222;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      opacity: 0.85;
+    }
   </style>
 </head>
 <body>
   <main class="app">
     <h1>Drag Race Season Simulator</h1>
 
+    <!-- Top-level run options -->
     <section class="controls">
       <div class="control-row">
         <label>
@@ -323,16 +503,111 @@
         </label>
       </div>
 
+      <div class="control-row">
+        <span class="muted">
+          Build a cast using the GUI below, or paste / edit raw JSON in the
+          advanced box. If a GUI cast is selected, it will be used instead of the JSON.
+        </span>
+      </div>
+
       <div class="control-row" style="width:100%;">
         <label style="width:100%;">
-          Queens JSON:
-          <textarea id="queensInput" rows="10" spellcheck="false"></textarea>
+          Advanced — Queens JSON:
+          <textarea id="queensInput" rows="8" spellcheck="false"></textarea>
         </label>
       </div>
 
       <div class="control-row">
         <button id="loadDefaultQueens">Load sample cast</button>
         <button id="simulateButton">Simulate Season</button>
+      </div>
+    </section>
+
+    <!-- Cast builder + custom queens -->
+    <section class="controls">
+      <h2>Cast Builder & Custom Queens</h2>
+
+      <div class="cast-builder-layout">
+        <!-- Left: cast picker -->
+        <div class="cast-column">
+          <div class="cast-builder-header">
+            <div class="cast-size-wrapper">
+              <label for="castSizeRange">Cast size:</label>
+              <input id="castSizeRange" type="range" min="4" max="20" value="12" />
+              <span id="castSizeLabel" class="chip">12 queens</span>
+            </div>
+            <div class="cast-builder-buttons">
+              <button id="btnRandomAll">Random</button>
+              <button id="btnRandomCustoms">Random customs</button>
+              <button id="btnClearCast">Clear cast</button>
+            </div>
+          </div>
+
+          <div class="muted" style="margin-top:0.4rem;">
+            Click queens to add/remove them from the cast. Selected queens are highlighted.
+          </div>
+
+          <div id="queenGrid" class="queen-grid"></div>
+        </div>
+
+        <!-- Right: custom queen editor -->
+        <div class="custom-column">
+          <h3>Create or edit a custom queen</h3>
+          <form id="customQueenForm" class="custom-form" onsubmit="return false;">
+            <label>
+              Name:
+              <input id="customName" type="text" placeholder="Queen name…" />
+            </label>
+
+            <button type="button" id="btnRandomizeStats">Randomize stats</button>
+            <span class="muted">(Stats should range from 0 to 15)</span>
+
+            <div class="stat-grid">
+              <label for="statActing">Acting:</label>
+              <input id="statActing" type="number" min="0" max="15" />
+              <label for="statComedy">Comedy:</label>
+              <input id="statComedy" type="number" min="0" max="15" />
+              <label for="statDance">Dance:</label>
+              <input id="statDance" type="number" min="0" max="15" />
+              <label for="statDesign">Design:</label>
+              <input id="statDesign" type="number" min="0" max="15" />
+              <label for="statImprov">Improv:</label>
+              <input id="statImprov" type="number" min="0" max="15" />
+              <label for="statRunway">Runway:</label>
+              <input id="statRunway" type="number" min="0" max="15" />
+              <label for="statLipsync">Lip Sync:</label>
+              <input id="statLipsync" type="number" min="0" max="15" />
+            </div>
+
+            <label>
+              Image URL:
+              <input id="customImageUrl" type="url" placeholder="https://example.com/image.png" />
+            </label>
+
+            <div class="custom-actions">
+              <button type="button" id="btnAddQueen">Add queen</button>
+              <button type="button" id="btnUpdateQueen">Update queen</button>
+            </div>
+          </form>
+
+          <div class="custom-select-row">
+            <div>
+              <strong>Existing custom queens</strong><br />
+              <select id="customQueenSelect">
+                <option value="">(none)</option>
+              </select>
+            </div>
+            <div style="display:flex; gap:0.4rem; align-items:flex-end; flex-wrap:wrap;">
+              <button type="button" id="btnLoadForEdit">Edit</button>
+              <button type="button" id="btnDeleteQueen">Remove</button>
+            </div>
+          </div>
+
+          <div class="custom-preview">
+            <div class="muted">Preview</div>
+            <img id="customPreviewImage" src="" alt="" />
+          </div>
+        </div>
       </div>
     </section>
 
@@ -361,6 +636,32 @@
     const simulateBtn = document.getElementById("simulateButton");
     const seasonContainer = document.getElementById("seasonContainer");
 
+    // Cast builder elements
+    const castSizeRange = document.getElementById("castSizeRange");
+    const castSizeLabel = document.getElementById("castSizeLabel");
+    const queenGrid = document.getElementById("queenGrid");
+    const btnRandomAll = document.getElementById("btnRandomAll");
+    const btnRandomCustoms = document.getElementById("btnRandomCustoms");
+    const btnClearCast = document.getElementById("btnClearCast");
+
+    // Custom queen editor elements
+    const customNameInput = document.getElementById("customName");
+    const statActing = document.getElementById("statActing");
+    const statComedy = document.getElementById("statComedy");
+    const statDance = document.getElementById("statDance");
+    const statDesign = document.getElementById("statDesign");
+    const statImprov = document.getElementById("statImprov");
+    const statRunway = document.getElementById("statRunway");
+    const statLipsync = document.getElementById("statLipsync");
+    const customImageUrlInput = document.getElementById("customImageUrl");
+    const btnRandomizeStats = document.getElementById("btnRandomizeStats");
+    const btnAddQueen = document.getElementById("btnAddQueen");
+    const btnUpdateQueen = document.getElementById("btnUpdateQueen");
+    const customQueenSelect = document.getElementById("customQueenSelect");
+    const btnLoadForEdit = document.getElementById("btnLoadForEdit");
+    const btnDeleteQueen = document.getElementById("btnDeleteQueen");
+    const customPreviewImage = document.getElementById("customPreviewImage");
+
     // For Full view
     let currentSteps = [];
     let currentStepIndex = 0;
@@ -368,8 +669,273 @@
     // Number of main episodes actually logged (Episode 1..N)
     let seasonEpisodeCount = 0;
 
+    // ---- Queen data for cast builder ----
+    const CUSTOM_STORAGE_KEY = "drag_race_sim_custom_queens";
+
+    let defaultQueens = [];
+    let customQueens = [];
+    let allQueens = [];
+    let currentCast = [];
+
+    function slugify(name) {
+      return (
+        name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "") || "queen-" + Date.now()
+      );
+    }
+
+    function loadCustomQueens() {
+      try {
+        const raw = localStorage.getItem(CUSTOM_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed;
+      } catch (e) {
+        console.warn("Failed to parse custom queens from storage:", e);
+        return [];
+      }
+    }
+
+    function saveCustomQueens(list) {
+      try {
+        localStorage.setItem(CUSTOM_STORAGE_KEY, JSON.stringify(list));
+      } catch (e) {
+        console.warn("Failed to save custom queens:", e);
+      }
+    }
+
+    function getCastLimit() {
+      return parseInt(castSizeRange.value, 10) || 12;
+    }
+
+    function syncCastSizeLabel() {
+      const n = getCastLimit();
+      castSizeLabel.textContent = `${n} queens`;
+    }
+
+    castSizeRange.addEventListener("input", syncCastSizeLabel);
+
+    function renderCastPicker() {
+      queenGrid.innerHTML = "";
+      if (!allQueens.length) {
+        queenGrid.textContent = "No queens available.";
+        return;
+      }
+
+      allQueens.forEach((q) => {
+        const card = document.createElement("div");
+        card.className = "queen-card";
+        card.dataset.id = q.id;
+
+        const img = document.createElement("img");
+        img.src = q.imageUrl || "";
+        img.alt = q.name;
+        card.appendChild(img);
+
+        const name = document.createElement("div");
+        name.className = "queen-name";
+        name.textContent = q.name;
+        card.appendChild(name);
+
+        if (q.source === "custom") {
+          const badge = document.createElement("span");
+          badge.className = "custom-badge";
+          badge.textContent = "Custom";
+          card.appendChild(badge);
+        }
+
+        // highlight if selected
+        if (currentCast.find((c) => c.id === q.id)) {
+          card.classList.add("selected");
+        }
+
+        card.addEventListener("click", () => toggleQueenInCast(q.id, card));
+        queenGrid.appendChild(card);
+      });
+    }
+
+    function toggleQueenInCast(id, cardEl) {
+      const existingIndex = currentCast.findIndex((q) => q.id === id);
+      const limit = getCastLimit();
+
+      if (existingIndex >= 0) {
+        currentCast.splice(existingIndex, 1);
+        if (cardEl) cardEl.classList.remove("selected");
+      } else {
+        if (currentCast.length >= limit) {
+          // optional: feedback; for now, just ignore
+          return;
+        }
+        const q = allQueens.find((q) => q.id === id);
+        if (!q) return;
+        currentCast.push(q);
+        if (cardEl) cardEl.classList.add("selected");
+      }
+    }
+
+    function pickRandomQueens(sourceList, n) {
+      const pool = [...sourceList];
+      const out = [];
+      while (pool.length && out.length < n) {
+        const idx = Math.floor(Math.random() * pool.length);
+        out.push(pool.splice(idx, 1)[0]);
+      }
+      return out;
+    }
+
+    btnRandomAll.addEventListener("click", () => {
+      const limit = getCastLimit();
+      currentCast = pickRandomQueens(allQueens, limit);
+      renderCastPicker();
+    });
+
+    btnRandomCustoms.addEventListener("click", () => {
+      const limit = getCastLimit();
+      currentCast = pickRandomQueens(customQueens, limit);
+      renderCastPicker();
+    });
+
+    btnClearCast.addEventListener("click", () => {
+      currentCast = [];
+      renderCastPicker();
+    });
+
+    // ---- Custom queen editor ----
+    function formToQueen(idOverride) {
+      const name = customNameInput.value.trim();
+      if (!name) return null;
+
+      const stats = {
+        acting: Number(statActing.value) || 0,
+        comedy: Number(statComedy.value) || 0,
+        dance: Number(statDance.value) || 0,
+        design: Number(statDesign.value) || 0,
+        improv: Number(statImprov.value) || 0,
+        runway: Number(statRunway.value) || 0,
+        lipsync: Number(statLipsync.value) || 0,
+      };
+
+      const id = idOverride || slugify(name);
+
+      return {
+        id,
+        name,
+        imageUrl: customImageUrlInput.value.trim(),
+        stats,
+        source: "custom",
+      };
+    }
+
+    function randomStat() {
+      return Math.floor(Math.random() * 16); // 0–15
+    }
+
+    btnRandomizeStats.addEventListener("click", () => {
+      statActing.value = randomStat();
+      statComedy.value = randomStat();
+      statDance.value = randomStat();
+      statDesign.value = randomStat();
+      statImprov.value = randomStat();
+      statRunway.value = randomStat();
+      statLipsync.value = randomStat();
+    });
+
+    btnAddQueen.addEventListener("click", () => {
+      const q = formToQueen();
+      if (!q) {
+        alert("Please enter a name for the queen.");
+        return;
+      }
+      customQueens.push(q);
+      saveCustomQueens(customQueens);
+      allQueens = [...defaultQueens, ...customQueens];
+      renderCustomQueenSelect();
+      renderCastPicker();
+    });
+
+    btnUpdateQueen.addEventListener("click", () => {
+      const selectedId = customQueenSelect.value;
+      if (!selectedId) {
+        alert("Select a custom queen to update.");
+        return;
+      }
+      const idx = customQueens.findIndex((q) => q.id === selectedId);
+      if (idx === -1) return;
+      const q = formToQueen(selectedId);
+      if (!q) return;
+      customQueens[idx] = q;
+      saveCustomQueens(customQueens);
+      allQueens = [...defaultQueens, ...customQueens];
+      renderCustomQueenSelect();
+      renderCastPicker();
+    });
+
+    function renderCustomQueenSelect() {
+      customQueenSelect.innerHTML = "";
+      const noneOpt = document.createElement("option");
+      noneOpt.value = "";
+      noneOpt.textContent = "(none)";
+      customQueenSelect.appendChild(noneOpt);
+
+      customQueens.forEach((q) => {
+        const opt = document.createElement("option");
+        opt.value = q.id;
+        opt.textContent = q.name;
+        customQueenSelect.appendChild(opt);
+      });
+
+      updatePreviewFromSelect();
+    }
+
+    function updatePreviewFromSelect() {
+      const id = customQueenSelect.value;
+      const q = customQueens.find((cq) => cq.id === id);
+      if (q && q.imageUrl) {
+        customPreviewImage.src = q.imageUrl;
+        customPreviewImage.alt = q.name;
+      } else {
+        customPreviewImage.src = "";
+        customPreviewImage.alt = "";
+      }
+    }
+
+    customQueenSelect.addEventListener("change", updatePreviewFromSelect);
+
+    btnLoadForEdit.addEventListener("click", () => {
+      const id = customQueenSelect.value;
+      if (!id) return;
+      const q = customQueens.find((cq) => cq.id === id);
+      if (!q) return;
+      customNameInput.value = q.name;
+      customImageUrlInput.value = q.imageUrl || "";
+      statActing.value = q.stats?.acting ?? 0;
+      statComedy.value = q.stats?.comedy ?? 0;
+      statDance.value = q.stats?.dance ?? 0;
+      statDesign.value = q.stats?.design ?? 0;
+      statImprov.value = q.stats?.improv ?? 0;
+      statRunway.value = q.stats?.runway ?? 0;
+      statLipsync.value = q.stats?.lipsync ?? 0;
+    });
+
+    btnDeleteQueen.addEventListener("click", () => {
+      const id = customQueenSelect.value;
+      if (!id) return;
+      if (!confirm("Remove this custom queen?")) return;
+      customQueens = customQueens.filter((q) => q.id !== id);
+      saveCustomQueens(customQueens);
+      allQueens = [...defaultQueens, ...customQueens];
+      currentCast = currentCast.filter((q) => q.id !== id);
+      renderCustomQueenSelect();
+      renderCastPicker();
+    });
+
+    // ---- Existing JSON / season rendering logic ----
+
     loadDefaultBtn.addEventListener("click", () => {
-      queensInput.value = JSON.stringify(window.QUEENS, null, 2);
+      queensInput.value = JSON.stringify(defaultQueens, null, 2);
     });
 
     // ---------- Parsing helpers ----------
@@ -420,7 +986,7 @@
         }
         out.push(l);
       }
-      return out.filter(l => l.trim());
+      return out.filter((l) => l.trim());
     }
 
     // Hide main-score blocks AND mini-score blocks in episodes, keep mini header + winner.
@@ -475,7 +1041,7 @@
         }
         out.push(l);
       }
-      return out.filter(l => l.trim());
+      return out.filter((l) => l.trim());
     }
 
     // ---------- Summary view rendering ----------
@@ -583,7 +1149,7 @@
             epNum,
             name: epName,
             miniName,
-            lines: miniLines.filter(l => l.trim() !== "")
+            lines: miniLines.filter((l) => l.trim() !== ""),
           });
         }
 
@@ -600,12 +1166,12 @@
             resultsLines.push(line);
           }
         }
-        const cleanResults = resultsLines.filter(l => l.trim() !== "");
+        const cleanResults = resultsLines.filter((l) => l.trim() !== "");
         steps.push({
           type: "episode_results",
           epNum,
           name: epName,
-          lines: cleanResults
+          lines: cleanResults,
         });
       });
 
@@ -613,12 +1179,12 @@
       // so we can parse actual season scores.
       const finaleLines = finale;
       if (finaleLines.length) {
-        const idx = finaleLines.findIndex(l =>
+        const idx = finaleLines.findIndex((l) =>
           l.startsWith("========== Grand Finale")
         );
         if (idx > 0) {
-          const final3Lines = finaleLines.slice(0, idx).filter(l => l.trim());
-          const finaleRest = finaleLines.slice(idx).filter(l => l.trim());
+          const final3Lines = finaleLines.slice(0, idx).filter((l) => l.trim());
+          const finaleRest = finaleLines.slice(idx).filter((l) => l.trim());
           if (final3Lines.length) steps.push({ type: "final3", lines: final3Lines });
           if (finaleRest.length) steps.push({ type: "finale", lines: finaleRest });
         } else {
@@ -836,7 +1402,7 @@
           const rec = parts.slice(firstStatusIdx);
           if (!name) continue;
 
-          const elimIdx = rec.findIndex(s => {
+          const elimIdx = rec.findIndex((s) => {
             const base = s.replace(/\(IMM\)$/, "");
             return base === "ELIM";
           });
@@ -844,7 +1410,7 @@
           records.push({
             name,
             record: rec,
-            elimIndex: elimIdx === -1 ? Infinity : elimIdx
+            elimIndex: elimIdx === -1 ? Infinity : elimIdx,
           });
         }
 
@@ -855,8 +1421,8 @@
         const finalistsSet = new Set(finalists);
 
         const finalistRecords = records
-          .filter(r => finalistsSet.has(r.name))
-          .map(r => {
+          .filter((r) => finalistsSet.has(r.name))
+          .map((r) => {
             const fallback = seasonScoreFromRecord(r.record);
             const seasonScore = seasonScoreMap.has(r.name)
               ? seasonScoreMap.get(r.name)
@@ -866,24 +1432,28 @@
 
         // Sort finalists by season score, then ensure the actual winner is first
         finalistRecords.sort((a, b) => b.seasonScore - a.seasonScore);
-        const winnerIdx = finalistRecords.findIndex(r => r.name === winnerName);
+        const winnerIdx = finalistRecords.findIndex((r) => r.name === winnerName);
         if (winnerIdx > 0) {
           const [w] = finalistRecords.splice(winnerIdx, 1);
           finalistRecords.unshift(w);
         }
 
-        const finishOrderNames = finalistRecords.map(r => r.name);
+        const finishOrderNames = finalistRecords.map((r) => r.name);
         const secondName = finishOrderNames[1] || null;
         const thirdName = finishOrderNames[2] || null;
 
         // Rebuild records so finalists appear in finish order at the top
         const finalistsByName = new Set(finishOrderNames);
         const nonFinalistsOrdered = records.filter(
-          r => !finalistsByName.has(r.name)
+          (r) => !finalistsByName.has(r.name)
         );
         const finalRecords = [
-          ...finalistRecords.map(({ name, record, elimIndex }) => ({ name, record, elimIndex })),
-          ...nonFinalistsOrdered
+          ...finalistRecords.map(({ name, record, elimIndex }) => ({
+            name,
+            record,
+            elimIndex,
+          })),
+          ...nonFinalistsOrdered,
         ];
 
         if (finalRecords.length) {
@@ -962,10 +1532,10 @@
                   cls = "status-finale-winner";
                 } else if (r.name === secondName) {
                   text = "RUNNER-UP";
-                  cls = "status-finale-runner";           // silver
+                  cls = "status-finale-runner"; // silver
                 } else if (r.name === thirdName) {
                   text = "RUNNER-UP";
-                  cls = "status-finale-runner-bronze";    // bronze
+                  cls = "status-finale-runner-bronze"; // bronze
                 }
                 td.className = cls;
                 td.textContent = text;
@@ -1048,11 +1618,13 @@
           bodyLines = [
             `In Episode ${step.epNum}, the queens face the ${step.name}.`,
             "",
-            "Proceed to see the judging and results."
+            "Proceed to see the judging and results.",
           ];
           break;
         case "episode_mini":
-          titleText = `Episode ${step.epNum} — Mini-Challenge: ${step.miniName || "Mini-Challenge"}`;
+          titleText = `Episode ${step.epNum} — Mini-Challenge: ${
+            step.miniName || "Mini-Challenge"
+          }`;
           bodyLines = step.lines;
           break;
         case "episode_results":
@@ -1137,7 +1709,18 @@
     // ---------- Main simulate handler ----------
 
     simulateBtn.addEventListener("click", () => {
-      const queens = JSON.parse(queensInput.value);
+      let queens;
+      if (currentCast.length > 0) {
+        queens = currentCast;
+      } else {
+        try {
+          queens = JSON.parse(queensInput.value);
+        } catch (e) {
+          alert("Queens JSON is invalid.");
+          return;
+        }
+      }
+
       const mode = modeSelect.value;
       const view = viewSelect.value;
       const immunityEnabled = immunityToggle.checked;
@@ -1146,7 +1729,7 @@
       const log = window.simulateSeason(queens, {
         mode,
         immunityEnabled,
-        doubleLipSyncTwistsEnabled
+        doubleLipSyncTwistsEnabled,
       });
 
       if (view === "summary") {
@@ -1156,9 +1739,24 @@
       }
     });
 
-    // Auto-load sample cast
+    // Auto-load sample cast and initialise cast builder
     window.addEventListener("DOMContentLoaded", () => {
-      queensInput.value = JSON.stringify(window.QUEENS, null, 2);
+      defaultQueens = (window.QUEENS || []).map((q, idx) => ({
+        // ensure they have ids + source + imageUrl in a consistent shape
+        id: q.id || slugify(q.name || "queen-" + idx),
+        name: q.name,
+        imageUrl: q.imageUrl || "",
+        stats: q.stats || {},
+        source: "default",
+      }));
+      customQueens = loadCustomQueens();
+      allQueens = [...defaultQueens, ...customQueens];
+
+      queensInput.value = JSON.stringify(defaultQueens, null, 2);
+
+      syncCastSizeLabel();
+      renderCustomQueenSelect();
+      renderCastPicker();
     });
   </script>
 </body>
