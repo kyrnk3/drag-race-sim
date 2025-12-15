@@ -14,6 +14,10 @@
       margin: 0;
     }
 
+    .hidden {
+      display: none;
+    }
+
     .app {
       max-width: 960px;
       margin: 0 auto;
@@ -534,7 +538,8 @@
   </style>
 </head>
 <body>
-  <main class="app">
+  <!-- HOME / BUILDER PAGE -->
+  <main id="homePage" class="app">
     <h1>Drag Race Season Simulator</h1>
 
     <!-- Top-level run options -->
@@ -689,10 +694,21 @@
         </div>
       </div>
     </section>
+  </main>
+
+  <!-- SIMULATION PAGE -->
+  <main id="simPage" class="app hidden">
+    <h1>Drag Race Season Simulator</h1>
 
     <section>
       <h2>Season Output</h2>
       <div id="seasonContainer"></div>
+    </section>
+
+    <section class="controls">
+      <div class="control-row" style="justify-content:flex-end;">
+        <button id="btnBackToSetup">Back to cast builder</button>
+      </div>
     </section>
   </main>
 
@@ -707,6 +723,10 @@
   <!-- UI / Rendering -->
   <script>
     const DEFAULT_QUEEN_IMAGE = "https://i.imgur.com/kXv2EFQ.png";
+
+    const homePageEl = document.getElementById("homePage");
+    const simPageEl = document.getElementById("simPage");
+    const backToSetupBtn = document.getElementById("btnBackToSetup");
 
     const modeSelect = document.getElementById("modeSelect");
     const viewSelect = document.getElementById("viewSelect");
@@ -2085,6 +2105,18 @@
       } else {
         renderSeasonFull(log);
       }
+
+      // Switch to simulation page "view"
+      homePageEl.classList.add("hidden");
+      simPageEl.classList.remove("hidden");
+      window.scrollTo(0, 0);
+    });
+
+    // Back to setup from sim page
+    backToSetupBtn.addEventListener("click", () => {
+      simPageEl.classList.add("hidden");
+      homePageEl.classList.remove("hidden");
+      window.scrollTo(0, 0);
     });
 
     // Auto-load queens and initialise cast builder
