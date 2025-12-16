@@ -2923,12 +2923,6 @@ enterStoryMode(); // hide builder + toolbar while showing results
       const card = document.createElement("div");
       card.className = "episode-card step-" + step.type;
 
-      const meta = document.createElement("div");
-      meta.className = "step-meta";
-      meta.textContent =
-        "Step " + (currentStepIndex + 1) + " of " + currentSteps.length;
-      card.appendChild(meta);
-
       let titleText = "";
       let bodyLines = [];
 
