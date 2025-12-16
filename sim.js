@@ -650,59 +650,71 @@ function resolveLipSync(bottom2, challenge, phase, twistState) {
   return { lipWinner: winner, eliminated, twist };
 }
 
-function updateTrackRecord(winner, highs, low, bottom2, eliminatedList, immuneSet) {
-  // Core placements
-  for (const q of bottom2) {
-    q.track_record.push("BTM");
-  }
-  if (low) {
-    low.track_record.push("LOW");
-  }
-  for (const q of highs) {
-    q.track_record.push("HIGH");
-  }
-  if (winner) {
-    winner.track_record.push("WIN");
-  }
-
-  // Everybody else who is still in and not explicitly placed is SAFE.
-  const involved = new Set([...highs, ...bottom2]);
-  if (winner) involved.add(winner);
-  if (low) involved.add(low);
-
-  for (const q of allQueensGlobal) {
-    if (q.eliminated) continue;
-    const targetLen = winner
-      ? winner.track_record.length
-      : bottom2[0].track_record.length;
-    if (!involved.has(q) && q.track_record.length < targetLen) {
-      q.track_record.push("SAFE");
+  function updateTrackRecord(
+    episodeIndex,
+    activeQueens,
+    winner,
+    highs,
+    low,
+    bottom2,
+    eliminatedList,
+    immuneSet
+  ) {
+    const immuneQueens = immuneSet || new Set();
+  
+    // 1) Ensure every ACTIVE queen has a slot for this episode (default SAFE).
+    for (const q of activeQueens) {
+      // If something drifted earlier, hard-pad up to this episode with SAFE.
+      while (q.track_record.length < episodeIndex) {
+        q.track_record.push("SAFE");
+      }
+      if (q.track_record.length === episodeIndex) {
+        q.track_record.push("SAFE");
+      } else {
+        // If it already exists (shouldn't normally), keep it unless blank.
+        if (!q.track_record[episodeIndex]) q.track_record[episodeIndex] = "SAFE";
+      }
+  
+      // Immunity history stays aligned to episodeIndex for ACTIVE queens only.
+      if (!q.immunityHistory) q.immunityHistory = [];
+      while (q.immunityHistory.length < episodeIndex) {
+        q.immunityHistory.push(false);
+      }
+      q.immunityHistory[episodeIndex] = immuneQueens.has(q);
+    }
+  
+    // 2) Apply placements (overwrite the SAFE slot).
+    if (bottom2 && bottom2.length) {
+      for (const q of bottom2) {
+        if (q && !q.eliminated) q.track_record[episodeIndex] = "BTM";
+      }
+    }
+  
+    if (low && !low.eliminated) {
+      low.track_record[episodeIndex] = "LOW";
+    }
+  
+    if (highs && highs.length) {
+      for (const q of highs) {
+        if (q && !q.eliminated) q.track_record[episodeIndex] = "HIGH";
+      }
+    }
+  
+    if (winner && !winner.eliminated) {
+      winner.track_record[episodeIndex] = "WIN";
+    }
+  
+    // 3) Mark eliminations LAST (overwrite whatever they had this episode).
+    for (const elim of (eliminatedList || [])) {
+      if (!elim) continue;
+      // Make sure they have the episode slot (they were active this episode).
+      while (elim.track_record.length <= episodeIndex) {
+        elim.track_record.push("SAFE");
+      }
+      elim.track_record[episodeIndex] = "ELIM";
+      elim.eliminated = true;
     }
   }
-
-  // Record immunity flags in parallel with track records.
-  const immuneQueens = immuneSet || new Set();
-  const eliminatedSet = new Set(eliminatedList || []);
-  for (const q of allQueensGlobal) {
-    // Only extend history for queens who actually appeared this episode
-    if (q.eliminated && !eliminatedSet.has(q)) continue;
-    if (!q.immunityHistory) q.immunityHistory = [];
-    const isImmune = immuneQueens.has(q);
-    q.immunityHistory.push(isImmune);
-  }
-
-  // Mark eliminations *after* recording immunity
-  for (const elim of eliminatedList) {
-    if (!elim) continue;
-    const lastIdx = elim.track_record.length - 1;
-    if (lastIdx >= 0) {
-      elim.track_record[lastIdx] = "ELIM";
-    } else {
-      elim.track_record.push("ELIM");
-    }
-    elim.eliminated = true;
-  }
-}
 
 function simulateEpisode(
   episodeNum,
@@ -810,9 +822,18 @@ function simulateEpisode(
   } else {
     eliminatedList = [lipOutcome.eliminated];
   }
-
-  updateTrackRecord(winner, highs, low, bottom2, eliminatedList, currentImmuneSet);
-
+  
+  updateTrackRecord(
+    episodeNum - 1,
+    queens,              // active queens this episode
+    winner,
+    highs,
+    low,
+    bottom2,
+    eliminatedList,
+    currentImmuneSet
+  );
+  
   log.push("\nResults:\n");
   log.push(`  Winner: ${winner.name}\n`);
   if (highs.length) {
