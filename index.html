@@ -287,6 +287,30 @@
       filter: brightness(1.05);
     }
 
+    .step-exit {
+  margin-top: 0.75rem;
+}
+
+    .step-exit button {
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid #444;
+      padding: 0.45rem 0.8rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #1f1f1f;
+      color: #eee;
+      box-shadow: 0 0 0 1px #000;
+      transition: background 0.08s ease, transform 0.08s ease, box-shadow 0.08s ease;
+    }
+    
+    .step-exit button:hover {
+      background: #2a2a2a;
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 1px #000, 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+
     /* Collapsible summary styling */
 
     details.episode-card {
@@ -876,7 +900,7 @@
       Build a cast, tune the chaos, then simulate a full season in either a quick summary or step-by-step episode view.
     </p>
 
-    <div class="toolbar">
+    <div class="toolbar" id="topToolbar">
       <div class="toolbar-group">
         <label>
           Mode:
@@ -1075,6 +1099,7 @@
     const doubleTwistsToggle = document.getElementById("doubleTwistsToggle");
     const simulateBtn = document.getElementById("simulateButton");
     const seasonContainer = document.getElementById("seasonContainer");
+    const topToolbar = document.getElementById("topToolbar");
 
     // Cast builder elements
     const queenSearchInput = document.getElementById("queenSearchInput");
@@ -1795,11 +1820,22 @@
     function enterStoryMode() {
       const builder = document.getElementById("builderScreen");
       if (builder) builder.classList.add("hidden");
+    
+      // Hide all top settings during season progression
+      if (topToolbar) topToolbar.classList.add("hidden");
+    
+      // Optional: lets us tighten spacing via CSS if you want
+      document.body.classList.add("story-mode");
     }
-
+    
     function exitStoryMode() {
       const builder = document.getElementById("builderScreen");
       if (builder) builder.classList.remove("hidden");
+    
+      // Restore settings when back in cast building
+      if (topToolbar) topToolbar.classList.remove("hidden");
+      document.body.classList.remove("story-mode");
+    
       seasonContainer.innerHTML = `
         <p style="font-size:0.85rem; color:#aaa;">
           Once you simulate a season, the results will appear here either as a summary
@@ -1852,12 +1888,11 @@
 
       lastSeasonLog = log || "";
       trackRecordData = meta && meta.trackRecord ? meta.trackRecord : null;
-
+enterStoryMode(); // hide builder + toolbar while showing results
+      
       if (options.view === "full") {
-        enterStoryMode();
         renderSeasonFull(lastSeasonLog);
       } else {
-        exitStoryMode();
         renderSeasonSummary(lastSeasonLog);
       }
 
@@ -2885,19 +2920,6 @@
       }
       const step = currentSteps[currentStepIndex];
 
-      if (currentViewMode === "full") {
-        const topBar = document.createElement("div");
-        topBar.className = "step-nav";
-        topBar.style.marginBottom = "0.75rem";
-
-        const backSetupBtn = document.createElement("button");
-        backSetupBtn.textContent = "Back to cast builder";
-        backSetupBtn.addEventListener("click", goBackToSetup);
-
-        topBar.appendChild(backSetupBtn);
-        seasonContainer.appendChild(topBar);
-      }
-
       const card = document.createElement("div");
       card.className = "episode-card step-" + step.type;
 
@@ -3029,6 +3051,18 @@
       nav.appendChild(backBtn);
       nav.appendChild(nextBtn);
       card.appendChild(nav);
+
+      if (currentViewMode === "full") {
+  const exitRow = document.createElement("div");
+  exitRow.className = "step-exit";
+
+  const backSetupBtn = document.createElement("button");
+  backSetupBtn.textContent = "Back to cast builder";
+  backSetupBtn.addEventListener("click", goBackToSetup);
+
+  exitRow.appendChild(backSetupBtn);
+  card.appendChild(exitRow);
+}
 
       seasonContainer.appendChild(card);
 
