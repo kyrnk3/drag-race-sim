@@ -2342,103 +2342,24 @@ enterStoryMode(); // hide builder + toolbar while showing results
       });
     }
 
-      function renderMiniLines(step, card) {
-        const block = document.createElement("div");
-        block.className = "results-block";
+    function renderMiniLines(step, card) {
+      const block = document.createElement("div");
+      block.className = "results-block";
   
-        const heading = document.createElement("div");
-        heading.className = "results-heading";
-        heading.textContent = "Mini-Challenge";
-        block.appendChild(heading);
+      const heading = document.createElement("div");
+      heading.className = "results-heading";
+      heading.textContent = "Mini-Challenge";
+      block.appendChild(heading);
   
-        const challengeRow = document.createElement("div");
-        challengeRow.className = "results-row";
-        const challengeLabel = document.createElement("strong");
-        challengeLabel.textContent = "Challenge:";
-        challengeRow.appendChild(challengeLabel);
-        challengeRow.appendChild(
-          document.createTextNode(" " + (step.miniName || "Mini-Challenge"))
-        );
-        block.appendChild(challengeRow);
-  
-        function renderMiniStep(step, card) {
-    // Clearer structure:
-    // Episode X
-    // Mini-Challenge: [Name]!
-    // [Winner] won the mini-challenge!
-    // They will get an advantage in the maxi-challenge!
-  
-    const wrap = document.createElement("div");
-    wrap.style.textAlign = "center";
-    wrap.style.padding = "0.25rem 0 0.4rem";
-  
-    // Episode heading (separate from the mini title)
-    const ep = document.createElement("div");
-    ep.style.fontWeight = "700";
-    ep.style.fontSize = "1.05rem";
-    ep.style.marginTop = "0.25rem";
-    ep.textContent = `Episode ${step.epNum}`;
-    wrap.appendChild(ep);
-  
-    // Mini title
-    const miniTitle = document.createElement("div");
-    miniTitle.style.fontWeight = "800";
-    miniTitle.style.fontSize = "1.25rem";
-    miniTitle.style.marginTop = "0.25rem";
-    miniTitle.style.marginBottom = "0.75rem";
-    miniTitle.textContent = `Mini-Challenge: ${(step.miniName || "Mini-Challenge")}!`;
-    wrap.appendChild(miniTitle);
-  
-    // Determine winner line (same logic you already use)
-    let winnerLine = null;
-    for (const line of step.lines || []) {
-      const lower = line.trim().toLowerCase();
-      if (!lower) continue;
-      if (lower.includes("won the mini-challenge") || lower.includes("mini-challenge winner")) {
-        winnerLine = line;
-        break;
-      }
-    }
-  
-    let winnerNames = [];
-    if (winnerLine) winnerNames = parseQueenNamesFromLine(winnerLine);
-  
-    if (!winnerNames.length) {
-      for (const line of step.lines || []) {
-        const trimmed = line.trim();
-        if (trimmed.toLowerCase().startsWith("mini-challenge winner:")) {
-          const tail = trimmed.split(":").slice(1).join(":").trim();
-          winnerNames = tail.split(/,| and /i).map(p => p.trim()).filter(Boolean);
-          break;
-        }
-      }
-    }
-  
-    // Winner avatar row (centered)
-    if (winnerNames.length) {
-      renderQueenRow(winnerNames, "", wrap);
-  
-      const winnerText = document.createElement("div");
-      winnerText.style.fontWeight = "700";
-      winnerText.style.marginTop = "0.25rem";
-      winnerText.textContent = `${winnerNames.join(" & ")} won the mini-challenge!`;
-      wrap.appendChild(winnerText);
-  
-      const adv = document.createElement("div");
-      adv.style.fontSize = "0.9rem";
-      adv.style.color = "#ccc";
-      adv.style.marginTop = "0.25rem";
-      adv.textContent = "They will get an advantage in the maxi-challenge!";
-      wrap.appendChild(adv);
-    } else {
-      const p = document.createElement("div");
-      p.style.color = "#ccc";
-      p.textContent = "A queen won the mini-challenge!";
-      wrap.appendChild(p);
-    }
-  
-    card.appendChild(wrap);
-  }
+      const challengeRow = document.createElement("div");
+      challengeRow.className = "results-row";
+      const challengeLabel = document.createElement("strong");
+      challengeLabel.textContent = "Challenge:";
+      challengeRow.appendChild(challengeLabel);
+      challengeRow.appendChild(
+        document.createTextNode(" " + (step.miniName || "Mini-Challenge"))
+      );
+      block.appendChild(challengeRow);
 
       // Try to find line(s) that describe the winner(s)
       let winnerLine = null;
@@ -2477,6 +2398,86 @@ enterStoryMode(); // hide builder + toolbar while showing results
       }
 
       card.appendChild(block);
+    }
+
+    // ✅ FIXED: moved to top-level scope so renderCurrentStep() can call it
+    function renderMiniStep(step, card) {
+      // Clearer structure:
+      // Episode X
+      // Mini-Challenge: [Name]!
+      // [Winner] won the mini-challenge!
+      // They will get an advantage in the maxi-challenge!
+
+      const wrap = document.createElement("div");
+      wrap.style.textAlign = "center";
+      wrap.style.padding = "0.25rem 0 0.4rem";
+
+      // Episode heading (separate from the mini title)
+      const ep = document.createElement("div");
+      ep.style.fontWeight = "700";
+      ep.style.fontSize = "1.05rem";
+      ep.style.marginTop = "0.25rem";
+      ep.textContent = `Episode ${step.epNum}`;
+      wrap.appendChild(ep);
+
+      // Mini title
+      const miniTitle = document.createElement("div");
+      miniTitle.style.fontWeight = "800";
+      miniTitle.style.fontSize = "1.25rem";
+      miniTitle.style.marginTop = "0.25rem";
+      miniTitle.style.marginBottom = "0.75rem";
+      miniTitle.textContent = `Mini-Challenge: ${(step.miniName || "Mini-Challenge")}!`;
+      wrap.appendChild(miniTitle);
+
+      // Determine winner line (same logic you already use)
+      let winnerLine = null;
+      for (const line of step.lines || []) {
+        const lower = line.trim().toLowerCase();
+        if (!lower) continue;
+        if (lower.includes("won the mini-challenge") || lower.includes("mini-challenge winner")) {
+          winnerLine = line;
+          break;
+        }
+      }
+
+      let winnerNames = [];
+      if (winnerLine) winnerNames = parseQueenNamesFromLine(winnerLine);
+
+      if (!winnerNames.length) {
+        for (const line of step.lines || []) {
+          const trimmed = line.trim();
+          if (trimmed.toLowerCase().startsWith("mini-challenge winner:")) {
+            const tail = trimmed.split(":").slice(1).join(":").trim();
+            winnerNames = tail.split(/,| and /i).map(p => p.trim()).filter(Boolean);
+            break;
+          }
+        }
+      }
+
+      // Winner avatar row (centered)
+      if (winnerNames.length) {
+        renderQueenRow(winnerNames, "", wrap);
+
+        const winnerText = document.createElement("div");
+        winnerText.style.fontWeight = "700";
+        winnerText.style.marginTop = "0.25rem";
+        winnerText.textContent = `${winnerNames.join(" & ")} won the mini-challenge!`;
+        wrap.appendChild(winnerText);
+
+        const adv = document.createElement("div");
+        adv.style.fontSize = "0.9rem";
+        adv.style.color = "#ccc";
+        adv.style.marginTop = "0.25rem";
+        adv.textContent = "They will get an advantage in the maxi-challenge!";
+        wrap.appendChild(adv);
+      } else {
+        const p = document.createElement("div");
+        p.style.color = "#ccc";
+        p.textContent = "A queen won the mini-challenge!";
+        wrap.appendChild(p);
+      }
+
+      card.appendChild(wrap);
     }
 
     function renderFinaleLines(lines, card) {
