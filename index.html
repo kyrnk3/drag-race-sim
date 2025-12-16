@@ -3060,40 +3060,43 @@ enterStoryMode(); // hide builder + toolbar while showing results
         h.textContent = titleText;
         card.appendChild(h);
       }
-      if (bodyLines.length) {
-        if (step.type === "episode_setup") {
-          const p = document.createElement("p");
-          p.textContent = bodyLines.join("\n");
-          card.appendChild(p);
-        } else if (step.type === "episode_mini") {
-          renderMiniStep(step, card);
-        }
-        } else if (step.type === "episode_maxi") {
-          const lines = (step.lines || []).filter((l) => l && l.trim());
-          if (lines.length) {
-            const first = lines[0];
-            const p = document.createElement("p");
-            p.textContent = first.trim();
-            card.appendChild(p);
-            const remaining = lines.slice(1);
-            renderQueenLinesBlock(remaining, card);
-          }
-        } else if (step.type === "episode_judging") {
-          renderQueenLinesBlock(step.lines || [], card);
-        } else if (step.type === "episode_bring_back") {
-          renderQueenLinesBlock(step.lines || [], card);
-        } else if (step.type === "episode_lipsync") {
-          renderQueenLinesBlock(step.lines || [], card);
-        } else if (step.type === "episode_results") {
-          renderQueenLinesBlock(step.lines || [], card);
-        } else if (step.type === "finale") {
-          renderFinaleLines(bodyLines, card);
-        } else {
-          const pre = document.createElement("pre");
-          pre.textContent = bodyLines.join("\n");
-          card.appendChild(pre);
-        }
-      }
+if (step.type === "episode_setup") {
+  const p = document.createElement("p");
+  p.textContent = bodyLines.join("\n");
+  card.appendChild(p);
+
+} else if (step.type === "episode_mini") {
+  renderMiniStep(step, card);
+
+} else if (step.type === "episode_maxi") {
+  const lines = (step.lines || []).filter((l) => l && l.trim());
+  if (lines.length) {
+    const p = document.createElement("p");
+    p.textContent = lines[0].trim();
+    card.appendChild(p);
+    renderQueenLinesBlock(lines.slice(1), card);
+  }
+
+} else if (step.type === "episode_judging") {
+  renderQueenLinesBlock(step.lines || [], card);
+
+} else if (step.type === "episode_bring_back") {
+  renderQueenLinesBlock(step.lines || [], card);
+
+} else if (step.type === "episode_lipsync") {
+  renderQueenLinesBlock(step.lines || [], card);
+
+} else if (step.type === "episode_results") {
+  renderQueenLinesBlock(step.lines || [], card);
+
+} else if (step.type === "finale") {
+  renderFinaleLines(bodyLines, card);
+
+} else {
+  const pre = document.createElement("pre");
+  pre.textContent = bodyLines.join("\n");
+  card.appendChild(pre);
+}
 
       const nav = document.createElement("div");
       nav.className = "step-nav";
