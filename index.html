@@ -2824,6 +2824,100 @@ function renderLipSyncStep(step, card) {
   }
 }
 
+// Old-sim style Results step (supports double shantay/sashay) using structured episodeResults.
+function renderResultsStep(step, card) {
+  const wrap = document.createElement("div");
+  wrap.className = "maxi-step";
+
+  const title = document.createElement("div");
+  title.className = "maxi-title";
+  title.textContent = "I've made my decision.";
+  wrap.appendChild(title);
+
+  const epNum = step.epNum || 1;
+  const epIdx = Math.max(0, epNum - 1);
+  const epRes = (seasonEpisodeResults && seasonEpisodeResults[epIdx]) ? seasonEpisodeResults[epIdx] : null;
+
+  // Fallback: if we don't have structured results, render the raw lines.
+  if (!epRes || !Array.isArray(epRes.tiers)) {
+    const p = document.createElement("p");
+    p.style.whiteSpace = "pre-line";
+    p.textContent = (step.lines || []).map(l => String(l).trim()).filter(Boolean).join("\n");
+    wrap.appendChild(p);
+    card.appendChild(wrap);
+    return;
+  }
+
+  const tiers = epRes.tiers;
+  const twist = (epRes.twist || "").toLowerCase();
+
+  // Bottom 2 from placements
+  const bottom2 = tiers.filter(t => t && t.placement === "BTM").map(t => t.name).slice(0, 2);
+  const eliminated = tiers.filter(t => t && t.eliminated).map(t => t.name);
+
+  const formatBoth = (a, b) => `${a} and ${b}`;
+
+  // Helper captions (old sim tone)
+  const shantayLine = (name) => `${name}, shantay you stay.`;
+  const sashayLine = (name) => `${name}, sashay away...`;
+
+  // Double shantay / double sashay
+  if (bottom2.length === 2 && twist === "double_shantay") {
+    renderQueenRowWithRingClass(bottom2, "", wrap, "perf-safe");
+    const cap = document.createElement("div");
+    cap.className = "perf-caption";
+    cap.textContent = `${formatBoth(bottom2[0], bottom2[1])}, shantay you BOTH stay!`;
+    wrap.appendChild(cap);
+    card.appendChild(wrap);
+    return;
+  }
+
+  if (bottom2.length === 2 && twist === "double_sashay") {
+    renderQueenRowWithRingClass(bottom2, "", wrap, "perf-bombed");
+    const cap = document.createElement("div");
+    cap.className = "perf-caption";
+    cap.textContent = `${bottom2[0]}, ${bottom2[1]}, I must ask both of you to sashay away.`;
+    wrap.appendChild(cap);
+    card.appendChild(wrap);
+    return;
+  }
+
+  // Normal outcome: one stays, one goes.
+  let stay = null;
+  let go = null;
+  if (bottom2.length === 2) {
+    // Determine who is eliminated among bottom2.
+    go = eliminated.find(n => n === bottom2[0] || n === bottom2[1]) || null;
+    stay = (go === bottom2[0]) ? bottom2[1] : (go === bottom2[1] ? bottom2[0] : bottom2[0]);
+  } else {
+    // Fallback parsing of lines for names.
+    const shantay = (step.lines || []).find(l => /Shantay you stay/i.test(String(l)));
+    const sashay = (step.lines || []).find(l => /Sashay away/i.test(String(l)));
+    const sNames = shantay ? parseQueenNamesFromLine(String(shantay)) : [];
+    const aNames = sashay ? parseQueenNamesFromLine(String(sashay)) : [];
+    stay = sNames[0] || null;
+    go = aNames[0] || null;
+  }
+
+  if (stay) {
+    renderQueenRowWithRingClass([stay], "", wrap, "perf-safe");
+    const cap = document.createElement("div");
+    cap.className = "perf-caption";
+    cap.textContent = shantayLine(stay);
+    wrap.appendChild(cap);
+  }
+
+  if (go) {
+    renderQueenRowWithRingClass([go], "", wrap, "perf-bombed");
+    const cap = document.createElement("div");
+    cap.className = "perf-caption";
+    cap.textContent = sashayLine(go);
+    wrap.appendChild(cap);
+  }
+
+  card.appendChild(wrap);
+}
+
 function renderQueenLinesBlock(lines, card) {
       const clean = (lines || []).filter((l) => l && l.trim());
       clean.forEach((line) => {
@@ -3720,7 +3814,7 @@ if (step.type === "episode_setup") {
   renderLipSyncStep(step, card);
 
 } else if (step.type === "episode_results") {
-  renderQueenLinesBlock(step.lines || [], card);
+  renderResultsStep(step, card);
 
 } else if (step.type === "finale") {
   renderFinaleLines(bodyLines, card);
