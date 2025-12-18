@@ -1130,7 +1130,16 @@ function getLipsyncChallenge() {
   };
 }
 
-function simulateFinale(finalists, log) {
+function tierFromLipScore(score) {
+  // Absolute thresholds for finale lip-sync display.
+  if (score >= 9.0) return "slayed";
+  if (score >= 7.5) return "great";
+  if (score >= 6.0) return "good";
+  if (score >= 4.5) return "bad";
+  return "bombed";
+}
+
+function simulateFinale(finalists, log, lipsyncState) {
   const lipsyncChallenge = getLipsyncChallenge();
 
   log.push("\n========== Grand Finale — Lip Sync for the Crown ==========\n");
@@ -1139,71 +1148,103 @@ function simulateFinale(finalists, log) {
     log.push(`  - ${q.name} (track: ${formatTrackRecord(q)})\n`);
   }
 
+  // Season performance "resume"
   const seasonScores = new Map();
   for (const q of finalists) {
     seasonScores.set(q, computeSeasonScore(q));
   }
 
-  const lipScores = new Map();
+  // Pre-lip-sync judging score to decide Top 2 (blends lipsync skill + season resume)
+  const preLipScores = new Map();
   for (const q of finalists) {
-    lipScores.set(q, calculateScore(q, lipsyncChallenge, "late", "finale"));
+    preLipScores.set(q, calculateScore(q, lipsyncChallenge, "late", "finale"));
   }
 
   const combinedScores = new Map();
   for (const q of finalists) {
-    const season = seasonScores.get(q);
-    const rawLip = lipScores.get(q);
-    const combined = rawLip + 0.4 * season + randUniform(-0.8, 0.8);
+    const season = seasonScores.get(q) || 0;
+    const preLip = preLipScores.get(q) || 0;
+    // Season matters, but we still want the finale to feel "live"
+    const combined = preLip + 0.4 * season + randUniform(-0.8, 0.8);
     combinedScores.set(q, combined);
   }
 
-  let provisionalWinner = null;
-  let bestCombined = -Infinity;
-  for (const [q, s] of combinedScores.entries()) {
-    if (s > bestCombined) {
-      bestCombined = s;
-      provisionalWinner = q;
+  const rankedCombined = Array.from(combinedScores.entries()).sort((a, b) => b[1] - a[1]);
+  const top2Queens = rankedCombined.slice(0, 2).map(([q]) => q);
+  const eliminated = rankedCombined[2] ? rankedCombined[2][0] : null;
+
+  if (eliminated) {
+    log.push("\nI've made my decision...\n");
+    log.push(`  ${top2Queens[0].name} & ${top2Queens[1].name}, you will lip-sync for the crown!\n`);
+    log.push(`  ${eliminated.name}, you will not advance to the final lip-sync.\n`);
+  }
+
+  // Pick a finale lip-sync song (uses the same anti-repeat pool as the season)
+  const _usedSongs = (lipsyncState && lipsyncState.usedSongs) ? lipsyncState.usedSongs : new Set();
+  const lipSyncSong = (typeof window !== "undefined" && window.pickLipSyncSong)
+    ? window.pickLipSyncSong(_usedSongs)
+    : null;
+
+  if (lipSyncSong) {
+    log.push(`\nThe lip-sync song is... ${lipSyncSong}!\n`);
+  }
+
+  // Final lip-sync outcome (Top 2 only)
+  const lipScores = new Map();
+  for (const q of top2Queens) {
+    const s = calculateScore(q, lipsyncChallenge, "late", "finale") + randUniform(-1.0, 1.0);
+    lipScores.set(q, s);
+  }
+  const rankedLip = Array.from(lipScores.entries()).sort((a, b) => b[1] - a[1]);
+  let winner = rankedLip[0][0];
+
+  // Runaway frontrunner safety net (only if she's in the Top 2 and not truly demolished)
+  if (top2Queens.length === 2) {
+    let bestSeason = -Infinity;
+    for (const s of seasonScores.values()) bestSeason = Math.max(bestSeason, s);
+
+    const frontrunners = [];
+    for (const [q, s] of seasonScores.entries()) {
+      if (s === bestSeason) frontrunners.push(q);
+    }
+
+    if (frontrunners.length === 1) {
+      const f = frontrunners[0];
+      if (top2Queens.includes(f)) {
+        const sortedSeasons = Array.from(seasonScores.values()).sort((a, b) => b - a);
+        const secondBestSeason = sortedSeasons[1] !== undefined ? sortedSeasons[1] : bestSeason;
+        const seasonMargin = bestSeason - secondBestSeason;
+
+        if (seasonMargin >= 5) {
+          const bestLip = rankedLip[0][1];
+          const lipGap = bestLip - (lipScores.get(f) || 0);
+          if (lipGap <= 3.0) {
+            winner = f;
+          }
+        }
+      }
     }
   }
 
-  let winner = provisionalWinner;
-
-  // Runaway frontrunner safety net
-  let bestSeason = -Infinity;
-  for (const s of seasonScores.values()) {
-    if (s > bestSeason) bestSeason = s;
-  }
-  const frontrunners = [];
-  for (const [q, s] of seasonScores.entries()) {
-    if (s === bestSeason) frontrunners.push(q);
-  }
-
-  if (frontrunners.length === 1 && finalists.length > 1) {
-    const f = frontrunners[0];
-
-    const sortedSeasons = Array.from(seasonScores.values()).sort((a, b) => b - a);
-    const secondBestSeason = sortedSeasons[1] !== undefined ? sortedSeasons[1] : bestSeason;
-    const seasonMargin = bestSeason - secondBestSeason;
-
-    if (seasonMargin >= 5) {
-      let bestLip = -Infinity;
-      for (const s of lipScores.values()) {
-        if (s > bestLip) bestLip = s;
-      }
-      const lipGap = bestLip - lipScores.get(f);
-
-      if (lipGap <= 3.0) {
-        winner = f;
-      }
-    }
-  }
+  const lipSyncTiers = rankedLip.map(([q, s]) => {
+    return { name: q.name, score: s, tier: tierFromLipScore(s) };
+  });
 
   log.push(`\n${winner.name} devours the stage and snatches the crown! 👑\n`);
-  return { winner, seasonScores, lipScores, combinedScores };
+
+  return {
+    winner,
+    top2: top2Queens,
+    eliminated,
+    seasonScores,
+    combinedScores,
+    lipSyncSong,
+    lipSyncTiers
+  };
 }
 
 // Build structured track-record data for the UI table.
-function buildTrackRecordMeta(allQueens, winner, finalists) {
+function buildTrackRecordMeta(allQueens, winner, finalists, finaleOrder = null) {
   if (!allQueens || !allQueens.length) {
     return { queenOrder: [], episodes: [] };
   }
@@ -1258,8 +1299,22 @@ function buildTrackRecordMeta(allQueens, winner, finalists) {
     return eb - ea;
   });
 
-  const otherFinalists = finalists.filter(q => q !== winner);
-  otherFinalists.sort((a, b) => computeSeasonScore(b) - computeSeasonScore(a));
+  let otherFinalists = finalists.filter(q => q !== winner);
+
+  // If we have an explicit finale placement order (e.g., Top 2 lipsync),
+  // use that for finalists ordering instead of season-score sorting.
+  if (Array.isArray(finaleOrder) && finaleOrder.length) {
+    const placeMap = new Map();
+    finaleOrder.forEach((q, idx) => { if (q) placeMap.set(q, idx); });
+    otherFinalists.sort((a, b) => {
+      const pa = placeMap.has(a) ? placeMap.get(a) : 999;
+      const pb = placeMap.has(b) ? placeMap.get(b) : 999;
+      if (pa !== pb) return pa - pb;
+      return computeSeasonScore(b) - computeSeasonScore(a);
+    });
+  } else {
+    otherFinalists.sort((a, b) => computeSeasonScore(b) - computeSeasonScore(a));
+  }
 
   const orderingObjs = [winner, ...otherFinalists, ...nonFinalists].filter(Boolean);
   const queenOrder = orderingObjs.map(q => queenLabelMap.get(q));
@@ -1473,7 +1528,7 @@ function simulateSeason(queenDefs, options = {}) {
   }
 
   const finalists = queens.slice();
-  const finaleResult = simulateFinale(finalists, log);
+  const finaleResult = simulateFinale(finalists, log, lipsyncState);
   const winner = finaleResult.winner;
 
   log.push(`\nAnd the winner of this season is... ${winner.name}!! 🏁👑\n`);
@@ -1513,10 +1568,21 @@ function simulateSeason(queenDefs, options = {}) {
     twist: null,
     tiers: [],
     runwayTiers: finaleRunwayTiers,
-    runwayCategory: "Finale Eleganza Extravaganza"
+    runwayCategory: "Finale Eleganza Extravaganza",
+    finale: {
+      finalists: finalists.map(q => q.name),
+      top2: (finaleResult.top2 || []).map(q => q.name),
+      eliminated: finaleResult.eliminated ? finaleResult.eliminated.name : null,
+      winner: finaleResult.winner ? finaleResult.winner.name : null,
+      runnerUp: finaleResult.runnerUp ? finaleResult.runnerUp.name : null,
+      lipSync: {
+        song: finaleResult.lipSyncSong || null,
+        tiers: finaleResult.lipSyncTiers || []
+      }
+    }
   });
 
-  const trackRecord = buildTrackRecordMeta(allQueensGlobal, winner, finalists);
+  const trackRecord = buildTrackRecordMeta(allQueensGlobal, winner, finalists, [winner, finaleResult.runnerUp, finaleResult.eliminated]);
 
   return {
     log: log.join(""),
