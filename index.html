@@ -1138,6 +1138,7 @@
   <script src="queens.js"></script>
   <script src="challenges.js"></script>
   <script src="mini-challenges.js"></script>
+  <script src="runways.js"></script>
   <script src="sim.js"></script>
 
   <script>
@@ -2270,31 +2271,113 @@ enterStoryMode(); // hide builder + toolbar while showing results
       return true;
     }
 
-    function renderRunwayStep(step, card) {
-      const wrap = document.createElement("div");
-      wrap.className = "maxi-step";
+    
+function renderRunwayStep(step, card) {
+  const wrap = document.createElement("div");
+  wrap.className = "maxi-step";
 
-      const title = document.createElement("div");
-      title.className = "maxi-title";
-      title.textContent = "Runway!";
-      wrap.appendChild(title);
+  const title = document.createElement("div");
+  title.className = "maxi-title";
+  title.textContent = "Runway!";
+  wrap.appendChild(title);
 
-      const intro = document.createElement("div");
-      intro.className = "maxi-intro";
-      intro.textContent = "The queens hit the runway — judging is next.";
-      wrap.appendChild(intro);
+  const intro = document.createElement("div");
+  intro.className = "maxi-intro";
+  intro.textContent = "The queens will bring it to the runway!";
+  wrap.appendChild(intro);
 
-      // Show the cast this episode (including immune queens / anyone who bombed).
-      const epIdx = Math.max(0, (step.epNum || 1) - 1);
-      const epRes = (seasonEpisodeResults && seasonEpisodeResults[epIdx]) ? seasonEpisodeResults[epIdx] : null;
+  const epIdx = Math.max(0, (step.epNum || 1) - 1);
+  const epRes = (seasonEpisodeResults && seasonEpisodeResults[epIdx]) ? seasonEpisodeResults[epIdx] : null;
 
-      const names = (epRes && Array.isArray(epRes.tiers)) ? epRes.tiers.map(t => t && t.name).filter(Boolean) : [];
-      if (names.length) {
-        renderQueenRow(names, "", wrap);
+  // Category line
+  const categoryLine = document.createElement("div");
+  categoryLine.className = "maxi-intro";
+  categoryLine.style.marginTop = "-0.35rem";
+  categoryLine.style.fontSize = "0.95rem";
+  const cat = epRes && epRes.runwayCategory ? epRes.runwayCategory : null;
+  categoryLine.textContent = cat ? `Category is... ${cat}.` : "Category is... (unknown).";
+  wrap.appendChild(categoryLine);
+
+  const buckets = [
+    { key: "slayed", label: "slayed the runway!", rowClass: "perf-slayed" },
+    { key: "great",  label: "had a great runway!", rowClass: "perf-great" },
+    { key: "good",   label: "had a good runway.", rowClass: "perf-good" },
+    { key: "bad",    label: "had a bad runway…", rowClass: "perf-bad" },
+    { key: "bombed", label: "bombed the runway…", rowClass: "perf-bombed" },
+  ];
+
+  const grouped = new Map(buckets.map(b => [b.key, []]));
+
+  // Prefer structured runway tiers from sim.js
+  if (epRes && Array.isArray(epRes.runwayTiers) && epRes.runwayTiers.length) {
+    for (const t of epRes.runwayTiers) {
+      if (!t || !t.tier || !t.name) continue;
+      const key = String(t.tier).toLowerCase();
+      if (!grouped.has(key)) continue;
+      grouped.get(key).push(t);
+    }
+  }
+
+  let renderedAny = false;
+
+  buckets.forEach((b) => {
+    const entries = grouped.get(b.key) || [];
+    if (!entries.length) return;
+    renderedAny = true;
+
+    const rowWrap = document.createElement("div");
+    rowWrap.className = `queen-row perf-row ${b.rowClass}`;
+
+    entries.forEach((entry) => {
+      const raw = (entry && entry.name) ? entry.name : String(entry);
+      const q = getQueenByNameGuess(raw);
+
+      const cell = document.createElement("div");
+      cell.className = "queen-avatar";
+
+      const img = document.createElement("img");
+      img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
+      img.alt = q ? q.name : raw;
+      cell.appendChild(img);
+
+      const label = document.createElement("div");
+      label.className = "queen-avatar-name";
+      label.textContent = q ? q.name : raw;
+
+      if (entry && entry.immune) {
+        const small = document.createElement("div");
+        small.style.fontSize = "0.68rem";
+        small.style.color = "#bbb";
+        small.textContent = "(IMMUNE)";
+        cell.appendChild(label);
+        cell.appendChild(small);
+      } else {
+        cell.appendChild(label);
       }
 
-      card.appendChild(wrap);
-    }
+      rowWrap.appendChild(cell);
+    });
+
+    wrap.appendChild(rowWrap);
+
+    const cap = document.createElement("div");
+    cap.className = "perf-caption";
+    const namesForCaption = entries.map(e => (e && e.name) ? e.name : String(e));
+    cap.textContent = `${formatNameList(namesForCaption)} ${b.label}`;
+    wrap.appendChild(cap);
+  });
+
+  if (!renderedAny) {
+    const p = document.createElement("div");
+    p.style.color = "#ccc";
+    p.style.marginTop = "0.5rem";
+    p.textContent = "No runway tiers were available for this episode (check that sim.js is returning runwayTiers).";
+    wrap.appendChild(p);
+  }
+
+  card.appendChild(wrap);
+}
+
 
     function buildStepsFromLog(log) {
       const { header, episodes, finale } = parseSeasonLog(log);
