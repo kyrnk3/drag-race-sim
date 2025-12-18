@@ -2597,77 +2597,6 @@ function renderJudgingStep(step, card) {
 }
 
 
-function renderLipSyncStep(step, card) {
-  // Dedicated lipsync renderer (no name-parsing from flavour lines).
-  // Uses structured data from sim.js: episodeResults[epIdx].lipSync
-  const wrap = document.createElement("div");
-  wrap.className = "maxi-step";
-
-  const intro = document.createElement("div");
-  intro.className = "maxi-intro";
-  intro.style.fontWeight = "700";
-  intro.style.marginBottom = "0.75rem";
-  intro.textContent = "The time has come...";
-  wrap.appendChild(intro);
-
-  const epIdx = Math.max(0, (step.epNum || 1) - 1);
-  const epRes = (seasonEpisodeResults && seasonEpisodeResults[epIdx]) ? seasonEpisodeResults[epIdx] : null;
-  const tiers = (epRes && Array.isArray(epRes.tiers)) ? epRes.tiers : [];
-  const btm = tiers.filter(t => t && t.placement === "BTM").map(t => t.name);
-
-  // Bottom 2 portraits (red rings)
-  if (btm.length) {
-    renderQueenRowWithRingClass(btm, "", wrap, "perf-bottom");
-    const btmText = document.createElement("div");
-    btmText.className = "perf-caption";
-    btmText.textContent = `For you to lip-sync... for your lives! Good luck, and don't fuck it up.`;
-    wrap.appendChild(btmText);
-  }
-
-  // Song reveal
-  const song = epRes && epRes.lipSync && epRes.lipSync.song ? epRes.lipSync.song : null;
-  const songLine = document.createElement("div");
-  songLine.className = "maxi-intro";
-  songLine.style.marginTop = "0.5rem";
-  songLine.textContent = song ? `The lip-sync song is... ${song}!` : "The lip-sync song is... (unknown).";
-  wrap.appendChild(songLine);
-
-  // Performance tier captions for the bottom 2
-  const lipTiers = (epRes && epRes.lipSync && Array.isArray(epRes.lipSync.tiers)) ? epRes.lipSync.tiers : [];
-  const tierPhrase = {
-    slayed: "slayed",
-    great: "had a great",
-    good: "had a good",
-    bad: "had a bad",
-    bombed: "bombed",
-  };
-
-  if (lipTiers.length) {
-    // Ensure we only describe the actual bottom 2, and keep the UI stable.
-    const wanted = new Set(btm);
-    const ordered = lipTiers
-      .filter(t => t && t.name && wanted.has(t.name))
-      .sort((a, b) => {
-        // winner first (higher score)
-        const as = (typeof a.score === "number") ? a.score : 0;
-        const bs = (typeof b.score === "number") ? b.score : 0;
-        return bs - as;
-      });
-
-    ordered.forEach((t) => {
-      const phr = tierPhrase[String(t.tier || "good").toLowerCase()] || "had a";
-      const p = document.createElement("div");
-      p.className = "results-row";
-      p.style.marginTop = "0.55rem";
-      p.textContent = `${t.name} ${phr} lip-sync...`;
-      wrap.appendChild(p);
-    });
-  }
-
-  card.appendChild(wrap);
-}
-
-
 
     function buildStepsFromLog(log) {
       const { header, episodes, finale } = parseSeasonLog(log);
@@ -2816,7 +2745,86 @@ function renderLipSyncStep(step, card) {
       return steps;
     }
 
-    function renderQueenLinesBlock(lines, card) {
+    
+function renderLipSyncStep(step, card) {
+  const epNum = step.epNum || 1;
+  const epIdx = Math.max(0, epNum - 1);
+  const epRes = (seasonEpisodeResults && seasonEpisodeResults[epIdx]) ? seasonEpisodeResults[epIdx] : null;
+
+  // Bottom 2 portraits (from placements if available; otherwise fall back to parsing the first queen-row line)
+  let bottom2 = [];
+  if (epRes && Array.isArray(epRes.tiers)) {
+    bottom2 = epRes.tiers.filter(t => t.placement === "BTM").map(t => t.name);
+  }
+  if (bottom2.length < 2) {
+    // Fallback: parse any "Name, ..." lines for the first two unique names.
+    const seen = new Set();
+    (step.lines || []).forEach(line => {
+      const m = String(line).match(/^\s*([^,]+),\s*(.+)$/);
+      if (!m) return;
+      const name = m[1].trim();
+      if (!name || seen.has(name)) return;
+      seen.add(name);
+    });
+    bottom2 = Array.from(seen).slice(0, 2);
+  }
+
+  if (bottom2.length) {
+    renderQueenRow(bottom2, "", card);
+  }
+
+  // Render narration/song lines as plain text (never parsed as queen rows)
+  const lines = (step.lines || []).map(l => String(l)).filter(l => l.trim().length);
+  const narration = [];
+  let songLine = null;
+
+  for (const line of lines) {
+    // Skip any "Name, ..." rows (those are handled via structured tiers below)
+    if (/^\s*[^,]+,\s*/.test(line)) continue;
+    if (line.toLowerCase().includes("lip-sync song")) {
+      songLine = line;
+      continue;
+    }
+    narration.push(line);
+  }
+
+  if (narration.length) {
+    const p = document.createElement("p");
+    p.className = "episode-narration";
+    p.textContent = narration.join("\n");
+    card.appendChild(p);
+  }
+  if (songLine) {
+    const p = document.createElement("p");
+    p.className = "episode-song";
+    p.textContent = songLine;
+    card.appendChild(p);
+  }
+
+  // Structured lip-sync outcomes (slayed/great/good/bad/bombed)
+  const tierToText = (tier) => {
+    switch ((tier || "").toLowerCase()) {
+      case "slayed": return "slayed the lip-sync!";
+      case "great":  return "had a great lip-sync...";
+      case "good":   return "had a good lip-sync.";
+      case "bad":    return "had a bad lip-sync...";
+      case "bombed": return "bombed the lip-sync...";
+      default:       return "had a lip-sync...";
+    }
+  };
+
+  const lip = epRes && epRes.lipSync ? epRes.lipSync : null;
+  const lipTiers = lip && Array.isArray(lip.tiers) ? lip.tiers : [];
+  if (lipTiers.length) {
+    lipTiers.forEach(t => {
+      const name = t.name || t;
+      const tier = (t && t.tier) ? t.tier : null;
+      renderQueenRow([name], tierToText(tier), card, { neutral: true });
+    });
+  }
+}
+
+function renderQueenLinesBlock(lines, card) {
       const clean = (lines || []).filter((l) => l && l.trim());
       clean.forEach((line) => {
         const trimmed = line.trim();
