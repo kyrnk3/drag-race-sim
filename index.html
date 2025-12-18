@@ -2577,7 +2577,7 @@ enterStoryMode(); // hide builder + toolbar while showing results
         const winnerText = document.createElement("div");
         winnerText.style.fontWeight = "700";
         winnerText.style.marginTop = "0.25rem";
-        winnerText.textContent = `${winnerNames.join(" & ")} won the mini-challenge!`;
+        winnerText.textContent = `${formatNameList(winnerNames)} won the mini-challenge!`;
         wrap.appendChild(winnerText);
 
         const adv = document.createElement("div");
@@ -2726,7 +2726,7 @@ const buckets = [
         const cap = document.createElement("div");
         cap.className = "perf-caption";
         const namesForCaption = entries.map(e => (e && e.name) ? e.name : String(e));
-        cap.textContent = `${namesForCaption.join(", ")}, ${b.label}`;
+        cap.textContent = `${formatNameList(namesForCaption)} ${b.label}`;
         wrap.appendChild(cap);
       });
 
