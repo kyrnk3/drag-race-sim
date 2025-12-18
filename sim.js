@@ -55,6 +55,20 @@ function choice(array) {
   return array[Math.floor(Math.random() * array.length)];
 }
 
+// Runway category picker (avoids repeats until pool is exhausted).
+function pickRunwayCategory(usedSet, forceCategory = null) {
+  if (forceCategory) return forceCategory;
+  const cats = Array.isArray(window.RUNWAY_CATEGORIES) ? window.RUNWAY_CATEGORIES : [];
+  if (!cats.length) return null;
+
+  const used = usedSet instanceof Set ? usedSet : new Set();
+  const available = cats.filter(c => !used.has(c));
+  const pool = available.length ? available : cats;
+  const chosen = pool[Math.floor(Math.random() * pool.length)];
+  used.add(chosen);
+  return chosen;
+}
+
 // Clamp to the 0–10 scale we’re using everywhere.
 function clampStat(x) {
   return Math.max(0, Math.min(10, x));
@@ -784,7 +798,8 @@ function simulateEpisode(
   log,
   usedMiniOneOffIdsSet,
   immunityState,
-  twistState
+  twistState,
+  runwayState
 ) {
   const queensRemaining = queens.length;
   const phase = episodeNum <= totalEpisodes / 2 ? "early" : "late";
@@ -820,6 +835,9 @@ function simulateEpisode(
   log.push(`
 ========== Episode ${episodeNum} — ${challenge.name} ==========
 `);
+
+  // Runway category for this episode (shared pool across the season)
+  const runwayCategory = pickRunwayCategory(runwayState ? runwayState.usedCategories : null);
 
   // Mini-challenge phase
   const miniChallenge = chooseMiniChallenge(queensRemaining, episodeNum, usedMiniOneOffIdsSet);
@@ -993,7 +1011,8 @@ if (lipOutcome.twist === "double_shantay") {
       : null,
     twist: lipOutcome.twist,
     tiers,
-    runwayTiers
+    runwayTiers,
+    runwayCategory
   };
 
   return { eliminatedList, cid, twist: lipOutcome.twist, episodeResult };
@@ -1301,6 +1320,9 @@ function simulateSeason(queenDefs, options = {}) {
     usedDoubleSashay: false
   };
 
+  // Runway category state (no repeats until pool exhausted)
+  const runwayState = { usedCategories: new Set() };
+
   log.push("========== Drag Race Season Simulation ==========\n");
   log.push("Starting queens:\n");
   for (const q of queens) {
@@ -1362,7 +1384,8 @@ function simulateSeason(queenDefs, options = {}) {
       log,
       usedMiniOneOffIdsSet,
       immunityState,
-      twistState
+      twistState,
+      runwayState
     );
     lastChallengeId = cid;
     if (episodeResult) episodeResults.push(episodeResult);
@@ -1395,6 +1418,40 @@ function simulateSeason(queenDefs, options = {}) {
   for (const q of allQueensGlobal) {
     log.push(`  ${q.name.padEnd(14)} ${formatTrackRecord(q)}\n`);
   }
+
+
+  // Add a Finale runway entry for UI flows that want a finale runway segment.
+  // (Category is always Finale Eleganza Extravaganza.)
+  const finaleRunwayScoreMap = new Map();
+  for (const q of finalists) {
+    finaleRunwayScoreMap.set(q, calculateRunwayScore(q));
+  }
+  const finaleRunwayRanked = Array.from(finaleRunwayScoreMap.entries()).sort((a, b) => b[1] - a[1]);
+  const finaleRunwayVals = finaleRunwayRanked.map(([, s]) => s);
+  const finaleRunwayStats = meanStd(finaleRunwayVals);
+  const finaleRunwayTiers = finaleRunwayRanked.map(([q, s], idx) => {
+    const z = (s - finaleRunwayStats.mean) / finaleRunwayStats.std;
+    return {
+      name: q.name,
+      score: s,
+      z,
+      tier: tierFromZ(z),
+      immune: false,
+      runwayRank: idx + 1
+    };
+  });
+
+  episodeResults.push({
+    episode: "Finale",
+    phase: "finale",
+    challengeId: "FINALE",
+    challengeName: "Grand Finale",
+    miniChallenge: null,
+    twist: null,
+    tiers: [],
+    runwayTiers: finaleRunwayTiers,
+    runwayCategory: "Finale Eleganza Extravaganza"
+  });
 
   const trackRecord = buildTrackRecordMeta(allQueensGlobal, winner, finalists);
 
