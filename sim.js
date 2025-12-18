@@ -856,11 +856,6 @@ function simulateEpisode(
   // Runway category for this episode (shared pool across the season)
   const runwayCategory = pickRunwayCategory(runwayState ? runwayState.usedCategories : null);
 
-  // Bring Back My Girls (UI marker)
-  log.push(`
-Bring back my girls!
-`);
-
   // Mini-challenge phase
   const miniChallenge = chooseMiniChallenge(queensRemaining, episodeNum, usedMiniOneOffIdsSet);
   let miniWinner = null;
@@ -913,6 +908,7 @@ Mini-Challenge — ${miniChallenge.name}
   }
 
   const lipsyncChallenge = getLipsyncChallenge();
+
   const lipOutcome = resolveLipSync(bottom2, lipsyncChallenge, phase, twistState);
 
   let eliminatedList = [];
@@ -937,12 +933,7 @@ Mini-Challenge — ${miniChallenge.name}
   );
 
   // Log output
-  log.push(\"\nJudging:\n\");
-  log.push(`  Top: ${winner.name}${highs.length ? \", \" + highs.map(q=>q.name).join(\", \") : \"\"}\n`);
-  if (low) log.push(`  Low: ${low.name}\n`);
-  log.push(`  Bottom: ${bottom2[0].name} vs. ${bottom2[1].name}\n`);
-
-  log.push(\"\nResults:\n\");
+  log.push("\nResults:\n");
   log.push(`  Winner: ${winner.name}\n`);
   if (highs.length) {
     log.push(`  High:   ${highs.map(q => q.name).join(", ")}\n`);
@@ -966,7 +957,7 @@ Mini-Challenge — ${miniChallenge.name}
   }
 
   log.push("\nThe time has come...\n\n");
-  log.push("For you to lip-sync... for your lives! Good luck — and don't fuck it up.\n\n");
+  log.push("For you to lip-sync... for your lives! Good luck and don't fuck it up.\n\n");
   log.push(`The lip-sync song is... ${lipsyncSong}!\n\n`);
 
   const tierLineFor = (t) => {
