@@ -2789,12 +2789,12 @@ function renderLipSyncStep(step, card) {
   // Structured lip-sync outcomes (slayed/great/good/bad/bombed)
   const tierToText = (tier) => {
     switch ((tier || "").toLowerCase()) {
-      case "slayed": return "slayed the lip-sync!";
-      case "great":  return "had a great lip-sync...";
-      case "good":   return "had a good lip-sync.";
-      case "bad":    return "had a bad lip-sync...";
-      case "bombed": return "bombed the lip-sync...";
-      default:       return "had a lip-sync...";
+      case "slayed": return "slayed the lipsync!";
+      case "great":  return "had a great lipsync!";
+      case "good":   return "had a good lipsync.";
+      case "bad":    return "had a bad lipsync...";
+      case "bombed": return "bombed the lipsync...";
+      default:       return "had a lipsync...";
     }
   };
 
@@ -2809,7 +2809,8 @@ function renderLipSyncStep(step, card) {
   }
 }
 
-// Old-sim style Results step (supports double shantay/sashay) using structured episodeResults.
+// Old-sim style Lip Sync step using structured episodeResults.
+// Renders bottom 2, narration, song, and per-queen lip-sync tiers.
 function renderLipSyncStep(step, card) {
   const wrap = document.createElement("div");
   wrap.className = "maxi-step results-step";
@@ -2821,23 +2822,37 @@ function renderLipSyncStep(step, card) {
   // Bottom 2 portraits (neutral intro row)
   let bottom2 = [];
   if (epRes?.tiers) {
-    bottom2 = epRes.tiers.filter(t => t.placement === "BTM").map(t => t.name);
+    bottom2 = epRes.tiers
+      .filter(t => t.placement === "BTM")
+      .map(t => t.name);
   }
 
   if (bottom2.length) {
     renderQueenRow(bottom2, "", wrap, { neutral: true });
   }
 
-  // Narration + song
+  // Narration + song (FILTER OUT old lip-sync result lines)
   const narration = [];
   let songLine = null;
 
   (step.lines || []).forEach(line => {
+    // Capture song reveal
     if (/lip-sync song/i.test(line)) {
       songLine = line;
-    } else if (!/^\s*[^,]+,\s*/.test(line)) {
-      narration.push(line);
+      return;
     }
+
+    // Ignore legacy lip-sync result lines (now rendered from structured data)
+    if (/slayed the lip-sync|had a .*lip-sync|bombed the lip-sync/i.test(line)) {
+      return;
+    }
+
+    // Ignore comma-based "Queen, did X" patterns
+    if (/^\s*[^,]+,\s*/.test(line)) {
+      return;
+    }
+
+    narration.push(line);
   });
 
   if (narration.length) {
@@ -2855,13 +2870,13 @@ function renderLipSyncStep(step, card) {
     wrap.appendChild(p);
   }
 
-  // Lip-sync tiers
+  // Lip-sync tiers (STRUCTURED DATA — single source of truth)
   const tierLabel = {
-    slayed: "slayed the lip-sync!",
-    great:  "had a great lip-sync!",
-    good:   "had a good lip-sync.",
-    bad:    "had a bad lip-sync...",
-    bombed: "bombed the lip-sync..."
+    slayed: "slayed the lipsync!",
+    great:  "had a great lipsync!",
+    good:   "had a good lipsync.",
+    bad:    "had a bad lipsync...",
+    bombed: "bombed the lipsync..."
   };
 
   const tierClass = {
