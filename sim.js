@@ -1142,12 +1142,9 @@ function tierFromLipScore(score) {
 function simulateFinale(finalists, log, lipsyncState) {
   const lipsyncChallenge = getLipsyncChallenge();
 
-  log.push("
-========== Grand Finale ==========
-");
-  log.push("Finalists:
-");
-  for (const q of finalists) {
+  log.push("\n========== Grand Finale ==========\n");
+log.push("Finalists:\n");
+for (const q of finalists) {
     log.push(`  - ${q.name} (track: ${formatTrackRecord(q)})
 `);
   }
@@ -1181,10 +1178,8 @@ function simulateFinale(finalists, log, lipsyncState) {
     lipSyncSong = window.pickLipSyncSong(usedSongs);
   }
 
-  log.push("
-========== Lip Sync for the Crown ==========
-");
-  if (topA && topB) {
+  log.push("\n========== Lip Sync for the Crown ==========\n");
+if (topA && topB) {
     log.push(`${topA.name} and ${topB.name} will lip-sync for the crown...!
 `);
   }
@@ -1229,10 +1224,8 @@ function simulateFinale(finalists, log, lipsyncState) {
 `);
   }
 
-  log.push("
-I've made my decision.
-");
-  if (winner) log.push(`${winner.name} devours the stage and snatches the crown! 👑
+  log.push("\nI\'ve made my decision.\n");
+if (winner) log.push(`${winner.name} devours the stage and snatches the crown! 👑
 `);
 
   return { winner, runnerUp, eliminated, top2: [topA, topB].filter(Boolean), seasonScores, combinedScores, lipSyncSong, lipSyncTiers };
