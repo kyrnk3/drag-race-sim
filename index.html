@@ -637,6 +637,56 @@
       font-size: 0.8rem;
     }
 
+    /* Maxi-challenge full-view styling */
+
+    .maxi-step {
+      text-align: center;
+      padding: 0.25rem 0 0.4rem;
+    }
+
+    .maxi-step .maxi-title {
+      font-weight: 900;
+      font-size: 1.8rem;
+      margin: 0.35rem 0 0.75rem;
+      letter-spacing: 0.02em;
+    }
+
+    .maxi-step .maxi-intro {
+      font-size: 0.95rem;
+      color: #ddd;
+      margin: 0 0 0.9rem;
+    }
+
+    .maxi-step .perf-heading {
+      font-size: 0.95rem;
+      color: #ccc;
+      margin: 0.6rem 0 0.2rem;
+    }
+
+    .queen-row.perf-row {
+      margin-top: 0.35rem;
+      margin-bottom: 0.25rem;
+      gap: 0.6rem;
+    }
+
+    .queen-row.perf-row .queen-avatar img {
+      width: 78px;
+      height: 78px;
+    }
+
+    .queen-row.perf-row.perf-slayed .queen-avatar img { border-color: #8e24aa; }
+    .queen-row.perf-row.perf-great  .queen-avatar img { border-color: #1565c0; }
+    .queen-row.perf-row.perf-good   .queen-avatar img { border-color: #2e7d32; }
+    .queen-row.perf-row.perf-bad    .queen-avatar img { border-color: #f57c00; }
+    .queen-row.perf-row.perf-bombed .queen-avatar img { border-color: #c62828; }
+
+    .maxi-step .perf-caption {
+      font-size: 0.95rem;
+      font-weight: 650;
+      margin: 0.15rem 0 0.8rem;
+      color: #eee;
+    }
+
     /* Current cast list */
     .cast-list {
       margin-top: 0.6rem;
@@ -2124,6 +2174,9 @@ enterStoryMode(); // hide builder + toolbar while showing results
       const cutMarkers = [
         " had a great performance",
         " had a good performance",
+        " slayed the challenge",
+        " bombed the challenge",
+
         " had a bad performance",
         " had a great lipsync",
         " had a good lipsync",
@@ -2474,6 +2527,108 @@ enterStoryMode(); // hide builder + toolbar while showing results
         const p = document.createElement("div");
         p.style.color = "#ccc";
         p.textContent = "A queen won the mini-challenge!";
+        wrap.appendChild(p);
+      }
+
+      card.appendChild(wrap);
+    }
+
+
+    function renderMaxiStep(step, card) {
+      const wrap = document.createElement("div");
+      wrap.className = "maxi-step";
+
+      const title = document.createElement("div");
+      title.className = "maxi-title";
+      title.textContent = "Maxi-challenge!";
+      wrap.appendChild(title);
+
+      // Pull an intro line ("The queens will...") if present
+      const lines = (step.lines || []).map(l => (l || "").trim()).filter(Boolean);
+
+      let introLine = "";
+      const perfLines = [];
+      for (const ln of lines) {
+        const lower = ln.toLowerCase();
+        if (!introLine && (lower.startsWith("the queens will") || lower.startsWith("the queens are") || lower.startsWith("this week"))) {
+          introLine = ln;
+          continue;
+        }
+        // Skip a generic header like "Queens' performances..."
+        if (lower.startsWith("queens' performances")) continue;
+        perfLines.push(ln);
+      }
+
+      if (introLine) {
+        const intro = document.createElement("div");
+        intro.className = "maxi-intro";
+        intro.textContent = introLine;
+        wrap.appendChild(intro);
+      }
+
+      const buckets = [
+        { key: "slayed", label: "slayed the challenge!", match: /slayed the challenge/i, rowClass: "perf-slayed" },
+        { key: "great",  label: "had a great performance!", match: /had a great performance/i, rowClass: "perf-great" },
+        { key: "good",   label: "had a good performance.", match: /had a good performance/i, rowClass: "perf-good" },
+        { key: "bad",    label: "had a bad performance…", match: /had a bad performance/i, rowClass: "perf-bad" },
+        { key: "bombed", label: "bombed the challenge…", match: /bombed the challenge/i, rowClass: "perf-bombed" },
+      ];
+
+      const grouped = new Map(buckets.map(b => [b.key, []]));
+
+      // Build groups by reading the sim's narrative lines.
+      for (const ln of perfLines) {
+        const bucket = buckets.find(b => b.match.test(ln));
+        if (!bucket) continue;
+        const names = parseQueenNamesFromLine(ln);
+        if (!names.length) continue;
+        const cur = grouped.get(bucket.key) || [];
+        names.forEach(n => cur.push(n));
+        grouped.set(bucket.key, cur);
+      }
+
+      // Render groups in a fixed order, similar to the reference layout.
+      buckets.forEach((b) => {
+        const names = grouped.get(b.key) || [];
+        if (!names.length) return;
+
+        // Avatar row
+        const rowWrap = document.createElement("div");
+        rowWrap.className = `queen-row perf-row ${b.rowClass}`;
+
+        names.forEach((raw) => {
+          const q = getQueenByNameGuess(raw);
+          const cell = document.createElement("div");
+          cell.className = "queen-avatar";
+
+          const img = document.createElement("img");
+          img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
+          img.alt = q ? q.name : raw;
+          cell.appendChild(img);
+
+          const label = document.createElement("div");
+          label.className = "queen-avatar-name";
+          label.textContent = q ? q.name : raw;
+          cell.appendChild(label);
+
+          rowWrap.appendChild(cell);
+        });
+
+        wrap.appendChild(rowWrap);
+
+        // Caption under that row
+        const cap = document.createElement("div");
+        cap.className = "perf-caption";
+        cap.textContent = `${names.join(", ")}, ${b.label}`;
+        wrap.appendChild(cap);
+      });
+
+      // Fallback if we didn't detect any buckets (older log formats)
+      const any = buckets.some(b => (grouped.get(b.key) || []).length);
+      if (!any) {
+        const p = document.createElement("div");
+        p.style.color = "#ccc";
+        p.textContent = "The queens hit the runway — judging is next.";
         wrap.appendChild(p);
       }
 
@@ -3024,7 +3179,7 @@ enterStoryMode(); // hide builder + toolbar while showing results
           bodyLines = step.lines || [];
           break;
         case "episode_maxi":
-          titleText = `Episode ${step.epNum} — Maxi-challenge`;
+          titleText = ""; // rendered inside renderMaxiStep
           bodyLines = step.lines || [];
           break;
         case "episode_judging":
@@ -3070,13 +3225,7 @@ if (step.type === "episode_setup") {
   renderMiniStep(step, card);
 
 } else if (step.type === "episode_maxi") {
-  const lines = (step.lines || []).filter((l) => l && l.trim());
-  if (lines.length) {
-    const p = document.createElement("p");
-    p.textContent = lines[0].trim();
-    card.appendChild(p);
-    renderQueenLinesBlock(lines.slice(1), card);
-  }
+  renderMaxiStep(step, card);
 
 } else if (step.type === "episode_judging") {
   renderQueenLinesBlock(step.lines || [], card);
