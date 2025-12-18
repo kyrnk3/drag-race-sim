@@ -689,7 +689,7 @@ function resolveLipSync(bottom2, challenge, phase, twistState) {
     if (Math.random() < chance) {
       twist = "double_shantay";
       twistState.usedDoubleShantay = true;
-      return { lipWinner: winner, eliminated: null, twist };
+      return { lipWinner: winner, eliminated: null, twist, lipTiers };
     }
   }
 
@@ -720,14 +720,14 @@ function resolveLipSync(bottom2, challenge, phase, twistState) {
     if (Math.random() < chance) {
       twist = "double_sashay";
       twistState.usedDoubleSashay = true;
-      return { lipWinner: null, eliminated: null, twist };
+      return { lipWinner: null, eliminated: null, twist, lipTiers };
     }
   }
 
   // =========================
   // Normal outcome
   // =========================
-  return { lipWinner: winner, eliminated, twist };
+  return { lipWinner: winner, eliminated, twist, lipTiers };
 }
 
   function updateTrackRecord(
