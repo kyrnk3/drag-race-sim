@@ -1865,6 +1865,7 @@
     let lastSeasonLog = "";
     let seasonEpisodeCount = 0;
     let trackRecordData = null;
+    let seasonEpisodeResults = null;
     let currentViewMode = "summary";
 
     function enterStoryMode() {
@@ -1938,6 +1939,7 @@
 
       lastSeasonLog = log || "";
       trackRecordData = meta && meta.trackRecord ? meta.trackRecord : null;
+      seasonEpisodeResults = meta && Array.isArray(meta.episodeResults) ? meta.episodeResults : null;
 enterStoryMode(); // hide builder + toolbar while showing results
       
       if (options.view === "full") {
@@ -2543,20 +2545,23 @@ enterStoryMode(); // hide builder + toolbar while showing results
       title.textContent = "Maxi-challenge!";
       wrap.appendChild(title);
 
-      // Pull an intro line ("The queens will...") if present
-      const lines = (step.lines || []).map(l => (l || "").trim()).filter(Boolean);
+      // Prefer structured episodeResults from sim.js (future-proof).
+      const epIdx = Math.max(0, (step.epNum || 1) - 1);
+      const epRes = (seasonEpisodeResults && seasonEpisodeResults[epIdx]) ? seasonEpisodeResults[epIdx] : null;
 
+      // Intro line
       let introLine = "";
-      const perfLines = [];
-      for (const ln of lines) {
-        const lower = ln.toLowerCase();
-        if (!introLine && (lower.startsWith("the queens will") || lower.startsWith("the queens are") || lower.startsWith("this week"))) {
-          introLine = ln;
-          continue;
+      if (epRes && epRes.challengeName) {
+        introLine = `Challenge: ${epRes.challengeName}`;
+      } else {
+        const lines = (step.lines || []).map(l => (l || "").trim()).filter(Boolean);
+        for (const ln of lines) {
+          const lower = ln.toLowerCase();
+          if (lower.startsWith("the queens will") || lower.startsWith("the queens are") || lower.startsWith("this week")) {
+            introLine = ln;
+            break;
+          }
         }
-        // Skip a generic header like "Queens' performances..."
-        if (lower.startsWith("queens' performances")) continue;
-        perfLines.push(ln);
       }
 
       if (introLine) {
@@ -2564,40 +2569,68 @@ enterStoryMode(); // hide builder + toolbar while showing results
         intro.className = "maxi-intro";
         intro.textContent = introLine;
         wrap.appendChild(intro);
+      } else {
+        const intro = document.createElement("div");
+        intro.className = "maxi-intro";
+        intro.textContent = "The queens hit the runway — judging is next.";
+        wrap.appendChild(intro);
       }
 
       const buckets = [
-        { key: "slayed", label: "slayed the challenge!", match: /slayed the challenge/i, rowClass: "perf-slayed" },
-        { key: "great",  label: "had a great performance!", match: /had a great performance/i, rowClass: "perf-great" },
-        { key: "good",   label: "had a good performance.", match: /had a good performance/i, rowClass: "perf-good" },
-        { key: "bad",    label: "had a bad performance…", match: /had a bad performance/i, rowClass: "perf-bad" },
-        { key: "bombed", label: "bombed the challenge…", match: /bombed the challenge/i, rowClass: "perf-bombed" },
+        { key: "slayed", label: "slayed the challenge!", rowClass: "perf-slayed" },
+        { key: "great",  label: "had a great performance!", rowClass: "perf-great" },
+        { key: "good",   label: "had a good performance.", rowClass: "perf-good" },
+        { key: "bad",    label: "had a bad performance…", rowClass: "perf-bad" },
+        { key: "bombed", label: "bombed the challenge…", rowClass: "perf-bombed" },
       ];
 
       const grouped = new Map(buckets.map(b => [b.key, []]));
 
-      // Build groups by reading the sim's narrative lines.
-      for (const ln of perfLines) {
-        const bucket = buckets.find(b => b.match.test(ln));
-        if (!bucket) continue;
-        const names = parseQueenNamesFromLine(ln);
-        if (!names.length) continue;
-        const cur = grouped.get(bucket.key) || [];
-        names.forEach(n => cur.push(n));
-        grouped.set(bucket.key, cur);
+      if (epRes && Array.isArray(epRes.tiers) && epRes.tiers.length) {
+        // Use tier thresholds computed by the sim (includes immune queens).
+        for (const t of epRes.tiers) {
+          if (!t || !t.tier || !t.name) continue;
+          const key = String(t.tier).toLowerCase();
+          if (!grouped.has(key)) continue;
+          grouped.get(key).push(t);
+        }
+      } else {
+        // Back-compat fallback: attempt to infer from narrative lines, if present.
+        const lines = (step.lines || []).map(l => (l || "").trim()).filter(Boolean);
+        for (const ln of lines) {
+          const lower = ln.toLowerCase();
+          const names = parseQueenNamesFromLine(ln);
+          if (!names.length) continue;
+          if (lower.includes("slayed the challenge")) {
+            names.forEach(n => grouped.get("slayed").push({ name: n, immune: false }));
+          } else if (lower.includes("had a great performance")) {
+            names.forEach(n => grouped.get("great").push({ name: n, immune: false }));
+          } else if (lower.includes("had a good performance")) {
+            names.forEach(n => grouped.get("good").push({ name: n, immune: false }));
+          } else if (lower.includes("had a bad performance")) {
+            names.forEach(n => grouped.get("bad").push({ name: n, immune: false }));
+          } else if (lower.includes("bombed the challenge")) {
+            names.forEach(n => grouped.get("bombed").push({ name: n, immune: false }));
+          }
+        }
       }
 
-      // Render groups in a fixed order, similar to the reference layout.
+      // Render groups (skip empty buckets so slayed/bombed aren't guaranteed visually).
+      let renderedAny = false;
+
       buckets.forEach((b) => {
-        const names = grouped.get(b.key) || [];
-        if (!names.length) return;
+        const entries = grouped.get(b.key) || [];
+        if (!entries.length) return;
+        renderedAny = true;
 
         // Avatar row
         const rowWrap = document.createElement("div");
         rowWrap.className = `queen-row perf-row ${b.rowClass}`;
 
-        names.forEach((raw) => {
+        entries.forEach((entry) => {
+          const raw = (entry && entry.name) ? entry.name : String(entry);
           const q = getQueenByNameGuess(raw);
+
           const cell = document.createElement("div");
           cell.className = "queen-avatar";
 
@@ -2609,7 +2642,18 @@ enterStoryMode(); // hide builder + toolbar while showing results
           const label = document.createElement("div");
           label.className = "queen-avatar-name";
           label.textContent = q ? q.name : raw;
-          cell.appendChild(label);
+
+          // Emphasize immunity: allow immune queens to bomb/slay and show it.
+          if (entry && entry.immune) {
+            const small = document.createElement("div");
+            small.style.fontSize = "0.68rem";
+            small.style.color = "#bbb";
+            small.textContent = "(IMMUNE)";
+            cell.appendChild(label);
+            cell.appendChild(small);
+          } else {
+            cell.appendChild(label);
+          }
 
           rowWrap.appendChild(cell);
         });
@@ -2619,13 +2663,12 @@ enterStoryMode(); // hide builder + toolbar while showing results
         // Caption under that row
         const cap = document.createElement("div");
         cap.className = "perf-caption";
-        cap.textContent = `${names.join(", ")}, ${b.label}`;
+        const namesForCaption = entries.map(e => (e && e.name) ? e.name : String(e));
+        cap.textContent = `${namesForCaption.join(", ")}, ${b.label}`;
         wrap.appendChild(cap);
       });
 
-      // Fallback if we didn't detect any buckets (older log formats)
-      const any = buckets.some(b => (grouped.get(b.key) || []).length);
-      if (!any) {
+      if (!renderedAny) {
         const p = document.createElement("div");
         p.style.color = "#ccc";
         p.textContent = "The queens hit the runway — judging is next.";
