@@ -598,6 +598,18 @@ function tierFromZ(z) {
   return "bombed";
 }
 
+// Lip-sync tiers should be based on absolute performance (not z-scores across only two queens).
+function tierFromLipScore(s) {
+  // These thresholds are tuned for scores produced by calculateScore() on the lipsync challenge.
+  // Feel free to tweak for your sim's feel.
+  if (s >= 9.0) return "slayed";
+  if (s >= 7.5) return "great";
+  if (s >= 6.0) return "good";
+  if (s >= 4.5) return "bad";
+  return "bombed";
+}
+
+
 // Runway segment scoring: mostly runway stat + light noise.
 // This is separate from main challenge scoring; it's for UI + flavor.
 function calculateRunwayScore(queen) {
@@ -647,11 +659,9 @@ function resolveLipSync(bottom2, challenge, phase, twistState) {
   const sLoser = ranked[1][1];
 
   // Performance tiers for the bottom 2 (for UI/flavor text)
-  const _vals = [sWinner, sLoser];
-  const _stats = meanStd(_vals);
+// Use absolute score thresholds so both queens can independently slay/great/good/bad/bomb.
   const lipTiers = ranked.map(([q, s]) => {
-    const z = (s - _stats.mean) / _stats.std;
-    return { name: q.name, score: s, z, tier: tierFromZ(z) };
+    return { name: q.name, score: s, tier: tierFromLipScore(s) };
   });
 
   let twist = "none";
@@ -689,7 +699,7 @@ function resolveLipSync(bottom2, challenge, phase, twistState) {
     if (Math.random() < chance) {
       twist = "double_shantay";
       twistState.usedDoubleShantay = true;
-      return { lipWinner: winner, eliminated: null, twist };
+      return { lipWinner: winner, eliminated: null, twist, lipTiers };
     }
   }
 
@@ -720,14 +730,14 @@ function resolveLipSync(bottom2, challenge, phase, twistState) {
     if (Math.random() < chance) {
       twist = "double_sashay";
       twistState.usedDoubleSashay = true;
-      return { lipWinner: null, eliminated: null, twist };
+      return { lipWinner: null, eliminated: null, twist, lipTiers };
     }
   }
 
   // =========================
   // Normal outcome
   // =========================
-  return { lipWinner: winner, eliminated, twist };
+  return { lipWinner: winner, eliminated, twist, lipTiers };
 }
 
   function updateTrackRecord(
