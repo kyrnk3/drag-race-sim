@@ -2245,6 +2245,46 @@ enterStoryMode(); // hide builder + toolbar while showing results
       }
     }
 
+
+    function shouldAddRunwayStep(epNum) {
+      // Runway gets its own segment for most challenges.
+      // We *do not* add a separate runway segment for runway-centric challenges like balls/makeovers/design.
+      const epIdx = Math.max(0, (epNum || 1) - 1);
+      const epRes = (seasonEpisodeResults && seasonEpisodeResults[epIdx]) ? seasonEpisodeResults[epIdx] : null;
+      const id = epRes && epRes.challengeId ? String(epRes.challengeId).toLowerCase() : "";
+      // If we don't have structured results yet, default to adding runway (it won't harm anything).
+      if (!id) return true;
+      const runwayCentric = new Set(["ball", "makeover", "design", "runway", "fashion"]);
+      if (runwayCentric.has(id)) return false;
+      return true;
+    }
+
+    function renderRunwayStep(step, card) {
+      const wrap = document.createElement("div");
+      wrap.className = "maxi-step";
+
+      const title = document.createElement("div");
+      title.className = "maxi-title";
+      title.textContent = "Runway!";
+      wrap.appendChild(title);
+
+      const intro = document.createElement("div");
+      intro.className = "maxi-intro";
+      intro.textContent = "The queens hit the runway — judging is next.";
+      wrap.appendChild(intro);
+
+      // Show the cast this episode (including immune queens / anyone who bombed).
+      const epIdx = Math.max(0, (step.epNum || 1) - 1);
+      const epRes = (seasonEpisodeResults && seasonEpisodeResults[epIdx]) ? seasonEpisodeResults[epIdx] : null;
+
+      const names = (epRes && Array.isArray(epRes.tiers)) ? epRes.tiers.map(t => t && t.name).filter(Boolean) : [];
+      if (names.length) {
+        renderQueenRow(names, "", wrap);
+      }
+
+      card.appendChild(wrap);
+    }
+
     function buildStepsFromLog(log) {
       const { header, episodes, finale } = parseSeasonLog(log);
       const steps = [];
@@ -2324,6 +2364,16 @@ enterStoryMode(); // hide builder + toolbar while showing results
             name: epName,
             lines: maxi,
           });
+
+          // Runway as its own segment (most episodes).
+          if (shouldAddRunwayStep(epNum)) {
+            steps.push({
+              type: "episode_runway",
+              epNum,
+              name: epName,
+              lines: [],
+            });
+          }
         }
 
         if (judging.length) {
@@ -2555,28 +2605,29 @@ enterStoryMode(); // hide builder + toolbar while showing results
         introLine = `Challenge: ${epRes.challengeName}`;
       } else {
         const lines = (step.lines || []).map(l => (l || "").trim()).filter(Boolean);
+        // Prefer any explicit narrative line if we have one; otherwise just use the first line.
         for (const ln of lines) {
           const lower = ln.toLowerCase();
-          if (lower.startsWith("the queens will") || lower.startsWith("the queens are") || lower.startsWith("this week")) {
+          if (
+            lower.startsWith("the queens will") ||
+            lower.startsWith("the queens are") ||
+            lower.startsWith("this week") ||
+            lower.startsWith("the queens give") ||
+            lower.startsWith("the queens")
+          ) {
             introLine = ln;
             break;
           }
         }
+        if (!introLine && lines.length) introLine = lines[0];
       }
 
-      if (introLine) {
-        const intro = document.createElement("div");
-        intro.className = "maxi-intro";
-        intro.textContent = introLine;
-        wrap.appendChild(intro);
-      } else {
-        const intro = document.createElement("div");
-        intro.className = "maxi-intro";
-        intro.textContent = "The queens hit the runway — judging is next.";
-        wrap.appendChild(intro);
-      }
+      const intro = document.createElement("div");
+      intro.className = "maxi-intro";
+      intro.textContent = introLine || "The queens hit the runway — judging is next.";
+      wrap.appendChild(intro);
 
-      const buckets = [
+const buckets = [
         { key: "slayed", label: "slayed the challenge!", rowClass: "perf-slayed" },
         { key: "great",  label: "had a great performance!", rowClass: "perf-great" },
         { key: "good",   label: "had a good performance.", rowClass: "perf-good" },
@@ -2671,7 +2722,8 @@ enterStoryMode(); // hide builder + toolbar while showing results
       if (!renderedAny) {
         const p = document.createElement("div");
         p.style.color = "#ccc";
-        p.textContent = "The queens hit the runway — judging is next.";
+        p.style.marginTop = "0.5rem";
+        p.textContent = "No performance tiers were available for this episode (check that sim.js is returning episodeResults).";
         wrap.appendChild(p);
       }
 
@@ -3172,6 +3224,10 @@ enterStoryMode(); // hide builder + toolbar while showing results
         case "episode_mini":
           return "Maxi-challenge";
         case "episode_maxi":
+          // If a runway step exists next, go there first.
+          if (currentSteps[index + 1] && currentSteps[index + 1].type === "episode_runway") return "Runway";
+          return "Judging";
+        case "episode_runway":
           return "Judging";
         case "episode_judging":
           return "Bring back my girls";
@@ -3269,6 +3325,9 @@ if (step.type === "episode_setup") {
 
 } else if (step.type === "episode_maxi") {
   renderMaxiStep(step, card);
+
+} else if (step.type === "episode_runway") {
+  renderRunwayStep(step, card);
 
 } else if (step.type === "episode_judging") {
   renderQueenLinesBlock(step.lines || [], card);
