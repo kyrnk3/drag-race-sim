@@ -626,6 +626,10 @@
       margin: 0 auto 0.25rem;
       background: #000;
     }
+    .queen-row.neutral .queen-avatar img {
+      border-color: rgba(200, 200, 200, 0.55) !important;
+    }
+
 
     .queen-avatar-name {
       white-space: normal;
@@ -2224,10 +2228,10 @@ enterStoryMode(); // hide builder + toolbar while showing results
     }
 
 
-    function renderQueenRow(names, caption, card) {
+    function renderQueenRow(names, caption, card, opts = {}) {
       if (!names || !names.length) return;
       const rowWrap = document.createElement("div");
-      rowWrap.className = "queen-row";
+      rowWrap.className = "queen-row" + (opts && opts.neutral ? " neutral" : "");
 
       names.forEach((raw) => {
         const q = getQueenByNameGuess(raw);
@@ -2347,8 +2351,7 @@ function renderRunwayStep(step, card) {
       if (entry && entry.immune) {
         const small = document.createElement("div");
         small.style.fontSize = "0.68rem";
-        small.style.color = "#bbb";
-        cell.appendChild(label);
+        small.style.color = "#bbb";cell.appendChild(label);
         cell.appendChild(small);
       } else {
         cell.appendChild(label);
@@ -2376,6 +2379,56 @@ function renderRunwayStep(step, card) {
 
   card.appendChild(wrap);
 }
+
+
+function renderJudgingStep(step, card) {
+  // Mirror the "old simulator" judging: show only the TOPS/BOTTOMS portraits (neutral rings),
+  // then list SAFE queens in text.
+  const wrap = document.createElement("div");
+  wrap.className = "maxi-step";
+
+  const title = document.createElement("div");
+  title.className = "maxi-title";
+  title.textContent = "Based on tonight's performances...";
+  wrap.appendChild(title);
+
+  const epIdx = Math.max(0, (step.epNum || 1) - 1);
+  const epRes = (seasonEpisodeResults && seasonEpisodeResults[epIdx]) ? seasonEpisodeResults[epIdx] : null;
+
+  const tiers = (epRes && Array.isArray(epRes.tiers)) ? epRes.tiers : [];
+  const topBottom = tiers.filter(t => ["WIN","HIGH","LOW","BTM"].includes(t.placement));
+  const safe = tiers.filter(t => t.placement === "SAFE");
+
+  const topBottomNames = topBottom.map(t => t.name);
+  const safeNames = safe.map(t => t.name);
+
+  if (topBottomNames.length) {
+    const caption = `${formatNameList(topBottomNames)}, you represent the tops and bottoms of the week.`;
+    renderQueenRow(topBottomNames, caption, wrap, { neutral: true });
+  }
+
+  if (safeNames.length) {
+    // If there are a lot of safe queens, listing each line reads better than one mega-sentence.
+    safeNames.forEach((n) => {
+      const p = document.createElement("p");
+      p.className = "judging-safe-line";
+      p.textContent = `${n}, you are safe.`;
+      wrap.appendChild(p);
+
+      const hr = document.createElement("div");
+      hr.className = "judging-divider";
+      wrap.appendChild(hr);
+    });
+    // Remove trailing divider
+    const last = wrap.lastElementChild;
+    if (last && last.classList && last.classList.contains("judging-divider")) {
+      wrap.removeChild(last);
+    }
+  }
+
+  card.appendChild(wrap);
+}
+
 
 
     function buildStepsFromLog(log) {
@@ -2791,8 +2844,7 @@ const buckets = [
           if (entry && entry.immune) {
             const small = document.createElement("div");
             small.style.fontSize = "0.68rem";
-            small.style.color = "#bbb";
-            cell.appendChild(label);
+            small.style.color = "#bbb";cell.appendChild(label);
             cell.appendChild(small);
           } else {
             cell.appendChild(label);
@@ -3422,7 +3474,7 @@ if (step.type === "episode_setup") {
   renderRunwayStep(step, card);
 
 } else if (step.type === "episode_judging") {
-  renderQueenLinesBlock(step.lines || [], card);
+  renderJudgingStep(step, card);
 
 } else if (step.type === "episode_bring_back") {
   renderQueenLinesBlock(step.lines || [], card);
