@@ -2926,6 +2926,87 @@ function renderLipSyncStep(step, card) {
   card.appendChild(wrap);
 }
 
+// Results step (post lip-sync): announces who stays / goes home.
+// Uses structured episodeResults from sim.js as the source of truth.
+function renderResultsStep(step, card) {
+  const wrap = document.createElement("div");
+  wrap.className = "maxi-step results-step";
+
+  const intro = document.createElement("div");
+  intro.className = "maxi-intro";
+  intro.style.fontWeight = "700";
+  intro.style.marginBottom = "0.75rem";
+  intro.textContent = "I've made my decision.";
+  wrap.appendChild(intro);
+
+  const epNum = step.epNum || 1;
+  const epIdx = Math.max(0, epNum - 1);
+  const epRes = seasonEpisodeResults?.[epIdx] || null;
+
+  const tiers = Array.isArray(epRes?.tiers) ? epRes.tiers : [];
+  const btms = tiers.filter(t => t && t.placement === "BTM").map(t => t.name);
+  const eliminated = tiers.filter(t => t && t.eliminated).map(t => t.name);
+  const twist = (epRes && epRes.twist) ? String(epRes.twist) : "none";
+
+  // Determine who stays (for normal lip-sync) vs special twists.
+  const stays = btms.filter(n => !eliminated.includes(n));
+
+  if (twist === "double_shantay") {
+    const t = document.createElement("div");
+    t.className = "perf-caption";
+    t.style.fontWeight = "800";
+    t.textContent = "SPECIAL TWIST: DOUBLE SHANTAY!";
+    wrap.appendChild(t);
+  } else if (twist === "double_sashay") {
+    const t = document.createElement("div");
+    t.className = "perf-caption";
+    t.style.fontWeight = "800";
+    t.textContent = "SPECIAL TWIST: DOUBLE SASHAY!";
+    wrap.appendChild(t);
+  }
+
+  // Shantay you stay
+  if (stays.length) {
+    renderQueenRowWithRingClass(stays, "", wrap, "perf-good");
+    const cap = document.createElement("div");
+    cap.className = "perf-caption";
+    if (twist === "double_shantay" && stays.length >= 2) {
+      cap.textContent = `Shantay you stay: ${formatNameList(stays)}`;
+    } else {
+      cap.textContent = `Shantay you stay: ${stays[0]}`;
+    }
+    wrap.appendChild(cap);
+  } else if (twist === "double_sashay") {
+    const cap = document.createElement("div");
+    cap.className = "perf-caption";
+    cap.textContent = "Shantay you stay: (no one!)";
+    wrap.appendChild(cap);
+  }
+
+  // Sashay away
+  if (eliminated.length) {
+    renderQueenRowWithRingClass(eliminated, "", wrap, "perf-bottom");
+    const cap = document.createElement("div");
+    cap.className = "perf-caption";
+    cap.textContent = `Sashay away: ${formatNameList(eliminated)}`;
+    wrap.appendChild(cap);
+  } else if (twist === "double_shantay") {
+    const cap = document.createElement("div");
+    cap.className = "perf-caption";
+    cap.textContent = "Sashay away: (no one!)";
+    wrap.appendChild(cap);
+  }
+
+  // Fallback (if structured data wasn't present)
+  if (!btms.length && (step.lines || []).length) {
+    const p = document.createElement("pre");
+    p.textContent = (step.lines || []).join("\n");
+    wrap.appendChild(p);
+  }
+
+  card.appendChild(wrap);
+}
+
 function renderQueenLinesBlock(lines, card) {
       const clean = (lines || []).filter((l) => l && l.trim());
       clean.forEach((line) => {
