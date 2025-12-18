@@ -626,9 +626,13 @@
       margin: 0 auto 0.25rem;
       background: #000;
     }
-    .queen-row.neutral .queen-avatar img {
-      border-color: rgba(200, 200, 200, 0.55) !important;
-    }
+
+    /* Ring color helpers (used in judging / bring-back reveal) */
+    .queen-avatar img.ring-win { border-color: #ff4081; }
+    .queen-avatar img.ring-high { border-color: #1565c0; }
+    .queen-avatar img.ring-low { border-color: #f57c00; }
+    .queen-avatar img.ring-btm { border-color: #c62828; }
+    .queen-avatar img.ring-neutral { border-color: #888; }
 
 
     .queen-avatar-name {
@@ -2228,10 +2232,10 @@ enterStoryMode(); // hide builder + toolbar while showing results
     }
 
 
-    function renderQueenRow(names, caption, card, opts = {}) {
+    function renderQueenRow(names, caption, card) {
       if (!names || !names.length) return;
       const rowWrap = document.createElement("div");
-      rowWrap.className = "queen-row" + (opts && opts.neutral ? " neutral" : "");
+      rowWrap.className = "queen-row";
 
       names.forEach((raw) => {
         const q = getQueenByNameGuess(raw);
@@ -2348,16 +2352,8 @@ function renderRunwayStep(step, card) {
       label.className = "queen-avatar-name";
       label.textContent = q ? q.name : raw;
 
-      if (entry && entry.immune) {
-        const small = document.createElement("div");
-        small.style.fontSize = "0.68rem";
-        small.style.color = "#bbb";cell.appendChild(label);
-        cell.appendChild(small);
-      } else {
-        cell.appendChild(label);
-      }
-
-      rowWrap.appendChild(cell);
+      cell.appendChild(label);
+rowWrap.appendChild(cell);
     });
 
     wrap.appendChild(rowWrap);
@@ -2377,58 +2373,156 @@ function renderRunwayStep(step, card) {
     wrap.appendChild(p);
   }
 
-  card.appendChild(wrap);
-}
+  
 
-
-function renderJudgingStep(step, card) {
-  // Mirror the "old simulator" judging: show only the TOPS/BOTTOMS portraits (neutral rings),
-  // then list SAFE queens in text.
+function renderBringBackStep(step, card) {
   const wrap = document.createElement("div");
   wrap.className = "maxi-step";
 
-  const title = document.createElement("div");
-  title.className = "maxi-title";
-  title.textContent = "Based on tonight's performances...";
-  wrap.appendChild(title);
+  const intro = document.createElement("div");
+  intro.className = "maxi-intro";
+  intro.style.marginTop = "-0.25rem";
+  intro.textContent = "Ladies, I've made some decisions…";
+  wrap.appendChild(intro);
 
   const epIdx = Math.max(0, (step.epNum || 1) - 1);
   const epRes = (seasonEpisodeResults && seasonEpisodeResults[epIdx]) ? seasonEpisodeResults[epIdx] : null;
 
-  const tiers = (epRes && Array.isArray(epRes.tiers)) ? epRes.tiers : [];
-  const topBottom = tiers.filter(t => ["WIN","HIGH","LOW","BTM"].includes(t.placement));
-  const safe = tiers.filter(t => t.placement === "SAFE");
-
-  const topBottomNames = topBottom.map(t => t.name);
-  const safeNames = safe.map(t => t.name);
-
-  if (topBottomNames.length) {
-    const caption = `${formatNameList(topBottomNames)}, you represent the tops and bottoms of the week.`;
-    renderQueenRow(topBottomNames, caption, wrap, { neutral: true });
+  if (!epRes || !Array.isArray(epRes.tiers) || !epRes.tiers.length) {
+    renderQueenLinesBlock(step.lines || [], wrap);
+    card.appendChild(wrap);
+    return;
   }
 
-  if (safeNames.length) {
-    // If there are a lot of safe queens, listing each line reads better than one mega-sentence.
-    safeNames.forEach((n) => {
-      const p = document.createElement("p");
-      p.className = "judging-safe-line";
-      p.textContent = `${n}, you are safe.`;
-      wrap.appendChild(p);
+  const tiers = epRes.tiers;
 
-      const hr = document.createElement("div");
-      hr.className = "judging-divider";
-      wrap.appendChild(hr);
+  const byPlacement = (p) =>
+    tiers.filter(t => t && String(t.placement || "").toUpperCase() === p);
+
+  const winner = byPlacement("WIN").map(t => t.name);
+  const highs  = byPlacement("HIGH").map(t => t.name);
+  const safes  = byPlacement("SAFE").map(t => t.name);
+  const lowArr = byPlacement("LOW").map(t => t.name);
+  const btms   = byPlacement("BTM").map(t => t.name);
+
+  const low = lowArr.length ? lowArr[0] : null;
+
+  const makeRow = (names, ringClass) => {
+    if (!names || !names.length) return;
+    const rowWrap = document.createElement("div");
+    rowWrap.className = "queen-row";
+    names.forEach((raw) => {
+      const q = getQueenByNameGuess(raw);
+      const cell = document.createElement("div");
+      cell.className = "queen-avatar";
+
+      const img = document.createElement("img");
+      img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
+      img.alt = q ? q.name : raw;
+      if (ringClass) img.classList.add(ringClass);
+      cell.appendChild(img);
+
+      const label = document.createElement("div");
+      label.className = "queen-avatar-name";
+      label.textContent = q ? q.name : raw;
+      cell.appendChild(label);
+
+      rowWrap.appendChild(cell);
     });
-    // Remove trailing divider
-    const last = wrap.lastElementChild;
-    if (last && last.classList && last.classList.contains("judging-divider")) {
-      wrap.removeChild(last);
-    }
+    wrap.appendChild(rowWrap);
+  };
+
+  const caption = (text) => {
+    const cap = document.createElement("div");
+    cap.className = "perf-caption";
+    cap.textContent = text;
+    wrap.appendChild(cap);
+  };
+
+  // Winner reveal
+  if (winner.length) {
+    makeRow([winner[0]], "ring-win");
+    caption(`${winner[0]}, congratulations, you're the winner of today's challenge!`);
+  }
+
+  // Other tops are safe (HIGH)
+  if (highs.length) {
+    makeRow(highs, "ring-high");
+    caption(`${formatNameList(highs)}, good job this week, you're safe.`);
+  }
+
+  // Safe queens list (text only, like the old sim)
+  if (safes.length) {
+    const safeLine = document.createElement("div");
+    safeLine.className = "maxi-intro";
+    safeLine.style.marginTop = "0.25rem";
+    safeLine.style.color = "#ddd";
+    safeLine.textContent = `${formatNameList(safes)}, you are safe.`;
+    wrap.appendChild(safeLine);
+  }
+
+  // Divider
+  const hr = document.createElement("div");
+  hr.style.height = "1px";
+  hr.style.background = "#3a3a3a";
+  hr.style.margin = "0.9rem 0 0.65rem";
+  wrap.appendChild(hr);
+
+  // Bottoms of the week (LOW + BTM2)
+  const bottomGroup = [];
+  if (low) bottomGroup.push(low);
+  btms.forEach(n => bottomGroup.push(n));
+
+  if (bottomGroup.length) {
+    const mixedRow = document.createElement("div");
+    mixedRow.className = "queen-row";
+
+    bottomGroup.forEach((raw) => {
+      const q = getQueenByNameGuess(raw);
+      const cell = document.createElement("div");
+      cell.className = "queen-avatar";
+
+      const img = document.createElement("img");
+      img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
+      img.alt = q ? q.name : raw;
+
+      const t = tiers.find(x => x && x.name === raw);
+      const p = String((t && t.placement) || "").toUpperCase();
+      if (p === "LOW") img.classList.add("ring-low");
+      else if (p === "BTM") img.classList.add("ring-btm");
+      else img.classList.add("ring-neutral");
+
+      cell.appendChild(img);
+
+      const label = document.createElement("div");
+      label.className = "queen-avatar-name";
+      label.textContent = q ? q.name : raw;
+      cell.appendChild(label);
+
+      mixedRow.appendChild(cell);
+    });
+
+    wrap.appendChild(mixedRow);
+    caption(`${formatNameList(bottomGroup)}, you're the bottoms of the week…`);
+  }
+
+  // Low queen dramatic safe
+  if (low) {
+    makeRow([low], "ring-low");
+    caption(`${low}… you are safe.`);
+  }
+
+  // Bottom 2 up for elimination
+  if (btms.length) {
+    makeRow(btms, "ring-btm");
+    caption(`${formatNameList(btms)}, I'm sorry my dears but you are up for elimination.`);
   }
 
   card.appendChild(wrap);
 }
 
+card.appendChild(wrap);
+}
 
 
     function buildStepsFromLog(log) {
@@ -2839,18 +2933,8 @@ const buckets = [
           const label = document.createElement("div");
           label.className = "queen-avatar-name";
           label.textContent = q ? q.name : raw;
-
-          // Emphasize immunity: allow immune queens to bomb/slay and show it.
-          if (entry && entry.immune) {
-            const small = document.createElement("div");
-            small.style.fontSize = "0.68rem";
-            small.style.color = "#bbb";cell.appendChild(label);
-            cell.appendChild(small);
-          } else {
-            cell.appendChild(label);
-          }
-
-          rowWrap.appendChild(cell);
+          cell.appendChild(label);
+rowWrap.appendChild(cell);
         });
 
         wrap.appendChild(rowWrap);
@@ -3474,10 +3558,10 @@ if (step.type === "episode_setup") {
   renderRunwayStep(step, card);
 
 } else if (step.type === "episode_judging") {
-  renderJudgingStep(step, card);
+  renderQueenLinesBlock(step.lines || [], card);
 
 } else if (step.type === "episode_bring_back") {
-  renderQueenLinesBlock(step.lines || [], card);
+  renderBringBackStep(step, card);
 
 } else if (step.type === "episode_lipsync") {
   renderQueenLinesBlock(step.lines || [], card);
