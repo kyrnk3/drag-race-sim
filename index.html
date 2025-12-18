@@ -684,6 +684,37 @@
     .queen-row.perf-row.perf-bad    .queen-avatar img { border-color: #f57c00; }
     .queen-row.perf-row.perf-bombed .queen-avatar img { border-color: #c62828; }
 
+    .queen-row.perf-row.perf-slayed .queen-avatar img { border-color: #8e24aa; }
+    .queen-row.perf-row.perf-great  .queen-avatar img { border-color: #1565c0; }
+    .queen-row.perf-row.perf-good   .queen-avatar img { border-color: #2e7d32; }
+    .queen-row.perf-row.perf-bad    .queen-avatar img { border-color: #f57c00; }
+    .queen-row.perf-row.perf-bombed .queen-avatar img { border-color: #c62828; }
+
+    /* Placement rings (judging / bring-back reveals) */
+    .queen-row.perf-row.perf-win    .queen-avatar img { border-color: #ff4081; }
+    .queen-row.perf-row.perf-high   .queen-avatar img { border-color: #1565c0; }
+    .queen-row.perf-row.perf-safe   .queen-avatar img { border-color: rgba(200, 200, 200, 0.55); }
+    .queen-row.perf-row.perf-low    .queen-avatar img { border-color: #f57c00; }
+    .queen-row.perf-row.perf-bottom .queen-avatar img { border-color: #c62828; }
+
+    .judging-safe-line {
+      margin: 0.45rem 0;
+      font-size: 0.95rem;
+      color: #eee;
+    }
+    .judging-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.14);
+      margin: 0.6rem 0;
+    }
+
+    .bbm-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.16);
+      margin: 0.9rem 0;
+    }
+
+
     .maxi-step .perf-caption {
       font-size: 0.95rem;
       font-weight: 650;
@@ -2347,15 +2378,7 @@ function renderRunwayStep(step, card) {
       const label = document.createElement("div");
       label.className = "queen-avatar-name";
       label.textContent = q ? q.name : raw;
-
-      if (entry && entry.immune) {
-        const small = document.createElement("div");
-        small.style.fontSize = "0.68rem";
-        small.style.color = "#bbb";cell.appendChild(label);
-        cell.appendChild(small);
-      } else {
-        cell.appendChild(label);
-      }
+      cell.appendChild(label);
 
       rowWrap.appendChild(cell);
     });
@@ -2380,6 +2403,149 @@ function renderRunwayStep(step, card) {
   card.appendChild(wrap);
 }
 
+
+    function renderQueenRowWithRingClass(names, caption, card, ringClass) {
+      if (!names || !names.length) return;
+      const rowWrap = document.createElement("div");
+      rowWrap.className = "queen-row perf-row " + (ringClass || "perf-safe");
+
+      names.forEach((raw) => {
+        const q = getQueenByNameGuess(raw);
+        const cell = document.createElement("div");
+        cell.className = "queen-avatar";
+
+        const img = document.createElement("img");
+        img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
+        img.alt = q ? q.name : raw;
+        cell.appendChild(img);
+
+        const label = document.createElement("div");
+        label.className = "queen-avatar-name";
+        label.textContent = q ? q.name : raw;
+        cell.appendChild(label);
+
+        rowWrap.appendChild(cell);
+      });
+
+      card.appendChild(rowWrap);
+
+      if (caption) {
+        const cap = document.createElement("div");
+        cap.className = "queen-row-caption";
+        cap.textContent = caption;
+        card.appendChild(cap);
+      }
+    }
+
+    function renderBringBackStep(step, card) {
+      const wrap = document.createElement("div");
+      wrap.className = "maxi-step";
+
+      const intro = document.createElement("div");
+      intro.className = "maxi-intro";
+      intro.style.fontWeight = "700";
+      intro.style.marginBottom = "0.75rem";
+      intro.textContent = "Ladies, I've made some decisions...";
+      wrap.appendChild(intro);
+
+      const epIdx = Math.max(0, (step.epNum || 1) - 1);
+      const epRes = (seasonEpisodeResults && seasonEpisodeResults[epIdx]) ? seasonEpisodeResults[epIdx] : null;
+      const tiers = (epRes && Array.isArray(epRes.tiers)) ? epRes.tiers : [];
+
+      const byPlacement = (p) => tiers.filter(t => t && t.placement === p).map(t => t.name);
+      const winner = byPlacement("WIN");
+      const highs  = byPlacement("HIGH");
+      const lows   = byPlacement("LOW");
+      const btms   = byPlacement("BTM");
+
+      // Winner reveal
+      if (winner.length) {
+        renderQueenRowWithRingClass(winner, "", wrap, "perf-win");
+        const winText = document.createElement("div");
+        winText.className = "perf-caption";
+        winText.textContent = `${formatNameList(winner)}, condragulations, you're the winner of today's challenge!`;
+        wrap.appendChild(winText);
+      }
+
+      // Highs are safe (old sim style)
+      if (highs.length) {
+        renderQueenRowWithRingClass(highs, "", wrap, "perf-high");
+        const highText = document.createElement("div");
+        highText.className = "queen-row-caption";
+        highText.style.fontSize = "0.95rem";
+        highText.style.fontWeight = "650";
+        highText.style.color = "#eee";
+        highText.style.marginBottom = "0.9rem";
+        highText.textContent = `${formatNameList(highs)}, good job this week, you're safe.`;
+        wrap.appendChild(highText);
+      }
+
+      // Divider before bottoms
+      const div = document.createElement("div");
+      div.className = "bbm-divider";
+      wrap.appendChild(div);
+
+      const bottomGroup = [...lows, ...btms];
+
+      if (bottomGroup.length) {
+        // Mixed rings: LOW = orange, BTM = red
+        const rowWrap = document.createElement("div");
+        rowWrap.className = "queen-row perf-row";
+
+        bottomGroup.forEach((raw) => {
+          const q = getQueenByNameGuess(raw);
+          const cell = document.createElement("div");
+          cell.className = "queen-avatar";
+
+          const img = document.createElement("img");
+          img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
+          img.alt = q ? q.name : raw;
+          // Set ring color per placement
+          const isLow = lows.includes(raw);
+          img.style.borderColor = isLow ? "#f57c00" : "#c62828";
+          cell.appendChild(img);
+
+          const label = document.createElement("div");
+          label.className = "queen-avatar-name";
+          label.textContent = q ? q.name : raw;
+          cell.appendChild(label);
+
+          rowWrap.appendChild(cell);
+        });
+
+        wrap.appendChild(rowWrap);
+
+        const bottomsText = document.createElement("div");
+        bottomsText.className = "queen-row-caption";
+        bottomsText.style.fontSize = "0.95rem";
+        bottomsText.style.fontWeight = "650";
+        bottomsText.style.color = "#eee";
+        bottomsText.style.marginBottom = "0.9rem";
+        bottomsText.textContent = `${formatNameList(bottomGroup)}, you're the bottoms of the week...`;
+        wrap.appendChild(bottomsText);
+      }
+
+      // Dramatic save: usually the LOW queen
+      if (lows.length) {
+        const saved = [lows[0]];
+        renderQueenRowWithRingClass(saved, "", wrap, "perf-low");
+        const safeText = document.createElement("div");
+        safeText.className = "perf-caption";
+        safeText.textContent = `${saved[0]}... you are safe.`;
+        wrap.appendChild(safeText);
+      }
+
+      // Bottom 2 up for elimination
+      if (btms.length) {
+        renderQueenRowWithRingClass(btms, "", wrap, "perf-bottom");
+        const btmText = document.createElement("div");
+        btmText.className = "perf-caption";
+        btmText.textContent = `${formatNameList(btms)}, I'm sorry my dears but you are up for elimination.`;
+        wrap.appendChild(btmText);
+      }
+
+      card.appendChild(wrap);
+    }
 
 function renderJudgingStep(step, card) {
   // Mirror the "old simulator" judging: show only the TOPS/BOTTOMS portraits (neutral rings),
@@ -2839,16 +3005,7 @@ const buckets = [
           const label = document.createElement("div");
           label.className = "queen-avatar-name";
           label.textContent = q ? q.name : raw;
-
-          // Emphasize immunity: allow immune queens to bomb/slay and show it.
-          if (entry && entry.immune) {
-            const small = document.createElement("div");
-            small.style.fontSize = "0.68rem";
-            small.style.color = "#bbb";cell.appendChild(label);
-            cell.appendChild(small);
-          } else {
-            cell.appendChild(label);
-          }
+          cell.appendChild(label);
 
           rowWrap.appendChild(cell);
         });
@@ -3477,7 +3634,7 @@ if (step.type === "episode_setup") {
   renderJudgingStep(step, card);
 
 } else if (step.type === "episode_bring_back") {
-  renderQueenLinesBlock(step.lines || [], card);
+  renderBringBackStep(step, card);
 
 } else if (step.type === "episode_lipsync") {
   renderQueenLinesBlock(step.lines || [], card);
