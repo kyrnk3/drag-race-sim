@@ -2597,6 +2597,77 @@ function renderJudgingStep(step, card) {
 }
 
 
+function renderLipSyncStep(step, card) {
+  // Dedicated lipsync renderer (no name-parsing from flavour lines).
+  // Uses structured data from sim.js: episodeResults[epIdx].lipSync
+  const wrap = document.createElement("div");
+  wrap.className = "maxi-step";
+
+  const intro = document.createElement("div");
+  intro.className = "maxi-intro";
+  intro.style.fontWeight = "700";
+  intro.style.marginBottom = "0.75rem";
+  intro.textContent = "The time has come...";
+  wrap.appendChild(intro);
+
+  const epIdx = Math.max(0, (step.epNum || 1) - 1);
+  const epRes = (seasonEpisodeResults && seasonEpisodeResults[epIdx]) ? seasonEpisodeResults[epIdx] : null;
+  const tiers = (epRes && Array.isArray(epRes.tiers)) ? epRes.tiers : [];
+  const btm = tiers.filter(t => t && t.placement === "BTM").map(t => t.name);
+
+  // Bottom 2 portraits (red rings)
+  if (btm.length) {
+    renderQueenRowWithRingClass(btm, "", wrap, "perf-bottom");
+    const btmText = document.createElement("div");
+    btmText.className = "perf-caption";
+    btmText.textContent = `For you to lip-sync... for your lives! Good luck, and don't fuck it up.`;
+    wrap.appendChild(btmText);
+  }
+
+  // Song reveal
+  const song = epRes && epRes.lipSync && epRes.lipSync.song ? epRes.lipSync.song : null;
+  const songLine = document.createElement("div");
+  songLine.className = "maxi-intro";
+  songLine.style.marginTop = "0.5rem";
+  songLine.textContent = song ? `The lip-sync song is... ${song}!` : "The lip-sync song is... (unknown).";
+  wrap.appendChild(songLine);
+
+  // Performance tier captions for the bottom 2
+  const lipTiers = (epRes && epRes.lipSync && Array.isArray(epRes.lipSync.tiers)) ? epRes.lipSync.tiers : [];
+  const tierPhrase = {
+    slayed: "slayed",
+    great: "had a great",
+    good: "had a good",
+    bad: "had a bad",
+    bombed: "bombed",
+  };
+
+  if (lipTiers.length) {
+    // Ensure we only describe the actual bottom 2, and keep the UI stable.
+    const wanted = new Set(btm);
+    const ordered = lipTiers
+      .filter(t => t && t.name && wanted.has(t.name))
+      .sort((a, b) => {
+        // winner first (higher score)
+        const as = (typeof a.score === "number") ? a.score : 0;
+        const bs = (typeof b.score === "number") ? b.score : 0;
+        return bs - as;
+      });
+
+    ordered.forEach((t) => {
+      const phr = tierPhrase[String(t.tier || "good").toLowerCase()] || "had a";
+      const p = document.createElement("div");
+      p.className = "results-row";
+      p.style.marginTop = "0.55rem";
+      p.textContent = `${t.name} ${phr} lip-sync...`;
+      wrap.appendChild(p);
+    });
+  }
+
+  card.appendChild(wrap);
+}
+
+
 
     function buildStepsFromLog(log) {
       const { header, episodes, finale } = parseSeasonLog(log);
@@ -3638,7 +3709,7 @@ if (step.type === "episode_setup") {
   renderBringBackStep(step, card);
 
 } else if (step.type === "episode_lipsync") {
-  renderQueenLinesBlock(step.lines || [], card);
+  renderLipSyncStep(step, card);
 
 } else if (step.type === "episode_results") {
   renderQueenLinesBlock(step.lines || [], card);
