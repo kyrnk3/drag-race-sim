@@ -2718,17 +2718,6 @@ function renderJudgingStep(step, card) {
         }
       });
 
-
-      // Final 3 lives in the header block (because it comes after the last episode but before the Finale marker).
-      // Pull it out explicitly so the "Final 3 Revealed" step isn't a blank shell.
-      const final3IdxInHeader = header.findIndex(l => (l || "").startsWith("========== Final 3"));
-      if (final3IdxInHeader >= 0) {
-        const final3LinesFromHeader = header.slice(final3IdxInHeader).filter(l => (l || "").trim().length);
-        if (final3LinesFromHeader.length) {
-          steps.push({ type: "final3", lines: final3LinesFromHeader });
-        }
-      }
-
       // Finale / track record summary
       const finaleLines = finale;
       if (finaleLines.length) {
@@ -2737,10 +2726,10 @@ function renderJudgingStep(step, card) {
         );
         if (idx > 0) {
           const final3Lines = finaleLines.slice(0, idx).filter((l) => l.trim());
-          if (final3Lines.length && !steps.some(s => s.type === "final3")) steps.push({ type: "final3", lines: final3Lines });
+          if (final3Lines.length) steps.push({ type: "final3", lines: final3Lines });
         } else {
           // If for some reason we didn't get a separate Final 3 header, still show something.
-          if (!steps.some(s => s.type === "final3")) steps.push({ type: "final3", lines: finaleLines.filter((l) => /Final 3/i.test(l) || /track record/i.test(l) || /^\s*[^\s].+\s+(WIN|HIGH|SAFE|LOW|BTM)/.test(l)) });
+          steps.push({ type: "final3", lines: finaleLines.filter((l) => /Final 3/i.test(l) || /track record/i.test(l)) });
         }
 
         // Grand Finale is rendered as structured steps using episodeResults (no data-dump).
@@ -2831,6 +2820,36 @@ function renderLipSyncStep(step, card) {
     });
   }
 }
+
+function renderResultsStep(step, card) {
+  // Generic post-lip-sync results (Shantay/Sashay/double saves, etc.)
+  // Falls back to raw log lines if structured data isn't available.
+  const wrap = document.createElement("div");
+  wrap.className = "step-section";
+
+  const title = document.createElement("h2");
+  title.textContent = "Results";
+  wrap.appendChild(title);
+
+  const lines = (step && step.lines ? step.lines : []).filter(l => (l || "").trim().length > 0);
+
+  if (!lines.length) {
+    const p = document.createElement("p");
+    p.className = "step-note";
+    p.textContent = "No results data available.";
+    wrap.appendChild(p);
+  } else {
+    for (const l of lines) {
+      const p = document.createElement("p");
+      p.className = "step-line";
+      p.textContent = l;
+      wrap.appendChild(p);
+    }
+  }
+
+  card.appendChild(wrap);
+}
+
 
 // Old-sim style Lip Sync step using structured episodeResults.
 // Renders bottom 2, narration, song, and per-queen lip-sync tiers.
@@ -3471,7 +3490,7 @@ function renderFinaleWinnerStep(step, card) {
     details.appendChild(holder);
 
     // renderTrackRecordTable writes into a container
-    renderTrackRecordTable(holder, trackRecordData);
+    renderTrackRecordTable(holder);
     wrap.appendChild(details);
   }
 
