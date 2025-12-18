@@ -497,6 +497,40 @@ function calculateScore(queen, challenge, phase = "early", context = "challenge"
     base += (queen.stats[stat] || 0) * weight;
   }
 
+  // =========================
+  // Runway influence (main challenge)
+  // =========================
+  // On the show, the runway can meaningfully sway judging even in
+  // non-runway-centric challenges: a strong runway can keep someone
+  // out of the bottom, and a weak runway can block a win.
+  //
+  // This is intentionally *small* and centered (runway=5 adds 0), so
+  // it nudges outcomes without overpowering the challenge itself.
+  //
+  // We only apply this during the main challenge scoring pass (context === "challenge").
+  // If a challenge is explicitly runway-focused (Ball/Makeover/etc.) or already
+  // has a meaningful runway weight baked into its weights, we skip this.
+  if (context === "challenge") {
+    const runwayStat = (queen.stats && queen.stats.runway != null) ? queen.stats.runway : 5;
+    const runwayWeight = (challenge && challenge.weights && typeof challenge.weights.runway === "number")
+      ? challenge.weights.runway
+      : 0;
+
+    const RUNWAY_FOCUSED_IDS = new Set([
+      "ball",
+      "makeover",
+      // If you add other runway-heavy challenges later, include them here.
+      // "design" // (only if you ever create a standalone design runway challenge)
+    ]);
+
+    const isRunwayFocused = RUNWAY_FOCUSED_IDS.has(challenge.id) || runwayWeight >= 0.20;
+
+    if (!isRunwayFocused) {
+      const RUNWAY_NUDGE = 0.25; // small sway; centered so avg runway doesn't inflate scores
+      base += (runwayStat - 5) * RUNWAY_NUDGE;
+    }
+  }
+
   const variance = challenge.variance;
   const noise = randUniform(-variance, variance);
 
@@ -539,46 +573,6 @@ function adjustRankedForEdits(ranked) {
   }
 
   return list;
-}
-
-
-// =========================
-// Performance tiers (UI)
-// =========================
-
-// Compute mean/stddev for an array of numbers.
-function _meanStd(values) {
-  if (!values || !values.length) return { mean: 0, sd: 0 };
-  let sum = 0;
-  for (const v of values) sum += v;
-  const mean = sum / values.length;
-
-  let varSum = 0;
-  for (const v of values) {
-    const d = v - mean;
-    varSum += d * d;
-  }
-  const variance = varSum / values.length;
-  const sd = Math.sqrt(variance);
-  return { mean, sd };
-}
-
-// Tier a score into: slayed / great / good / bad / bombed.
-// NOTE: This is intentionally threshold-based (not quota-based), so slayed/bombed
-// are not guaranteed to appear every episode.
-function tierPerformance(score, mean, sd) {
-  // If sd collapses (e.g., tiny casts / identical scores), avoid division-y weirdness.
-  const safeSd = sd && sd > 1e-6 ? sd : 0;
-
-  // If sd is 0, everything is effectively "good" unless it's meaningfully above/below mean,
-  // which can’t happen without sd; so default to "good".
-  if (safeSd === 0) return "good";
-
-  if (score >= mean + 1.25 * safeSd) return "slayed";
-  if (score >= mean + 0.50 * safeSd) return "great";
-  if (score >  mean - 0.50 * safeSd) return "good";
-  if (score >  mean - 1.25 * safeSd) return "bad";
-  return "bombed";
 }
 
 // =========================
@@ -834,27 +828,6 @@ function simulateEpisode(
   let ranked = Array.from(scores.entries()).sort((a, b) => b[1] - a[1]);
   ranked = adjustRankedForEdits(ranked);
 
-  // Build per-queen episode metadata for the UI (scores + tiers + final rank).
-  // IMPORTANT: tiers are computed from score thresholds across ALL queens,
-  // including immune queens (so immunity can visibly "save" someone who bombed).
-  const scoreValues = Array.from(scores.values());
-  const { mean: _scoreMean, sd: _scoreSd } = _meanStd(scoreValues);
-
-  const episodeQueenMeta = new Map();
-  for (let i = 0; i < ranked.length; i++) {
-    const q = ranked[i][0];
-    const s = scores.get(q);
-    episodeQueenMeta.set(q, {
-      name: q.name,
-      score: s,
-      tier: tierPerformance(s, _scoreMean, _scoreSd),
-      immune: currentImmuneSet.has(q),
-      finalRank: i + 1,
-      placement: "SAFE",
-      eliminated: false
-    });
-  }
-
   const n = ranked.length;
   const winner = ranked[0][0];
 
@@ -873,16 +846,6 @@ function simulateEpisode(
     low = ranked[n - 3][0];
   }
 
-  // Placements for the episode (rank-based, after edit-adjustment).
-  if (episodeQueenMeta.has(winner)) episodeQueenMeta.get(winner).placement = "WIN";
-  for (const q of highs) {
-    if (episodeQueenMeta.has(q)) episodeQueenMeta.get(q).placement = "HIGH";
-  }
-  if (low && episodeQueenMeta.has(low)) episodeQueenMeta.get(low).placement = "LOW";
-  for (const q of bottom2) {
-    if (episodeQueenMeta.has(q)) episodeQueenMeta.get(q).placement = "BTM";
-  }
-
   const lipOutcome = resolveLipSync(bottom2, challenge, phase, twistState);
 
   let eliminatedList = [];
@@ -893,22 +856,7 @@ function simulateEpisode(
   } else {
     eliminatedList = [lipOutcome.eliminated];
   }
-
-  // Flag eliminations in the UI meta.
-  for (const elim of (eliminatedList || [])) {
-    if (elim && episodeQueenMeta.has(elim)) episodeQueenMeta.get(elim).eliminated = true;
-  }
-
-  // Structured episode result for UI rendering (future-proof; avoids parsing log text).
-  const episodeResult = {
-    episodeNum,
-    challengeId: cid,
-    challengeName: challenge.name,
-    phase,
-    twist: lipOutcome.twist,
-    tiers: Array.from(episodeQueenMeta.values())
-  };
-
+  
   updateTrackRecord(
     episodeNum - 1,
     queens,              // active queens this episode
@@ -953,7 +901,7 @@ function simulateEpisode(
     }
   }
 
-  return { eliminatedList, cid, twist: lipOutcome.twist, episodeResult };
+  return { eliminatedList, cid, twist: lipOutcome.twist };
 }
 
 // =========================
@@ -1213,7 +1161,6 @@ function simulateSeason(queenDefs, options = {}) {
   const maxEpisodes = startingQueens + 10;
 
   const log = [];
-  const episodeResults = [];
 
   // Immunity twist configuration
   // Accept both old API (immunityEnabled) and UI key (enableImmunity).
@@ -1309,7 +1256,7 @@ function simulateSeason(queenDefs, options = {}) {
       }
     }
 
-    const { eliminatedList, cid, episodeResult } = simulateEpisode(
+    const { eliminatedList, cid } = simulateEpisode(
       episodeNum,
       queens,
       lastChallengeId,
@@ -1322,7 +1269,6 @@ function simulateSeason(queenDefs, options = {}) {
       twistState
     );
     lastChallengeId = cid;
-    if (episodeResult) episodeResults.push(episodeResult);
 
     // Remove all eliminated queens from the active cast
     for (const elim of eliminatedList) {
@@ -1357,8 +1303,7 @@ function simulateSeason(queenDefs, options = {}) {
 
   return {
     log: log.join(""),
-    trackRecord,
-    episodeResults
+    trackRecord
   };
 }
 
