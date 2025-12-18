@@ -502,6 +502,18 @@ function calculateScore(queen, challenge, phase = "early", context = "challenge"
 
   let score = base + noise;
 
+  // Small runway influence on most challenges (centered around 5 so it doesn't inflate scores).
+  // Skips runway-heavy challenges (ball/makeover) or any challenge that already weights runway strongly.
+  if (context === "challenge") {
+    const cid = challenge && challenge.id ? challenge.id : null;
+    const runwayWeight = (challenge && challenge.weights && challenge.weights.runway != null) ? challenge.weights.runway : 0;
+    const runwayHeavy = (cid === "ball" || cid === "makeover" || runwayWeight >= 0.20);
+    if (!runwayHeavy) {
+      const runwayStat = (queen.stats && queen.stats.runway != null) ? queen.stats.runway : 5;
+      score += (runwayStat - 5) * 0.25;
+    }
+  }
+
   if (queen.producer_fave) {
     score += 0.3;
   }
@@ -543,12 +555,12 @@ function adjustRankedForEdits(ranked) {
 
 
 // =========================
-// Performance tiers (UI)
+// Performance tiers + Runway segment (UI-safe structured data)
 // =========================
 
 // Compute mean/stddev for an array of numbers.
-function _meanStd(values) {
-  if (!values || !values.length) return { mean: 0, sd: 0 };
+function meanStd(values) {
+  if (!values || !values.length) return { mean: 0, std: 1 };
   let sum = 0;
   for (const v of values) sum += v;
   const mean = sum / values.length;
@@ -559,42 +571,11 @@ function _meanStd(values) {
     varSum += d * d;
   }
   const variance = varSum / values.length;
-  const sd = Math.sqrt(variance);
-  return { mean, sd };
-}
-
-// Tier a score into: slayed / great / good / bad / bombed.
-// NOTE: This is intentionally threshold-based (not quota-based), so slayed/bombed
-// are not guaranteed to appear every episode.
-function tierPerformance(score, mean, sd) {
-  // If sd collapses (e.g., tiny casts / identical scores), avoid division-y weirdness.
-  const safeSd = sd && sd > 1e-6 ? sd : 0;
-
-  // If sd is 0, everything is effectively "good" unless it's meaningfully above/below mean,
-  // which can’t happen without sd; so default to "good".
-  if (safeSd === 0) return "good";
-
-  if (score >= mean + 1.25 * safeSd) return "slayed";
-  if (score >= mean + 0.50 * safeSd) return "great";
-  if (score >  mean - 0.50 * safeSd) return "good";
-  if (score >  mean - 1.25 * safeSd) return "bad";
-  return "bombed";
-}
-
-// =========================
-// Episode UI results helpers (tiers + runway)
-// =========================
-
-function _meanStd(values) {
-  if (!values || !values.length) return { mean: 0, std: 1 };
-  const mean = values.reduce((a, b) => a + b, 0) / values.length;
-  const variance = values.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / values.length;
   const std = Math.sqrt(variance) || 1;
   return { mean, std };
 }
 
-// Threshold-based tiers (not guaranteed every episode).
-// Uses z-scores so it adapts per-challenge/per-cast.
+// Threshold-based tiers (not quota-based), so slayed/bombed are NOT guaranteed.
 function tierFromZ(z) {
   if (z >= 1.25) return "slayed";
   if (z >= 0.50) return "great";
@@ -603,34 +584,8 @@ function tierFromZ(z) {
   return "bombed";
 }
 
-function buildTierRowsFromScores(scoreMap, immuneSet, placementMap, eliminatedSet) {
-  const entries = Array.from(scoreMap.entries());
-  const values = entries.map(([, s]) => s);
-  const { mean, std } = _meanStd(values);
-
-  // Rank by score desc for reference (UI can show or ignore).
-  const ranked = entries.slice().sort((a, b) => b[1] - a[1]);
-
-  const finalRankIndex = new Map();
-  ranked.forEach(([q], i) => finalRankIndex.set(q, i + 1));
-
-  return ranked.map(([q, s]) => {
-    const z = (s - mean) / std;
-    return {
-      name: q.name,
-      score: s,
-      z,
-      tier: tierFromZ(z),
-      immune: immuneSet ? immuneSet.has(q) : false,
-      finalRank: finalRankIndex.get(q) || null,
-      placement: placementMap ? (placementMap.get(q) || "SAFE") : "SAFE",
-      eliminated: eliminatedSet ? eliminatedSet.has(q) : false
-    };
-  });
-}
-
-// Runway segment scoring: mostly based on runway stat, with light noise.
-// This is separate from main challenge scoring and is meant for UI + flavor.
+// Runway segment scoring: mostly runway stat + light noise.
+// This is separate from main challenge scoring; it's for UI + flavor.
 function calculateRunwayScore(queen) {
   const runwayStat = (queen.stats && queen.stats.runway != null) ? queen.stats.runway : 5;
   let s = runwayStat + randUniform(-1.0, 1.0);
@@ -641,11 +596,8 @@ function calculateRunwayScore(queen) {
   if (queen.edits && queen.edits.has("messy")) s += randUniform(-0.4, 0.4);
   if (queen.edits && queen.edits.has("villain")) s += randUniform(-0.2, 0.2);
 
-  // Keep on a comparable scale for tiering.
   return s;
 }
-
-
 
 // =========================
 // Double Shantay / Double Sashay helpers
@@ -847,14 +799,11 @@ function simulateEpisode(
 
   let challenge = null;
   if (scheduledId !== undefined) {
-    // Respect one-off usage even for scheduled challenges
     const canUseScheduled =
       !(ONE_OFF_CHALLENGES.has(scheduledId) && usedOneOffIdsSet.has(scheduledId));
     if (canUseScheduled) {
       const candidates = CHALLENGES.filter(c => c.id === scheduledId);
-      if (candidates.length) {
-        challenge = candidates[0];
-      }
+      if (candidates.length) challenge = candidates[0];
     }
   }
 
@@ -868,7 +817,9 @@ function simulateEpisode(
     usedOneOffIdsSet.add(cid);
   }
 
-  log.push(`\n========== Episode ${episodeNum} — ${challenge.name} ==========\n`);
+  log.push(`
+========== Episode ${episodeNum} — ${challenge.name} ==========
+`);
 
   // Mini-challenge phase
   const miniChallenge = chooseMiniChallenge(queensRemaining, episodeNum, usedMiniOneOffIdsSet);
@@ -878,7 +829,9 @@ function simulateEpisode(
       usedMiniOneOffIdsSet.add(miniChallenge.id);
     }
 
-    log.push(`\nMini-Challenge — ${miniChallenge.name}\n`);
+    log.push(`
+Mini-Challenge — ${miniChallenge.name}
+`);
 
     const miniScores = new Map();
     for (const q of queens) {
@@ -887,12 +840,11 @@ function simulateEpisode(
 
     const miniRanked = Array.from(miniScores.entries()).sort((a, b) => b[1] - a[1]);
     miniWinner = miniRanked[0][0];
-
-    // We *don’t* log raw numbers here; just the winner.
-    log.push(`  Mini-challenge winner: ${miniWinner.name}\n`);
+    log.push(`  Mini-challenge winner: ${miniWinner.name}
+`);
   }
 
-  // Main challenge scores
+  // Main challenge scores (judging)
   const scores = new Map();
   for (const q of queens) {
     scores.set(q, calculateScore(q, challenge, phase, "challenge"));
@@ -900,27 +852,6 @@ function simulateEpisode(
 
   let ranked = Array.from(scores.entries()).sort((a, b) => b[1] - a[1]);
   ranked = adjustRankedForEdits(ranked);
-
-  // Build per-queen episode metadata for the UI (scores + tiers + final rank).
-  // IMPORTANT: tiers are computed from score thresholds across ALL queens,
-  // including immune queens (so immunity can visibly "save" someone who bombed).
-  const scoreValues = Array.from(scores.values());
-  const { mean: _scoreMean, sd: _scoreSd } = _meanStd(scoreValues);
-
-  const episodeQueenMeta = new Map();
-  for (let i = 0; i < ranked.length; i++) {
-    const q = ranked[i][0];
-    const s = scores.get(q);
-    episodeQueenMeta.set(q, {
-      name: q.name,
-      score: s,
-      tier: tierPerformance(s, _scoreMean, _scoreSd),
-      immune: currentImmuneSet.has(q),
-      finalRank: i + 1,
-      placement: "SAFE",
-      eliminated: false
-    });
-  }
 
   const n = ranked.length;
   const winner = ranked[0][0];
@@ -935,19 +866,10 @@ function simulateEpisode(
   for (let i = 1; i < highIndicesEnd; i++) {
     highs.push(ranked[i][0]);
   }
+
   let low = null;
   if (n > 4) {
     low = ranked[n - 3][0];
-  }
-
-  // Placements for the episode (rank-based, after edit-adjustment).
-  if (episodeQueenMeta.has(winner)) episodeQueenMeta.get(winner).placement = "WIN";
-  for (const q of highs) {
-    if (episodeQueenMeta.has(q)) episodeQueenMeta.get(q).placement = "HIGH";
-  }
-  if (low && episodeQueenMeta.has(low)) episodeQueenMeta.get(low).placement = "LOW";
-  for (const q of bottom2) {
-    if (episodeQueenMeta.has(q)) episodeQueenMeta.get(q).placement = "BTM";
   }
 
   const lipOutcome = resolveLipSync(bottom2, challenge, phase, twistState);
@@ -961,12 +883,71 @@ function simulateEpisode(
     eliminatedList = [lipOutcome.eliminated];
   }
 
-  
+  // Track record update (unchanged)
+  updateTrackRecord(
+    episodeNum - 1,
+    queens,
+    winner,
+    highs,
+    low,
+    bottom2,
+    eliminatedList,
+    currentImmuneSet
+  );
+
+  // Log output (unchanged)
+  log.push("
+Results:
+");
+  log.push(`  Winner: ${winner.name}
+`);
+  if (highs.length) {
+    log.push(`  High:   ${highs.map(q => q.name).join(", ")}
+`);
+  }
+  if (low) {
+    log.push(`  Low:    ${low.name}
+`);
+  }
+  log.push(`  Bottom: ${bottom2[0].name} vs. ${bottom2[1].name}
+`);
+
+  if (lipOutcome.twist === "double_shantay") {
+    log.push("  SPECIAL TWIST: DOUBLE SHANTAY! Both queens stay.
+");
+    log.push(`  Shantay you stay: ${bottom2[0].name} & ${bottom2[1].name}
+`);
+    log.push("  Sashay away:      (no one!)
+");
+  } else if (lipOutcome.twist === "double_sashay") {
+    log.push("  SPECIAL TWIST: DOUBLE SASHAY! Both queens go home.
+");
+    log.push("  Shantay you stay: (no one!)
+");
+    log.push(`  Sashay away:      ${bottom2[0].name} & ${bottom2[1].name}
+`);
+  } else {
+    log.push(`  Shantay you stay: ${lipOutcome.lipWinner.name}
+`);
+    log.push(`  Sashay away:      ${lipOutcome.eliminated.name}
+`);
+  }
+
+  // Decide who gets immunity for the next episode (if the twist is active).
+  if (immunityState && immunityState.enabled) {
+    const nextCount = queensRemaining - eliminatedList.length;
+    if (nextCount > immunityState.cutoff) {
+      immunityState.next = winner;
+    } else {
+      immunityState.next = null;
+    }
+  }
+
   // =========================
-  // Structured episode results for the UI (future-proof; no log parsing)
+  // Structured episode results (for UI)
   // =========================
 
-  // Placement map (judging placements are rank-based and remain unchanged).
+  // Placement map (rank-based judging outcome).
   const placementMap = new Map();
   placementMap.set(winner, "WIN");
   for (const q of highs) placementMap.set(q, "HIGH");
@@ -975,12 +956,13 @@ function simulateEpisode(
 
   const eliminatedSet = new Set((eliminatedList || []).filter(Boolean));
 
-  // Build performance tiers from thresholded scores (not guaranteed each episode).
-  // IMPORTANT: finalRank follows the *final* judging order (after adjustRankedForEdits).
-  const perfValues = ranked.map(([, s]) => s);
-  const perfStats = _meanStd(perfValues);
+  // Performance tiers are threshold-based across ALL queens (immune included),
+  // but we keep finalRank based on the FINAL judging order (after edit-adjustment).
+  const scoreVals = Array.from(scores.values());
+  const perfStats = meanStd(scoreVals);
 
-  const performanceTiers = ranked.map(([q, s], idx) => {
+  const tiers = ranked.map(([q], idx) => {
+    const s = scores.get(q);
     const z = (s - perfStats.mean) / perfStats.std;
     return {
       name: q.name,
@@ -994,16 +976,16 @@ function simulateEpisode(
     };
   });
 
-  // Runway segment tiers (immune queens included; runway can flop even if immune).
-  const runwayScores = new Map();
+  // Runway segment tiers (immune included; can bomb while safe).
+  const runwayScoreMap = new Map();
   for (const q of queens) {
-    runwayScores.set(q, calculateRunwayScore(q));
+    runwayScoreMap.set(q, calculateRunwayScore(q));
   }
-  const runwayEntries = Array.from(runwayScores.entries()).sort((a, b) => b[1] - a[1]);
-  const runwayValues = runwayEntries.map(([, s]) => s);
-  const runwayStats = _meanStd(runwayValues);
+  const runwayRanked = Array.from(runwayScoreMap.entries()).sort((a, b) => b[1] - a[1]);
+  const runwayVals = runwayRanked.map(([, s]) => s);
+  const runwayStats = meanStd(runwayVals);
 
-  const runwayTiers = runwayEntries.map(([q, s], idx) => {
+  const runwayTiers = runwayRanked.map(([q, s], idx) => {
     const z = (s - runwayStats.mean) / runwayStats.std;
     return {
       name: q.name,
@@ -1024,68 +1006,9 @@ function simulateEpisode(
       ? { id: miniChallenge.id, name: miniChallenge.name, winner: (miniWinner ? miniWinner.name : null) }
       : null,
     twist: lipOutcome.twist,
-    tiers: performanceTiers,
+    tiers,
     runwayTiers
   };
-
-// Flag eliminations in the UI meta.
-  for (const elim of (eliminatedList || [])) {
-    if (elim && episodeQueenMeta.has(elim)) episodeQueenMeta.get(elim).eliminated = true;
-  }
-
-  // Structured episode result for UI rendering (future-proof; avoids parsing log text).
-  const episodeResult = {
-    episodeNum,
-    challengeId: cid,
-    challengeName: challenge.name,
-    phase,
-    twist: lipOutcome.twist,
-    tiers: Array.from(episodeQueenMeta.values())
-  };
-
-  updateTrackRecord(
-    episodeNum - 1,
-    queens,              // active queens this episode
-    winner,
-    highs,
-    low,
-    bottom2,
-    eliminatedList,
-    currentImmuneSet
-  );
-  
-  log.push("\nResults:\n");
-  log.push(`  Winner: ${winner.name}\n`);
-  if (highs.length) {
-    log.push(`  High:   ${highs.map(q => q.name).join(", ")}\n`);
-  }
-  if (low) {
-    log.push(`  Low:    ${low.name}\n`);
-  }
-  log.push(`  Bottom: ${bottom2[0].name} vs. ${bottom2[1].name}\n`);
-
-  if (lipOutcome.twist === "double_shantay") {
-    log.push("  SPECIAL TWIST: DOUBLE SHANTAY! Both queens stay.\n");
-    log.push(`  Shantay you stay: ${bottom2[0].name} & ${bottom2[1].name}\n`);
-    log.push("  Sashay away:      (no one!)\n");
-  } else if (lipOutcome.twist === "double_sashay") {
-    log.push("  SPECIAL TWIST: DOUBLE SASHAY! Both queens go home.\n");
-    log.push("  Shantay you stay: (no one!)\n");
-    log.push(`  Sashay away:      ${bottom2[0].name} & ${bottom2[1].name}\n`);
-  } else {
-    log.push(`  Shantay you stay: ${lipOutcome.lipWinner.name}\n`);
-    log.push(`  Sashay away:      ${lipOutcome.eliminated.name}\n`);
-  }
-
-  // Decide who gets immunity for the next episode (if the twist is active).
-  if (immunityState && immunityState.enabled) {
-    const nextCount = queensRemaining - eliminatedList.length;
-    if (nextCount > immunityState.cutoff) {
-      immunityState.next = winner;
-    } else {
-      immunityState.next = null;
-    }
-  }
 
   return { eliminatedList, cid, twist: lipOutcome.twist, episodeResult };
 }
@@ -1348,7 +1271,6 @@ function simulateSeason(queenDefs, options = {}) {
 
   const log = [];
   const episodeResults = [];
-  const episodeResults = [];
 
   // Immunity twist configuration
   // Accept both old API (immunityEnabled) and UI key (enableImmunity).
@@ -1457,7 +1379,6 @@ function simulateSeason(queenDefs, options = {}) {
       twistState
     );
     lastChallengeId = cid;
-    if (episodeResult) episodeResults.push(episodeResult);
     if (episodeResult) episodeResults.push(episodeResult);
 
     // Remove all eliminated queens from the active cast
