@@ -3,16 +3,16 @@
 // =========================
 
 window.LIPSYNC_SONGS = [
-  "Edge of Seventeen — Stevie Nicks",
-  "Physical — Dua Lipa",
-  "I Will Survive — Gloria Gaynor",
-  "Hung Up — Madonna",
-  "Since U Been Gone — Kelly Clarkson",
-  "Believe — Cher",
-  "Don’t Start Now — Dua Lipa",
-  "Into You — Ariana Grande",
-  "Respect — Aretha Franklin",
-  "Bad Romance — Lady Gaga"
+  "Edge of Seventeen by Stevie Nicks",
+  "Physical by Dua Lipa",
+  "I Will Survive by Gloria Gaynor",
+  "Hung Up by Madonna",
+  "Since U Been Gone by Kelly Clarkson",
+  "Believe by Cher",
+  "Don’t Start Now by Dua Lipa",
+  "Into You by Ariana Grande",
+  "Respect by Aretha Franklin",
+  "Bad Romance by Lady Gaga"
 ];
 
 // Pick a song without repeating until pool is exhausted
