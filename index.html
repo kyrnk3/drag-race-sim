@@ -2212,6 +2212,17 @@ enterStoryMode(); // hide builder + toolbar while showing results
       return parts;
     }
 
+
+    // Format a list of queen names as: "A", "A & B", or "A, B & C" (no trailing comma)
+    function formatNameList(names) {
+      const clean = (names || []).map(n => (n || "").trim()).filter(Boolean);
+      if (clean.length === 0) return "";
+      if (clean.length === 1) return clean[0];
+      if (clean.length === 2) return `${clean[0]} & ${clean[1]}`;
+      return `${clean.slice(0, -1).join(", ")} & ${clean[clean.length - 1]}`;
+    }
+
+
     function renderQueenRow(names, caption, card) {
       if (!names || !names.length) return;
       const rowWrap = document.createElement("div");
