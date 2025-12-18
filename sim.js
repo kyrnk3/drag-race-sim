@@ -896,44 +896,30 @@ Mini-Challenge — ${miniChallenge.name}
   );
 
   // Log output (unchanged)
-  log.push("
-Results:
-");
-  log.push(`  Winner: ${winner.name}
-`);
-  if (highs.length) {
-    log.push(`  High:   ${highs.map(q => q.name).join(", ")}
-`);
-  }
-  if (low) {
-    log.push(`  Low:    ${low.name}
-`);
-  }
-  log.push(`  Bottom: ${bottom2[0].name} vs. ${bottom2[1].name}
-`);
+log.push("\nResults:\n");
+log.push(`  Winner: ${winner.name}\n`);
+if (highs.length) {
+  log.push(`  High:   ${highs.map(q => q.name).join(", ")}\n`);
+}
+if (low) {
+  log.push(`  Low:    ${low.name}\n`);
+}
+log.push(`  Bottom: ${bottom2[0].name} vs. ${bottom2[1].name}\n`);
 
-  if (lipOutcome.twist === "double_shantay") {
-    log.push("  SPECIAL TWIST: DOUBLE SHANTAY! Both queens stay.
-");
-    log.push(`  Shantay you stay: ${bottom2[0].name} & ${bottom2[1].name}
-`);
-    log.push("  Sashay away:      (no one!)
-");
-  } else if (lipOutcome.twist === "double_sashay") {
-    log.push("  SPECIAL TWIST: DOUBLE SASHAY! Both queens go home.
-");
-    log.push("  Shantay you stay: (no one!)
-");
-    log.push(`  Sashay away:      ${bottom2[0].name} & ${bottom2[1].name}
-`);
-  } else {
-    log.push(`  Shantay you stay: ${lipOutcome.lipWinner.name}
-`);
-    log.push(`  Sashay away:      ${lipOutcome.eliminated.name}
-`);
-  }
+if (lipOutcome.twist === "double_shantay") {
+  log.push("  SPECIAL TWIST: DOUBLE SHANTAY! Both queens stay.\n");
+  log.push(`  Shantay you stay: ${bottom2[0].name} & ${bottom2[1].name}\n`);
+  log.push("  Sashay away:      (no one!)\n");
+} else if (lipOutcome.twist === "double_sashay") {
+  log.push("  SPECIAL TWIST: DOUBLE SASHAY! Both queens go home.\n");
+  log.push("  Shantay you stay: (no one!)\n");
+  log.push(`  Sashay away:      ${bottom2[0].name} & ${bottom2[1].name}\n`);
+} else {
+  log.push(`  Shantay you stay: ${lipOutcome.lipWinner.name}\n`);
+  log.push(`  Sashay away:      ${lipOutcome.eliminated.name}\n`);
+}
 
-  // Decide who gets immunity for the next episode (if the twist is active).
+// Decide who gets immunity for the next episode (if the twist is active).
   if (immunityState && immunityState.enabled) {
     const nextCount = queensRemaining - eliminatedList.length;
     if (nextCount > immunityState.cutoff) {
