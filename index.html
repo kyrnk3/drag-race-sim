@@ -976,6 +976,15 @@
       align-items: center;
       gap: 0.25rem;
     }
+
+    /* Results step polish */
+    .results-step .perf-caption {
+      font-weight: 800;
+      font-size: 1.05rem;
+      margin: 0.25rem 0 0.9rem;
+      text-align: center;
+    }
+
   </style>
 </head>
 <body>
@@ -2274,13 +2283,7 @@ enterStoryMode(); // hide builder + toolbar while showing results
         img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
         img.alt = q ? q.name : raw;
         cell.appendChild(img);
-
-        const label = document.createElement("div");
-        label.className = "queen-avatar-name";
-        label.textContent = q ? q.name : raw;
-        cell.appendChild(label);
-
-        rowWrap.appendChild(cell);
+rowWrap.appendChild(cell);
       });
 
       card.appendChild(rowWrap);
@@ -2310,7 +2313,7 @@ enterStoryMode(); // hide builder + toolbar while showing results
     
 function renderRunwayStep(step, card) {
   const wrap = document.createElement("div");
-  wrap.className = "maxi-step";
+  wrap.className = "maxi-step results-step";
 
   const title = document.createElement("div");
   title.className = "maxi-title";
@@ -2375,13 +2378,7 @@ function renderRunwayStep(step, card) {
       img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
       img.alt = q ? q.name : raw;
       cell.appendChild(img);
-
-      const label = document.createElement("div");
-      label.className = "queen-avatar-name";
-      label.textContent = q ? q.name : raw;
-      cell.appendChild(label);
-
-      rowWrap.appendChild(cell);
+rowWrap.appendChild(cell);
     });
 
     wrap.appendChild(rowWrap);
@@ -2419,13 +2416,7 @@ function renderRunwayStep(step, card) {
         img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
         img.alt = q ? q.name : raw;
         cell.appendChild(img);
-
-        const label = document.createElement("div");
-        label.className = "queen-avatar-name";
-        label.textContent = q ? q.name : raw;
-        cell.appendChild(label);
-
-        rowWrap.appendChild(cell);
+rowWrap.appendChild(cell);
       });
 
       card.appendChild(rowWrap);
@@ -2440,7 +2431,7 @@ function renderRunwayStep(step, card) {
 
     function renderBringBackStep(step, card) {
       const wrap = document.createElement("div");
-      wrap.className = "maxi-step";
+      wrap.className = "maxi-step results-step";
 
       const intro = document.createElement("div");
       intro.className = "maxi-intro";
@@ -2505,13 +2496,7 @@ function renderRunwayStep(step, card) {
           const isLow = lows.includes(raw);
           img.style.borderColor = isLow ? "#f57c00" : "#c62828";
           cell.appendChild(img);
-
-          const label = document.createElement("div");
-          label.className = "queen-avatar-name";
-          label.textContent = q ? q.name : raw;
-          cell.appendChild(label);
-
-          rowWrap.appendChild(cell);
+rowWrap.appendChild(cell);
         });
 
         wrap.appendChild(rowWrap);
@@ -2552,7 +2537,7 @@ function renderJudgingStep(step, card) {
   // Mirror the "old simulator" judging: show only the TOPS/BOTTOMS portraits (neutral rings),
   // then list SAFE queens in text.
   const wrap = document.createElement("div");
-  wrap.className = "maxi-step";
+  wrap.className = "maxi-step results-step";
 
   const title = document.createElement("div");
   title.className = "maxi-title";
@@ -2827,7 +2812,7 @@ function renderLipSyncStep(step, card) {
 // Old-sim style Results step (supports double shantay/sashay) using structured episodeResults.
 function renderResultsStep(step, card) {
   const wrap = document.createElement("div");
-  wrap.className = "maxi-step";
+  wrap.className = "maxi-step results-step";
 
   const title = document.createElement("div");
   title.className = "maxi-title";
@@ -3074,7 +3059,7 @@ function renderQueenLinesBlock(lines, card) {
 
     function renderMaxiStep(step, card) {
       const wrap = document.createElement("div");
-      wrap.className = "maxi-step";
+      wrap.className = "maxi-step results-step";
 
       const title = document.createElement("div");
       title.className = "maxi-title";
@@ -3175,13 +3160,7 @@ const buckets = [
           img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
           img.alt = q ? q.name : raw;
           cell.appendChild(img);
-
-          const label = document.createElement("div");
-          label.className = "queen-avatar-name";
-          label.textContent = q ? q.name : raw;
-          cell.appendChild(label);
-
-          rowWrap.appendChild(cell);
+rowWrap.appendChild(cell);
         });
 
         wrap.appendChild(rowWrap);
