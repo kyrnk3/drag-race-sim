@@ -976,7 +976,26 @@
       align-items: center;
       gap: 0.25rem;
     }
-  </style>
+  
+    .show-result-btn {
+      margin: 0.85rem auto 0.1rem;
+      display: inline-block;
+      border-radius: 999px;
+      border: 1px solid #4a1a2a;
+      padding: 0.45rem 1.1rem;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: #5a1630;
+      color: #ffe3ef;
+      box-shadow: 0 0 0 1px #000;
+      transition: filter 0.08s ease, transform 0.08s ease;
+    }
+    .show-result-btn:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+</style>
 </head>
 <body>
   <div class="app">
@@ -1174,6 +1193,7 @@
   <script src="challenges.js"></script>
   <script src="mini-challenges.js"></script>
   <script src="runways.js"></script>
+  <script src="lipsyncs.js"></script>
   <script src="sim.js"></script>
 
   <script>
@@ -2547,6 +2567,110 @@ function renderRunwayStep(step, card) {
       card.appendChild(wrap);
     }
 
+
+function renderLipSyncStep(step, card) {
+  const wrap = document.createElement("div");
+  wrap.className = "maxi-step";
+
+  // Header line to match old simulator vibes
+  const intro = document.createElement("div");
+  intro.className = "maxi-intro";
+  intro.style.fontWeight = "700";
+  intro.style.marginBottom = "0.75rem";
+  intro.textContent = "The time has come...";
+  wrap.appendChild(intro);
+
+  const epIdx = Math.max(0, (step.epNum || 1) - 1);
+  const epRes = (seasonEpisodeResults && seasonEpisodeResults[epIdx]) ? seasonEpisodeResults[epIdx] : null;
+  const lip = epRes && epRes.lipSync ? epRes.lipSync : null;
+
+  const flavor = document.createElement("div");
+  flavor.className = "maxi-intro";
+  flavor.style.marginTop = "-0.35rem";
+  flavor.textContent = (lip && lip.intro) ? lip.intro : "For you to lip-sync... for your lives! Good luck, and don't fuck it up.";
+  wrap.appendChild(flavor);
+
+  const songLine = document.createElement("div");
+  songLine.className = "maxi-intro";
+  songLine.style.marginTop = "0.4rem";
+  songLine.style.fontWeight = "650";
+  const song = lip && lip.song ? lip.song : null;
+  songLine.textContent = song ? `The lip-sync song is... ${song}!` : "The lip-sync song is... (unknown).";
+  wrap.appendChild(songLine);
+
+  const perfs = (lip && Array.isArray(lip.performances)) ? lip.performances : [];
+  const perfByName = new Map(perfs.map(p => [p.name, p]));
+  const bottom2 = (lip && Array.isArray(lip.bottom2)) ? lip.bottom2 : [];
+
+  function tierClass(tier) {
+    switch (String(tier || "").toLowerCase()) {
+      case "slayed": return "perf-slayed";
+      case "great":  return "perf-great";
+      case "good":   return "perf-good";
+      case "bad":    return "perf-bad";
+      case "bombed": return "perf-bombed";
+      default:       return "perf-good";
+    }
+  }
+
+  function tierText(tier) {
+    switch (String(tier || "").toLowerCase()) {
+      case "slayed": return "slayed the lipsync!";
+      case "great":  return "had a great lipsync!";
+      case "good":   return "had a good lipsync.";
+      case "bad":    return "had a bad lipsync…";
+      case "bombed": return "bombed the lipsync…";
+      default:       return "performed in the lipsync.";
+    }
+  }
+
+  // Render each queen as its own row + caption, like the old simulator screenshot.
+  const order = bottom2.length ? bottom2 : Array.from(perfByName.keys());
+
+  order.forEach((name) => {
+    const p = perfByName.get(name) || { tier: "good" };
+    const rowWrap = document.createElement("div");
+    rowWrap.className = `queen-row perf-row ${tierClass(p.tier)}`;
+
+    const q = getQueenByNameGuess(name);
+    const cell = document.createElement("div");
+    cell.className = "queen-avatar";
+
+    const img = document.createElement("img");
+    img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
+    img.alt = q ? q.name : name;
+    cell.appendChild(img);
+
+    const label = document.createElement("div");
+    label.className = "queen-avatar-name";
+    label.textContent = q ? q.name : name;
+    cell.appendChild(label);
+
+    rowWrap.appendChild(cell);
+    wrap.appendChild(rowWrap);
+
+    const cap = document.createElement("div");
+    cap.className = "perf-caption";
+    cap.textContent = `${q ? q.name : name} ${tierText(p.tier)}`;
+    wrap.appendChild(cap);
+  });
+
+  // Old simulator had a "Show result" button (in addition to navigation).
+  const showBtn = document.createElement("button");
+  showBtn.className = "show-result-btn";
+  showBtn.type = "button";
+  showBtn.textContent = "Show result";
+  showBtn.addEventListener("click", () => {
+    if (currentStepIndex < currentSteps.length - 1) {
+      currentStepIndex++;
+      renderCurrentStep();
+    }
+  });
+  wrap.appendChild(showBtn);
+
+  card.appendChild(wrap);
+}
+
 function renderJudgingStep(step, card) {
   // Mirror the "old simulator" judging: show only the TOPS/BOTTOMS portraits (neutral rings),
   // then list SAFE queens in text.
@@ -3637,7 +3761,7 @@ if (step.type === "episode_setup") {
   renderBringBackStep(step, card);
 
 } else if (step.type === "episode_lipsync") {
-  renderQueenLinesBlock(step.lines || [], card);
+  renderLipSyncStep(step, card);
 
 } else if (step.type === "episode_results") {
   renderQueenLinesBlock(step.lines || [], card);
