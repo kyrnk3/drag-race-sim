@@ -241,6 +241,13 @@
       border-left: 4px solid #e57373;
     }
 
+    .episode-card.step-finale_runway,
+    .episode-card.step-finale_top2_reveal,
+    .episode-card.step-finale_lipsync,
+    .episode-card.step-finale_winner {
+      border-left: 4px solid #e57373;
+    }
+
     .results-block {
       margin-top: 0.4rem;
     }
@@ -2719,12 +2726,17 @@ function renderJudgingStep(step, card) {
         );
         if (idx > 0) {
           const final3Lines = finaleLines.slice(0, idx).filter((l) => l.trim());
-          const finaleRest = finaleLines.slice(idx).filter((l) => l.trim());
           if (final3Lines.length) steps.push({ type: "final3", lines: final3Lines });
-          if (finaleRest.length) steps.push({ type: "finale", lines: finaleRest });
         } else {
-          steps.push({ type: "finale", lines: finaleLines });
+          // If for some reason we didn't get a separate Final 3 header, still show something.
+          steps.push({ type: "final3", lines: finaleLines.filter((l) => /Final 3/i.test(l) || /track record/i.test(l)) });
         }
+
+        // Grand Finale is rendered as structured steps using episodeResults (no data-dump).
+        steps.push({ type: "finale_runway" });
+        steps.push({ type: "finale_top2_reveal" });
+        steps.push({ type: "finale_lipsync" });
+        steps.push({ type: "finale_winner" });
       }
 
       return steps;
@@ -3195,7 +3207,268 @@ rowWrap.appendChild(cell);
       card.appendChild(wrap);
     }
 
-    function renderFinaleLines(lines, card) {
+    
+function getFinaleResult() {
+  if (!seasonEpisodeResults || !seasonEpisodeResults.length) return null;
+  return seasonEpisodeResults.find(e => e && (e.challengeId === "FINALE" || e.episode === "Finale")) || null;
+}
+
+function renderFinaleRunwayStep(step, card) {
+  const wrap = document.createElement("div");
+  wrap.className = "maxi-step results-step";
+
+  const title = document.createElement("div");
+  title.className = "maxi-title";
+  title.textContent = "Final Runway!";
+  wrap.appendChild(title);
+
+  const intro = document.createElement("div");
+  intro.className = "maxi-intro";
+  intro.textContent = "The finalists will bring it to the runway!";
+  wrap.appendChild(intro);
+
+  const fin = getFinaleResult();
+  const cat = fin && fin.runwayCategory ? fin.runwayCategory : "Finale Eleganza Extravaganza";
+
+  const categoryLine = document.createElement("div");
+  categoryLine.className = "maxi-intro";
+  categoryLine.style.marginTop = "-0.35rem";
+  categoryLine.style.fontSize = "0.95rem";
+  categoryLine.textContent = `Category is... ${cat}.`;
+  wrap.appendChild(categoryLine);
+
+  const buckets = [
+    { key: "slayed", label: "slayed the runway!", rowClass: "perf-slayed" },
+    { key: "great",  label: "had a great runway!", rowClass: "perf-great" },
+    { key: "good",   label: "had a good runway.", rowClass: "perf-good" },
+    { key: "bad",    label: "had a bad runway…", rowClass: "perf-bad" },
+    { key: "bombed", label: "bombed the runway…", rowClass: "perf-bombed" },
+  ];
+
+  const grouped = new Map(buckets.map(b => [b.key, []]));
+  const runwayTiers = fin && Array.isArray(fin.runwayTiers) ? fin.runwayTiers : [];
+
+  runwayTiers.forEach(t => {
+    const key = String(t.tier || "").toLowerCase();
+    if (!grouped.has(key)) return;
+    grouped.get(key).push(t);
+  });
+
+  let renderedAny = false;
+  buckets.forEach(b => {
+    const entries = grouped.get(b.key) || [];
+    if (!entries.length) return;
+    renderedAny = true;
+
+    const rowWrap = document.createElement("div");
+    rowWrap.className = `queen-row perf-row ${b.rowClass}`;
+
+    entries.forEach(entry => {
+      const raw = entry.name || String(entry);
+      const q = getQueenByNameGuess(raw);
+
+      const cell = document.createElement("div");
+      cell.className = "queen-avatar";
+
+      const img = document.createElement("img");
+      img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
+      img.alt = q ? q.name : raw;
+      cell.appendChild(img);
+      rowWrap.appendChild(cell);
+    });
+
+    wrap.appendChild(rowWrap);
+
+    const cap = document.createElement("div");
+    cap.className = "perf-caption";
+    cap.textContent = `${formatNameList(entries.map(e => e.name || String(e)))} ${b.label}`;
+    wrap.appendChild(cap);
+  });
+
+  if (!renderedAny) {
+    const p = document.createElement("div");
+    p.style.color = "#ccc";
+    p.style.marginTop = "0.5rem";
+    p.textContent = "No runway tiers were available for the Finale (check that sim.js is returning runwayTiers for challengeId FINALE).";
+    wrap.appendChild(p);
+  }
+
+  card.appendChild(wrap);
+}
+
+function renderFinaleTop2RevealStep(step, card) {
+  const wrap = document.createElement("div");
+  wrap.className = "maxi-step results-step";
+  wrap.style.textAlign = "center";
+
+  const title = document.createElement("div");
+  title.className = "maxi-title";
+  title.textContent = "I've made my decision...";
+  wrap.appendChild(title);
+
+  const fin = getFinaleResult();
+  const top2 = fin?.finale?.top2 || [];
+  const eliminated = fin?.finale?.eliminated || null;
+
+  if (top2.length) {
+    renderQueenRow(top2, "", wrap, { neutral: true });
+
+    const p = document.createElement("div");
+    p.className = "perf-caption";
+    p.textContent = `${formatNameList(top2)}, you will lip-sync for the crown!`;
+    wrap.appendChild(p);
+  }
+
+  if (eliminated) {
+    // A small divider for drama
+    const div = document.createElement("div");
+    div.className = "judging-divider";
+    div.style.margin = "0.75rem auto";
+    wrap.appendChild(div);
+
+    renderQueenRow([eliminated], "", wrap, { neutral: true });
+
+    const p2 = document.createElement("div");
+    p2.className = "perf-caption";
+    p2.textContent = `${eliminated}, you will not advance to the final lip-sync.`;
+    wrap.appendChild(p2);
+  }
+
+  if (!top2.length && !eliminated) {
+    const p = document.createElement("div");
+    p.style.color = "#ccc";
+    p.textContent = "Finale placement data missing (check sim.js finale output).";
+    wrap.appendChild(p);
+  }
+
+  card.appendChild(wrap);
+}
+
+function renderFinaleLipSyncStep(step, card) {
+  const wrap = document.createElement("div");
+  wrap.className = "maxi-step results-step";
+
+  const title = document.createElement("div");
+  title.className = "maxi-title";
+  title.textContent = "Lip Sync for the Crown!";
+  wrap.appendChild(title);
+
+  const fin = getFinaleResult();
+  const top2 = fin?.finale?.top2 || [];
+  const song = fin?.finale?.lipSync?.song || null;
+  const tiers = fin?.finale?.lipSync?.tiers || [];
+
+  if (top2.length) {
+    renderQueenRow(top2, "", wrap, { neutral: true });
+  }
+
+  if (song) {
+    const p = document.createElement("div");
+    p.className = "maxi-intro";
+    p.style.fontWeight = "600";
+    p.textContent = `The lip-sync song is... ${song}!`;
+    wrap.appendChild(p);
+  }
+
+  const tierLabel = {
+    slayed: "slayed the lip-sync...",
+    great:  "had a great lip-sync...",
+    good:   "had a good lip-sync.",
+    bad:    "had a bad lip-sync...",
+    bombed: "bombed the lip-sync..."
+  };
+
+  const tierClass = {
+    slayed: "perf-slayed",
+    great:  "perf-great",
+    good:   "perf-good",
+    bad:    "perf-bad",
+    bombed: "perf-bombed"
+  };
+
+  (tiers || []).forEach(t => {
+    if (!t || !t.name) return;
+
+    const row = document.createElement("div");
+    row.className = `queen-row perf-row ${tierClass[t.tier] || ""}`;
+
+    const q = getQueenByNameGuess(t.name);
+    const cell = document.createElement("div");
+    cell.className = "queen-avatar";
+
+    const img = document.createElement("img");
+    img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
+    img.alt = t.name;
+    cell.appendChild(img);
+
+    row.appendChild(cell);
+    wrap.appendChild(row);
+
+    const cap = document.createElement("div");
+    cap.className = "perf-caption";
+    cap.textContent = `${t.name} ${tierLabel[t.tier] || "had a lip-sync."}`;
+    wrap.appendChild(cap);
+  });
+
+  card.appendChild(wrap);
+}
+
+function renderFinaleWinnerStep(step, card) {
+  const wrap = document.createElement("div");
+  wrap.className = "maxi-step results-step";
+  wrap.style.textAlign = "center";
+
+  const title = document.createElement("div");
+  title.className = "maxi-title";
+  title.textContent = "The end...";
+  wrap.appendChild(title);
+
+  const fin = getFinaleResult();
+  const winner = fin?.finale?.winner || null;
+
+  if (winner) {
+    renderQueenRow([winner], "", wrap, { neutral: true });
+
+    const p = document.createElement("div");
+    p.className = "perf-caption";
+    p.style.fontSize = "1.05rem";
+    p.style.fontWeight = "800";
+    p.textContent = `And the winner of this season is... ${winner}!! 👑`;
+    wrap.appendChild(p);
+  }
+
+  // Optional: include the full track records table toggle (same as season output)
+  if (typeof renderTrackRecordTable === "function") {
+    const spacer = document.createElement("div");
+    spacer.style.height = "0.75rem";
+    wrap.appendChild(spacer);
+
+    const details = document.createElement("details");
+    details.className = "episode-card";
+    details.style.marginTop = "0.75rem";
+    details.style.background = "#141414";
+
+    const summary = document.createElement("summary");
+    summary.style.cursor = "pointer";
+    summary.style.fontWeight = "700";
+    summary.style.color = "#ff80ab";
+    summary.textContent = "Show full track records";
+    details.appendChild(summary);
+
+    const holder = document.createElement("div");
+    holder.style.marginTop = "0.75rem";
+    details.appendChild(holder);
+
+    // renderTrackRecordTable writes into a container
+    renderTrackRecordTable(holder);
+    wrap.appendChild(details);
+  }
+
+  card.appendChild(wrap);
+}
+
+
+function renderFinaleLines(lines, card) {
       const block = document.createElement("div");
       block.className = "results-block";
 
@@ -3703,8 +3976,14 @@ rowWrap.appendChild(cell);
         case "episode_results":
           return "Next episode";
         case "final3":
-          return "Grand Finale";
-        case "finale":
+          return "Final Runway";
+        case "finale_runway":
+          return "Top 2";
+        case "finale_top2_reveal":
+          return "Lip Sync";
+        case "finale_lipsync":
+          return "Winner";
+        case "finale_winner":
           return "Back to start";
         default:
           return "Next";
@@ -3766,9 +4045,21 @@ rowWrap.appendChild(cell);
           titleText = "Final 3 Revealed";
           bodyLines = step.lines || [];
           break;
-        case "finale":
-          titleText = "Grand Finale & Track Records";
-          bodyLines = step.lines || [];
+        case "finale_runway":
+          titleText = "";
+          bodyLines = [];
+          break;
+        case "finale_top2_reveal":
+          titleText = "";
+          bodyLines = [];
+          break;
+        case "finale_lipsync":
+          titleText = "";
+          bodyLines = [];
+          break;
+        case "finale_winner":
+          titleText = "";
+          bodyLines = [];
           break;
         default:
           titleText = "Season";
@@ -3806,8 +4097,17 @@ if (step.type === "episode_setup") {
 } else if (step.type === "episode_results") {
   renderResultsStep(step, card);
 
-} else if (step.type === "finale") {
-  renderFinaleLines(bodyLines, card);
+} else if (step.type === "finale_runway") {
+  renderFinaleRunwayStep(step, card);
+
+} else if (step.type === "finale_top2_reveal") {
+  renderFinaleTop2RevealStep(step, card);
+
+} else if (step.type === "finale_lipsync") {
+  renderFinaleLipSyncStep(step, card);
+
+} else if (step.type === "finale_winner") {
+  renderFinaleWinnerStep(step, card);
 
 } else {
   const pre = document.createElement("pre");
