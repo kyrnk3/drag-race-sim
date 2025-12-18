@@ -36,6 +36,9 @@ const CHALLENGES = window.CHALLENGES || [];
 // Mini-challenges from mini-challenges.js
 const MINI_CHALLENGES = window.MINI_CHALLENGES || [];
 
+
+// Lip sync songs from lipsyncs.js (no repeats until pool exhausted).
+const LIPSYNC_SONGS = Array.isArray(window.LIPSYNC_SONGS) ? window.LIPSYNC_SONGS : [];
 // Will store all queens for SAFE padding logic & track-record meta.
 let allQueensGlobal = [];
 
@@ -67,6 +70,52 @@ function pickRunwayCategory(usedSet, forceCategory = null) {
   const chosen = pool[Math.floor(Math.random() * pool.length)];
   used.add(chosen);
   return chosen;
+}
+
+
+function pickUniqueFromPool(usedSet, pool) {
+  if (!Array.isArray(pool) || !pool.length) return null;
+  // If we've exhausted the pool, reset so we can reuse (prevents hard-lock).
+  if (usedSet && usedSet.size >= pool.length) usedSet.clear();
+
+  const available = pool.filter((x) => x && (!usedSet || !usedSet.has(x)));
+  if (!available.length) return pool[Math.floor(Math.random() * pool.length)] || null;
+
+  const pick = available[Math.floor(Math.random() * available.length)];
+  if (usedSet) usedSet.add(pick);
+  return pick;
+}
+
+const LIPSYNC_INTROS = [
+  "For you to lip-sync... for your lives! Good luck, and don't fuck it up.",
+  "This is your last chance to impress me and save yourself from elimination.",
+  "Two queens stand before me. Prior to tonight, you were asked to prepare a lip-sync performance.",
+  "The time has come... for you to lip-sync for your life!",
+  "Ladies, this is what you came here to do. Good luck — and don't fuck it up."
+];
+
+function pickLipSyncIntro() {
+  return LIPSYNC_INTROS[Math.floor(Math.random() * LIPSYNC_INTROS.length)];
+}
+
+function lipsyncTierFromScore(score0to10) {
+  const s = Math.max(0, Math.min(10, score0to10));
+  if (s >= 8.25) return "slayed";
+  if (s >= 6.75) return "great";
+  if (s >= 5.0)  return "good";
+  if (s >= 3.25) return "bad";
+  return "bombed";
+}
+
+function lipsyncTierText(tier) {
+  switch (String(tier || "").toLowerCase()) {
+    case "slayed": return "slayed the lipsync!";
+    case "great":  return "had a great lipsync!";
+    case "good":   return "had a good lipsync.";
+    case "bad":    return "had a bad lipsync…";
+    case "bombed": return "bombed the lipsync…";
+    default:       return "performed in the lipsync.";
+  }
 }
 
 // Clamp to the 0–10 scale we’re using everywhere.
@@ -633,93 +682,63 @@ function hasDoubleSashayTag(q) {
 // Episode simulation
 // =========================
 
-function resolveLipSync(bottom2, challenge, phase, twistState) {
-  const performScores = new Map();
-  for (const q of bottom2) {
-    const s = calculateScore(q, challenge, phase, "lipsync") + randUniform(-1.0, 1.0);
-    performScores.set(q, s);
-  }
 
-  const ranked = Array.from(performScores.entries()).sort((a, b) => b[1] - a[1]);
-  const winner = ranked[0][0];
-  const eliminated = ranked[1][0];
-  const sWinner = ranked[0][1];
-  const sLoser = ranked[1][1];
+function resolveLipSync(bottom2, phase, twistState, options = {}) {
+  // Lip sync scoring is its own thing (not the main challenge).
+  // We keep it simple + readable: base = Lipsync stat (0–10) + variance + edit modifiers.
+  const lipsyncChallenge = getLipsyncChallenge();
+  const enableDoubleTwists = options && options.enableDoubleTwists !== undefined ? !!options.enableDoubleTwists : true;
 
-  let twist = "none";
+  const performances = bottom2.map((q) => {
+    let score = (q.stats && typeof q.stats.lipsync === "number") ? q.stats.lipsync : 5;
+    score += randUniform(-2.0, 2.0);
 
-  // Thresholds for “slay” and “bomb”
-  const highThreshold = 8.0;    // unchanged – really strong lip sync
-  const bombThreshold = 4.0;    // was 3.0 – now includes more obvious flops
-  const disasterThreshold = 2.0; // “truly awful” territory
+    // Apply edit modifiers in "lipsync" context (e.g., lip_sync_assassin).
+    score = applyEditModifiers(score, q, lipsyncChallenge, phase, "lipsync");
 
-  const bothSlay = (sWinner >= highThreshold && sLoser >= highThreshold);
-  const bothBomb = (sWinner <= bombThreshold && sLoser <= bombThreshold);
-  const oneDisaster = (Math.min(sWinner, sLoser) <= disasterThreshold);
+    // Small bias: producer fave slightly safer in close calls.
+    if (q.traits && q.traits.producerFave) score += 0.35;
 
-  // =========================
-  // Double SHANTAY (unchanged)
-  // =========================
-  if (
-    bothSlay &&
-    twistState.doubleShantayEnabled &&
-    !twistState.usedDoubleShantay
-  ) {
-    let chance = 0.12; // base low–medium chance
+    score = Math.max(0, Math.min(10, score));
 
-    // Boost if the provisional loser is a protected narrative fave
-    if (hasDoubleShantayTag(eliminated)) {
-      chance += 0.20;
-    }
-    // Smaller boost if the winner also has those tags
-    if (hasDoubleShantayTag(winner)) {
-      chance += 0.10;
-    }
+    const tier = lipsyncTierFromScore(score);
+    return { queen: q, score, tier };
+  });
 
-    chance = Math.min(Math.max(chance, 0), 0.9);
+  // Determine winner/loser
+  performances.sort((a, b) => b.score - a.score);
+  const winner = performances[0].queen;
+  const eliminated = performances[1].queen;
 
-    if (Math.random() < chance) {
-      twist = "double_shantay";
+  // Double shantay / double sashay hooks (optional)
+  let twist = null;
+  if (enableDoubleTwists && twistState && twistState.allowDoubleTwists) {
+    const top = performances[0].score;
+    const bot = performances[1].score;
+
+    // Double shantay: both clearly did great (or one slayed and the other wasn't bad).
+    if (!twistState.usedDoubleShantay && top >= 8.5 && bot >= 7.0 && Math.random() < 0.22) {
+      twist = "DOUBLE_SHANTAY";
       twistState.usedDoubleShantay = true;
-      return { lipWinner: winner, eliminated: null, twist };
-    }
-  }
-
-  // =========================
-  // Double SASHAY (more permissive)
-  // =========================
-  // Triggers when:
-  //  - both queens are clear flops (<= bombThreshold), OR
-  //  - at least one queen is a total disaster (<= disasterThreshold)
-  if (
-    (bothBomb || oneDisaster) &&
-    twistState.doubleSashayEnabled &&
-    !twistState.usedDoubleSashay
-  ) {
-    let chance = 0.14; // slightly higher base than before
-
-    // Boost if the *winner* is messy/drama/robbed (producers love chaos)
-    if (hasDoubleSashayTag(winner)) {
-      chance += 0.20;
-    }
-    // Smaller boost if the other queen is also messy/robbed/drama
-    if (hasDoubleSashayTag(eliminated)) {
-      chance += 0.10;
     }
 
-    chance = Math.min(Math.max(chance, 0), 0.9);
-
-    if (Math.random() < chance) {
-      twist = "double_sashay";
+    // Double sashay: both bombed.
+    if (!twist && !twistState.usedDoubleSashay && top <= 3.0 && bot <= 2.25 && Math.random() < 0.18) {
+      twist = "DOUBLE_SASHAY";
       twistState.usedDoubleSashay = true;
-      return { lipWinner: null, eliminated: null, twist };
     }
   }
 
-  // =========================
-  // Normal outcome
-  // =========================
-  return { lipWinner: winner, eliminated, twist };
+  return {
+    winner,
+    eliminated,
+    twist,
+    performances: performances.map((p) => ({
+      name: p.queen.name,
+      score: p.score,
+      tier: p.tier
+    }))
+  };
 }
 
   function updateTrackRecord(
@@ -799,7 +818,8 @@ function simulateEpisode(
   usedMiniOneOffIdsSet,
   immunityState,
   twistState,
-  runwayState
+  runwayState,
+  lipsyncState
 ) {
   const queensRemaining = queens.length;
   const phase = episodeNum <= totalEpisodes / 2 ? "early" : "late";
@@ -890,12 +910,12 @@ Mini-Challenge — ${miniChallenge.name}
     low = ranked[n - 3][0];
   }
 
-  const lipOutcome = resolveLipSync(bottom2, challenge, phase, twistState);
+  const lipOutcome = resolveLipSync(bottom2, phase, twistState, { enableDoubleTwists: !!(twistState && twistState.allowDoubleTwists) });
 
   let eliminatedList = [];
-  if (lipOutcome.twist === "double_shantay") {
+  if (lipOutcome.twist === "DOUBLE_SHANTAY") {
     eliminatedList = [];
-  } else if (lipOutcome.twist === "double_sashay") {
+  } else if (lipOutcome.twist === "DOUBLE_SASHAY") {
     eliminatedList = [...bottom2];
   } else {
     eliminatedList = [lipOutcome.eliminated];
@@ -913,31 +933,68 @@ Mini-Challenge — ${miniChallenge.name}
     currentImmuneSet
   );
 
-  // Log output (unchanged)
-log.push("\nResults:\n");
-log.push(`  Winner: ${winner.name}\n`);
-if (highs.length) {
-  log.push(`  High:   ${highs.map(q => q.name).join(", ")}\n`);
-}
-if (low) {
-  log.push(`  Low:    ${low.name}\n`);
-}
-log.push(`  Bottom: ${bottom2[0].name} vs. ${bottom2[1].name}\n`);
+  // Log output
+  // Judging marker (for the step-by-step viewer)
+  log.push("\nBased on tonight's performances...\n");
 
-if (lipOutcome.twist === "double_shantay") {
-  log.push("  SPECIAL TWIST: DOUBLE SHANTAY! Both queens stay.\n");
-  log.push(`  Shantay you stay: ${bottom2[0].name} & ${bottom2[1].name}\n`);
-  log.push("  Sashay away:      (no one!)\n");
-} else if (lipOutcome.twist === "double_sashay") {
-  log.push("  SPECIAL TWIST: DOUBLE SASHAY! Both queens go home.\n");
-  log.push("  Shantay you stay: (no one!)\n");
-  log.push(`  Sashay away:      ${bottom2[0].name} & ${bottom2[1].name}\n`);
-} else {
-  log.push(`  Shantay you stay: ${lipOutcome.lipWinner.name}\n`);
-  log.push(`  Sashay away:      ${lipOutcome.eliminated.name}\n`);
-}
+  // Compact placements block (does not reveal lip sync outcome)
+  log.push("\nResults:\n");
+  log.push(`  Winner: ${winner.name}\n`);
+  if (highs.length) {
+    log.push(`  High:   ${highs.map(q => q.name).join(", ")}\n`);
+  }
+  if (low) {
+    log.push(`  Low:    ${low.name}\n`);
+  }
+  log.push(`  Bottom: ${bottom2[0].name} vs. ${bottom2[1].name}\n`);
 
-// Decide who gets immunity for the next episode (if the twist is active).
+  // Bring-back marker (for the step-by-step viewer)
+  log.push("\nLadies, I've made some decisions...\n");
+
+  // Lip sync segment (song + performance flavour). Outcome is revealed in the Results step.
+  const lipIntro = pickLipSyncIntro();
+  const lipSong = pickUniqueFromPool(lipsyncState ? lipsyncState.usedSongs : null, LIPSYNC_SONGS);
+
+  log.push("\nThe time has come...\n");
+  log.push(lipIntro + "\n");
+  if (lipSong) {
+    log.push(`The lip-sync song is... ${lipSong}!\n`);
+  }
+
+  // Print performance lines (one per queen) using the computed tiers.
+  const perfByName = new Map((lipOutcome.performances || []).map(p => [p.name, p]));
+  for (const q of bottom2) {
+    const p = perfByName.get(q.name);
+    const tier = p ? p.tier : "good";
+    log.push(`${q.name} ${lipsyncTierText(tier)}\n`);
+  }
+
+  // Decision reveal marker
+  log.push("\nI've made my decision.\n");
+
+  if (lipOutcome.twist === "DOUBLE_SHANTAY") {
+    log.push("  SPECIAL TWIST: DOUBLE SHANTAY! Both queens stay.\n");
+    log.push(`  Shantay you stay: ${bottom2[0].name} & ${bottom2[1].name}\n`);
+    log.push("  Sashay away:      (no one!)\n");
+  } else if (lipOutcome.twist === "DOUBLE_SASHAY") {
+    log.push("  SPECIAL TWIST: DOUBLE SASHAY! Both queens go home.\n");
+    log.push("  Shantay you stay: (no one!)\n");
+    log.push(`  Sashay away:      ${bottom2[0].name} & ${bottom2[1].name}\n`);
+  } else {
+    log.push(`  Shantay you stay: ${lipOutcome.winner.name}\n`);
+    log.push(`  Sashay away:      ${lipOutcome.eliminated.name}\n`);
+  }
+
+  // Save lip sync meta for the UI (step-by-step lipsync screen)
+  episodeResult.lipSync = {
+    intro: lipIntro,
+    song: lipSong,
+    performances: (lipOutcome.performances || []).slice().map(p => ({ name: p.name, tier: p.tier, score: p.score })),
+    bottom2: bottom2.map(q => q.name),
+    twist: lipOutcome.twist || null
+  };
+
+  // Decide who gets immunity for the next episode (if the twist is active).
   if (immunityState && immunityState.enabled) {
     const nextCount = queensRemaining - eliminatedList.length;
     if (nextCount > immunityState.cutoff) {
@@ -1322,6 +1379,7 @@ function simulateSeason(queenDefs, options = {}) {
 
   // Runway category state (no repeats until pool exhausted)
   const runwayState = { usedCategories: new Set() };
+  const lipsyncState = { usedSongs: new Set() };
 
   log.push("========== Drag Race Season Simulation ==========\n");
   log.push("Starting queens:\n");
@@ -1385,7 +1443,8 @@ function simulateSeason(queenDefs, options = {}) {
       usedMiniOneOffIdsSet,
       immunityState,
       twistState,
-      runwayState
+      runwayState,
+      lipsyncState
     );
     lastChallengeId = cid;
     if (episodeResult) episodeResults.push(episodeResult);
