@@ -4086,7 +4086,75 @@ function renderFinaleLines(lines, card) {
       table.appendChild(thead);
 
       // ---------- Body ----------
-      const tbody = document.createElement("tbody");
+      
+// Precompute finale placements (WIN + runner-up ranks) so the Finale column
+// doesn't get forced into the last competitive episode slot, and runner-up
+// styling stays consistent (silver/bronze).
+let finaleStatusByQueen = null; // qName => { display, cls }
+if (hasFinale && finaleEpisode && finaleEpisode.placements) {
+  const rawMap = {};
+  const runnersExplicit = [];
+  const runnersAmbiguous = [];
+  const runnerRank = {}; // qName => 2 or 3
+  data.queenOrder.forEach((qName) => {
+    const raw = Object.prototype.hasOwnProperty.call(finaleEpisode.placements, qName)
+      ? finaleEpisode.placements[qName]
+      : "";
+    let status = "";
+    if (raw && typeof raw === "object") status = raw.status || "";
+    else status = raw || "";
+    const up = String(status || "").toUpperCase().replace(/\s+/g, "").replace(/_/g, "-");
+    rawMap[qName] = up;
+
+    if (up === "WIN" || up === "WINNER") return;
+
+    // Accept multiple runner-up encodings: RUN-UP, RUNNER-UP, RU2/RU3, etc.
+    const isRunner = up.includes("RUN") || up.startsWith("RU");
+    if (!isRunner) return;
+
+    // Try to infer rank directly from the token (e.g. RU2/RU3).
+    let rank = null;
+    const m = up.match(/RU\s*([23])/i) || up.match(/RU-?([23])/i) || up.match(/RU([23])/i);
+    if (m) rank = parseInt(m[1], 10);
+
+    if (rank === 2 || rank === 3) {
+      runnerRank[qName] = rank;
+      runnersExplicit.push(qName);
+    } else {
+      runnersAmbiguous.push(qName);
+    }
+  });
+
+  // If runner-ups don't have explicit ranks, assign by display order (first => 2, second => 3)
+  const used = new Set(Object.values(runnerRank));
+  let nextRank = used.has(2) ? 3 : 2;
+  runnersAmbiguous.forEach((qName) => {
+    if (nextRank !== 2 && nextRank !== 3) return;
+    runnerRank[qName] = nextRank;
+    nextRank = (nextRank === 2 ? 3 : null);
+  });
+
+  finaleStatusByQueen = {};
+  data.queenOrder.forEach((qName) => {
+    const up = rawMap[qName] || "";
+    if (up === "WIN" || up === "WINNER") {
+      finaleStatusByQueen[qName] = { display: "WIN", cls: "status-final-win" };
+      return;
+    }
+    if (runnerRank[qName] === 2) {
+      finaleStatusByQueen[qName] = { display: "RUNNER-UP", cls: "status-final-runner1" };
+      return;
+    }
+    if (runnerRank[qName] === 3) {
+      finaleStatusByQueen[qName] = { display: "RUNNER-UP", cls: "status-final-runner2" };
+      return;
+    }
+    // Anything else (ELIM, etc.) shouldn't appear for Top 3, but keep safe:
+    finaleStatusByQueen[qName] = { display: "", cls: "status-empty" };
+  });
+}
+
+const tbody = document.createElement("tbody");
 
       data.queenOrder.forEach((qName, rowIndex) => {
         const row = document.createElement("tr");
@@ -4100,34 +4168,23 @@ function renderFinaleLines(lines, card) {
           const cell = document.createElement("td");
           const isFinale = !!(ep && ep.isFinale);
 
-          if (isFinale) {
-            // Finale column: prefer explicit finale placements if present,
-            // otherwise fall back to the (winner, runners-up) display order.
-            const raw = ep && ep.placements && Object.prototype.hasOwnProperty.call(ep.placements, qName)
-              ? ep.placements[qName]
-              : "";
+          
+if (isFinale) {
+  // Finale column: use precomputed placements so runner-up styling is stable.
+  if (finaleStatusByQueen && finaleStatusByQueen[qName]) {
+    const fin = finaleStatusByQueen[qName];
+    cell.textContent = fin.display || "";
+    cell.className = fin.cls || "status-empty";
+  } else {
+    // Fallback (should be rare)
+    cell.textContent = "";
+    cell.className = "status-empty";
+  }
+  row.appendChild(cell);
+  return;
+}
 
-            let status = "";
-            if (raw && typeof raw === "object") status = raw.status || "";
-            else status = raw || "";
-
-            // If status isn't provided, use row order for Top 3 display
-            if (!status) {
-              if (rowIndex === 0) status = "WIN";
-              else if (rowIndex === 1 || rowIndex === 2) status = "RUN-UP";
-            }
-
-            let cls = "status-empty";
-            if (status === "WIN") cls = "status-final-win";
-            else if (status === "RUN-UP") cls = (rowIndex === 1 ? "status-final-runner1" : "status-final-runner2");
-
-            cell.textContent = status || "";
-            cell.className = cls;
-            row.appendChild(cell);
-            return;
-          }
-
-          // Normal competitive episode cell
+// Normal competitive episode cell
           const rawPlacement =
             ep &&
             ep.placements &&
