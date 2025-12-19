@@ -992,6 +992,28 @@
       text-align: center;
     }
 
+
+    .results-step .decision-line {
+      color: #ff80ab;
+      text-shadow: 0 0 10px rgba(255, 128, 171, 0.25);
+      margin-bottom: 1.0rem;
+    }
+
+    .results-step .results-caption {
+      font-weight: 850;
+      font-size: 1.05rem;
+      margin: 0.25rem 0 0.85rem;
+    }
+
+    .results-step .results-stay {
+      color: #66bb6a;
+      text-shadow: 0 0 10px rgba(102, 187, 106, 0.18);
+    }
+
+    .results-step .results-sashay {
+      color: #e57373;
+      text-shadow: 0 0 10px rgba(229, 115, 115, 0.18);
+    }
   </style>
 </head>
 <body>
@@ -2298,11 +2320,6 @@ enterStoryMode(); // hide builder + toolbar while showing results
         img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
         img.alt = q ? q.name : raw;
         cell.appendChild(img);
-
-        const nameEl = document.createElement("div");
-        nameEl.className = "queen-avatar-name";
-        nameEl.textContent = q ? q.name : String(raw || "");
-        cell.appendChild(nameEl);
 rowWrap.appendChild(cell);
       });
 
@@ -2398,11 +2415,6 @@ function renderRunwayStep(step, card) {
       img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
       img.alt = q ? q.name : raw;
       cell.appendChild(img);
-
-      const nameEl = document.createElement("div");
-      nameEl.className = "queen-avatar-name";
-      nameEl.textContent = q ? q.name : String(raw || "");
-      cell.appendChild(nameEl);
 rowWrap.appendChild(cell);
     });
 
@@ -2441,11 +2453,6 @@ rowWrap.appendChild(cell);
         img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
         img.alt = q ? q.name : raw;
         cell.appendChild(img);
-
-        const nameEl = document.createElement("div");
-        nameEl.className = "queen-avatar-name";
-        nameEl.textContent = q ? q.name : String(raw || "");
-        cell.appendChild(nameEl);
 rowWrap.appendChild(cell);
       });
 
@@ -2526,10 +2533,6 @@ rowWrap.appendChild(cell);
           const isLow = lows.includes(raw);
           img.style.borderColor = isLow ? "#f57c00" : "#c62828";
           cell.appendChild(img);
-          const nameEl = document.createElement("div");
-          nameEl.className = "queen-avatar-name";
-          nameEl.textContent = q ? q.name : String(raw || "");
-          cell.appendChild(nameEl);
 rowWrap.appendChild(cell);
         });
 
@@ -2850,20 +2853,30 @@ function renderLipSyncStep(step, card) {
 
 function renderResultsStep(step, card) {
   // Post-lip-sync results (Shantay/Sashay/double saves, etc.)
-  // Render with the same "pretty" queen-row formatting as other steps.
+  // Styled to match the "pretty" UI like other steps.
   const wrap = document.createElement("div");
-  wrap.className = "step-section";
+  wrap.className = "maxi-step results-step";
+  wrap.style.textAlign = "center";
 
-  const title = document.createElement("h2");
+  const title = document.createElement("div");
+  title.className = "maxi-title";
   title.textContent = "Results";
   wrap.appendChild(title);
 
   const rawLines = (step && step.lines ? step.lines : []);
   const lines = rawLines.map(l => String(l || "").trim()).filter(l => l.length > 0);
 
+  // Decision line (always show for vibe, even if missing in log)
+  const decision = document.createElement("div");
+  decision.className = "maxi-intro decision-line";
+  decision.style.fontWeight = "800";
+  decision.textContent = "I've made my decision.";
+  wrap.appendChild(decision);
+
   if (!lines.length) {
-    const p = document.createElement("p");
-    p.className = "step-note";
+    const p = document.createElement("div");
+    p.className = "maxi-intro";
+    p.style.color = "#aaa";
     p.textContent = "No results data available.";
     wrap.appendChild(p);
     card.appendChild(wrap);
@@ -2884,56 +2897,74 @@ function renderResultsStep(step, card) {
       .filter(Boolean);
   };
 
+  let specialTwist = null;
+  let shantay = [];
+  let sashay = [];
+
   for (const l of lines) {
     const lower = l.toLowerCase();
 
     if (lower.startsWith("special twist:")) {
-      const p = document.createElement("p");
-      p.className = "results-heading";
-      p.textContent = l;
-      wrap.appendChild(p);
-      continue;
-    }
-
-    if (lower.startsWith("i've made my decision")) {
-      const p = document.createElement("p");
-      p.className = "results-heading";
-      p.textContent = "I've made my decision.";
-      wrap.appendChild(p);
+      specialTwist = l.replace(/^special twist:\s*/i, "").trim();
       continue;
     }
 
     if (lower.startsWith("shantay you stay:")) {
-      const names = maybeNames(parseAfterColon(l));
-      if (names.length) {
-        renderQueenRow(names, "Shantay, you stay.", wrap, { positive: true });
-      } else {
-        const p = document.createElement("p");
-        p.className = "step-line";
-        p.textContent = l;
-        wrap.appendChild(p);
-      }
+      shantay = maybeNames(parseAfterColon(l));
       continue;
     }
 
     if (lower.startsWith("sashay away:")) {
-      const names = maybeNames(parseAfterColon(l));
-      if (names.length) {
-        renderQueenRow(names, "Sashay away.", wrap, { negative: true });
-      } else {
-        const p = document.createElement("p");
-        p.className = "step-line";
-        p.textContent = l;
-        wrap.appendChild(p);
-      }
+      sashay = maybeNames(parseAfterColon(l));
       continue;
     }
+  }
 
-    // Fallback: keep any other line as neutral text.
-    const p = document.createElement("p");
-    p.className = "step-line";
-    p.textContent = l;
+  if (specialTwist) {
+    const p = document.createElement("div");
+    p.className = "maxi-intro";
+    p.style.marginTop = "-0.35rem";
+    p.style.marginBottom = "0.85rem";
+    p.style.color = "#ff80ab";
+    p.style.fontWeight = "700";
+    p.textContent = specialTwist;
     wrap.appendChild(p);
+  }
+
+  // Shantay
+  if (shantay.length) {
+    renderQueenRowWithRingClass(shantay, "", wrap, "perf-win");
+
+    const cap = document.createElement("div");
+    cap.className = "perf-caption results-caption results-stay";
+    cap.textContent = `${formatNameList(shantay)} — Shantay, you stay.`;
+    wrap.appendChild(cap);
+  }
+
+  // Divider between outcomes
+  if (shantay.length && sashay.length) {
+    const div = document.createElement("div");
+    div.className = "judging-divider";
+    div.style.margin = "0.85rem auto";
+    div.style.maxWidth = "420px";
+    wrap.appendChild(div);
+  }
+
+  // Sashay
+  if (sashay.length) {
+    renderQueenRowWithRingClass(sashay, "", wrap, "perf-bottom");
+
+    const cap = document.createElement("div");
+    cap.className = "perf-caption results-caption results-sashay";
+    cap.textContent = `${formatNameList(sashay)} — Sashay away.`;
+    wrap.appendChild(cap);
+  }
+
+  // Fallback: if parsing failed, show raw lines softly
+  if (!shantay.length && !sashay.length) {
+    const pre = document.createElement("pre");
+    pre.textContent = lines.join("\n");
+    wrap.appendChild(pre);
   }
 
   card.appendChild(wrap);
@@ -3034,11 +3065,6 @@ function renderLipSyncStep(step, card) {
     img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
     img.alt = t.name;
     cell.appendChild(img);
-
-    const nameEl = document.createElement("div");
-    nameEl.className = "queen-avatar-name";
-    nameEl.textContent = q ? q.name : String(t.name || "");
-    cell.appendChild(nameEl);
 
     row.appendChild(cell);
     wrap.appendChild(row);
@@ -3309,11 +3335,6 @@ const buckets = [
           img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
           img.alt = q ? q.name : raw;
           cell.appendChild(img);
-
-          const nameEl = document.createElement("div");
-          nameEl.className = "queen-avatar-name";
-          nameEl.textContent = q ? q.name : String(raw || "");
-          cell.appendChild(nameEl);
 rowWrap.appendChild(cell);
         });
 
@@ -3484,11 +3505,6 @@ function renderFinaleRunwayStep(step, card) {
       img.src = (q && q.imageUrl) || DEFAULT_QUEEN_IMAGE;
       img.alt = q ? q.name : raw;
       cell.appendChild(img);
-
-      const nameEl = document.createElement("div");
-      nameEl.className = "queen-avatar-name";
-      nameEl.textContent = q ? q.name : String(raw || "");
-      cell.appendChild(nameEl);
       rowWrap.appendChild(cell);
     });
 
@@ -3675,12 +3691,7 @@ function renderFinaleWinnerStep(step, card) {
     details.appendChild(holder);
 
     // renderTrackRecordTable writes into a container
-    if (trackRecordData && Array.isArray(trackRecordData.episodes)) {
-      renderTrackRecordTable(holder, trackRecordData);
-    } else {
-      const fallback = buildTrackRecordFromLog(lastSeasonLog);
-      renderTrackRecordTable(holder, fallback);
-    }
+    renderTrackRecordTable(holder);
     wrap.appendChild(details);
   }
 
@@ -4059,7 +4070,8 @@ function renderFinaleLines(lines, card) {
     
       allEpisodes.forEach((ep, idx) => {
         const th = document.createElement("th");
-        const isFinale = !!(ep && ep.isFinale);
+        const isFinale =
+          (ep && ep.isFinale) || idx === allEpisodes.length - 1;
         th.textContent =
           (ep && ep.name) || (isFinale ? "Finale" : "Episode " + (idx + 1));
         headRow.appendChild(th);
@@ -4081,7 +4093,8 @@ function renderFinaleLines(lines, card) {
     
         allEpisodes.forEach((ep, colIndex) => {
           const cell = document.createElement("td");
-          const isFinale = !!(ep && ep.isFinale);
+          const isFinale =
+            (ep && ep.isFinale) || colIndex === allEpisodes.length - 1;
     
           if (isFinale) {
             // Finale column: winner + two runners-up coloured by row order
