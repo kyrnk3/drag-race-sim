@@ -2033,6 +2033,14 @@ enterStoryMode(); // hide builder + toolbar while showing results
       for (const line of lines) {
         if (line.startsWith("========== Episode")) {
           startNewEpisode(line);
+        } else if (line.startsWith("========== Final 3")) {
+          // Final 3 section belongs to the finale block, not the last episode.
+          if (currentEpisode) {
+            episodes.push(currentEpisode);
+            currentEpisode = null;
+          }
+          currentBlock = finale;
+          currentBlock.push(line);
         } else if (line.startsWith("========== Grand Finale")) {
           if (currentEpisode) {
             episodes.push(currentEpisode);
@@ -2822,8 +2830,8 @@ function renderLipSyncStep(step, card) {
 }
 
 function renderResultsStep(step, card) {
-  // Generic post-lip-sync results (Shantay/Sashay/double saves, etc.)
-  // Falls back to raw log lines if structured data isn't available.
+  // Post-lip-sync results (Shantay/Sashay/double saves, etc.)
+  // Render with the same "pretty" queen-row formatting as other steps.
   const wrap = document.createElement("div");
   wrap.className = "step-section";
 
@@ -2831,24 +2839,88 @@ function renderResultsStep(step, card) {
   title.textContent = "Results";
   wrap.appendChild(title);
 
-  const lines = (step && step.lines ? step.lines : []).filter(l => (l || "").trim().length > 0);
+  const rawLines = (step && step.lines ? step.lines : []);
+  const lines = rawLines.map(l => String(l || "").trim()).filter(l => l.length > 0);
 
   if (!lines.length) {
     const p = document.createElement("p");
     p.className = "step-note";
     p.textContent = "No results data available.";
     wrap.appendChild(p);
-  } else {
-    for (const l of lines) {
+    card.appendChild(wrap);
+    return;
+  }
+
+  const parseAfterColon = (line) => {
+    const idx = line.indexOf(":");
+    if (idx < 0) return "";
+    return line.slice(idx + 1).trim();
+  };
+
+  const maybeNames = (s) => {
+    if (!s) return [];
+    return s
+      .split(/&|,|\band\b/gi)
+      .map(x => x.trim())
+      .filter(Boolean);
+  };
+
+  for (const l of lines) {
+    const lower = l.toLowerCase();
+
+    if (lower.startsWith("special twist:")) {
       const p = document.createElement("p");
-      p.className = "step-line";
+      p.className = "results-heading";
       p.textContent = l;
       wrap.appendChild(p);
+      continue;
     }
+
+    if (lower.startsWith("i've made my decision")) {
+      const p = document.createElement("p");
+      p.className = "results-heading";
+      p.textContent = "I've made my decision.";
+      wrap.appendChild(p);
+      continue;
+    }
+
+    if (lower.startsWith("shantay you stay:")) {
+      const names = maybeNames(parseAfterColon(l));
+      if (names.length) {
+        renderQueenRow(names, "Shantay, you stay.", wrap, { positive: true });
+      } else {
+        const p = document.createElement("p");
+        p.className = "step-line";
+        p.textContent = l;
+        wrap.appendChild(p);
+      }
+      continue;
+    }
+
+    if (lower.startsWith("sashay away:")) {
+      const names = maybeNames(parseAfterColon(l));
+      if (names.length) {
+        renderQueenRow(names, "Sashay away.", wrap, { negative: true });
+      } else {
+        const p = document.createElement("p");
+        p.className = "step-line";
+        p.textContent = l;
+        wrap.appendChild(p);
+      }
+      continue;
+    }
+
+    // Fallback: keep any other line as neutral text.
+    const p = document.createElement("p");
+    p.className = "step-line";
+    p.textContent = l;
+    wrap.appendChild(p);
   }
 
   card.appendChild(wrap);
 }
+
+
 
 
 // Old-sim style Lip Sync step using structured episodeResults.
@@ -3241,6 +3313,85 @@ rowWrap.appendChild(cell);
 function getFinaleResult() {
   if (!seasonEpisodeResults || !seasonEpisodeResults.length) return null;
   return seasonEpisodeResults.find(e => e && (e.challengeId === "FINALE" || e.episode === "Finale")) || null;
+}
+
+
+function renderFinal3Step(step, card) {
+  const wrap = document.createElement("div");
+  wrap.className = "step-section";
+  wrap.style.textAlign = "center";
+
+  const title = document.createElement("h2");
+  title.textContent = "Final 3 Revealed";
+  wrap.appendChild(title);
+
+  // Determine finalist names (prefer parsing the log step, fallback to finale meta).
+  let finalists = [];
+  const lines = (step && step.lines) ? step.lines : [];
+  for (const l of lines) {
+    const m = String(l).match(/-\s*([^()]+?)\s*\(track record:/i);
+    if (m && m[1]) finalists.push(m[1].trim());
+  }
+
+  if (!finalists.length && seasonEpisodeResults && seasonEpisodeResults.length) {
+    const finaleRes = seasonEpisodeResults.find(r => r && r.episode === "Finale" && r.finale && Array.isArray(r.finale.finalists));
+    if (finaleRes) finalists = finaleRes.finale.finalists.slice(0, 3);
+  }
+
+  // Render a "current Top 3 track records" table (main episodes only; no finale column).
+  const tableWrap = document.createElement("div");
+  tableWrap.style.marginTop = "0.75rem";
+  tableWrap.style.textAlign = "left";
+
+  if (trackRecordData && Array.isArray(trackRecordData.episodes) && trackRecordData.episodes.length) {
+    const mainEpisodes = trackRecordData.episodes.filter(ep => ep && !ep.isFinale);
+
+    const allowed = new Set(finalists);
+    const queenOrder = Array.isArray(trackRecordData.queenOrder)
+      ? trackRecordData.queenOrder.filter(q => allowed.size ? allowed.has(q) : true).slice(0, 3)
+      : [];
+
+    const sliced = {
+      queenOrder,
+      episodes: mainEpisodes.map(ep => ({
+        ...ep,
+        placements: Object.fromEntries(
+          queenOrder.map(qn => [qn, (ep.placements && ep.placements[qn]) ? ep.placements[qn] : ""])
+        )
+      }))
+    };
+
+    if (queenOrder.length) {
+      renderTrackRecordTable(tableWrap, sliced);
+    } else {
+      const p = document.createElement("p");
+      p.className = "step-note";
+      p.textContent = "No finalist track records available.";
+      tableWrap.appendChild(p);
+    }
+  } else {
+    const p = document.createElement("p");
+    p.className = "step-note";
+    p.textContent = "Track record data was not available for this season.";
+    tableWrap.appendChild(p);
+  }
+
+  wrap.appendChild(tableWrap);
+
+  // Optional: show the raw Final 3 lines under the table.
+  if (lines && lines.length) {
+    const details = document.createElement("details");
+    details.style.marginTop = "0.75rem";
+    const summary = document.createElement("summary");
+    summary.textContent = "Show Final 3 log";
+    details.appendChild(summary);
+    const pre = document.createElement("pre");
+    pre.textContent = lines.map(l => String(l || "")).join("\n");
+    details.appendChild(pre);
+    wrap.appendChild(details);
+  }
+
+  card.appendChild(wrap);
 }
 
 function renderFinaleRunwayStep(step, card) {
@@ -4126,6 +4277,9 @@ if (step.type === "episode_setup") {
 
 } else if (step.type === "episode_results") {
   renderResultsStep(step, card);
+
+} else if (step.type === "final3") {
+  renderFinal3Step(step, card);
 
 } else if (step.type === "finale_runway") {
   renderFinaleRunwayStep(step, card);
