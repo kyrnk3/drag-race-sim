@@ -1232,12 +1232,8 @@ function simulateFinale(finalists, log, lipsyncState) {
 
   log.push(`\n${winner.name} devours the stage and snatches the crown! 👑\n`);
 
-  // Determine runner-up (the other Top 2 queen)
-  const runnerUp = top2Queens.find(q => q !== winner) || null;
-
   return {
     winner,
-    runnerUp,
     top2: top2Queens,
     eliminated,
     seasonScores,
