@@ -2969,22 +2969,22 @@ function renderResultsStep(step, card) {
 
   // Sashay
   if (sashay.length) {
-    renderQueenRowWithRingClass(sashay, "", wrap, "perf-bottom");
+      const div = document.createElement("div");
+      div.className = "judging-divider";
+      div.style.margin = "0.75rem auto";
+      wrap.appendChild(div);
 
-    const cap = document.createElement("div");
-    cap.className = "perf-caption results-caption results-sashay";
-    cap.textContent = `${formatNameList(sashay)} — Sashay away.`;
+      renderQueenRowWithRingClass(sashay, "", wrap, "perf-bottom");
+      const p = document.createElement("div");
+      p.className = "perf-caption";
+      p.textContent = `Sashay away: ${formatNameList(sashay)}`;
+      wrap.appendChild(p);
+    } — Sashay away.`;
     wrap.appendChild(cap);
   }
 
   // Fallback: if parsing failed, show raw lines softly
-  if (!shantay.length && !sashay.length) {
-    const pre = document.createElement("pre");
-    pre.textContent = lines.join("\n");
-    wrap.appendChild(pre);
-  }
-
-  card.appendChild(wrap);
+card.appendChild(wrap);
 }
 
 
