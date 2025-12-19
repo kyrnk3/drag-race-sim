@@ -2023,8 +2023,15 @@
       const meta = typeof result === "string" ? null : result;
 
       lastSeasonLog = log || "";
-      trackRecordData = meta && meta.trackRecord ? meta.trackRecord : null;
-      seasonEpisodeResults = meta && Array.isArray(meta.episodeResults) ? meta.episodeResults : null;
+      // Track record data may come back either at top-level (newer sim.js) or inside meta (older builds).
+      trackRecordData =
+        (result && result.trackRecord && Array.isArray(result.trackRecord.episodes)) ? result.trackRecord :
+        (meta && meta.trackRecord && Array.isArray(meta.trackRecord.episodes)) ? meta.trackRecord :
+        null;
+      seasonEpisodeResults =
+        (result && Array.isArray(result.episodeResults)) ? result.episodeResults :
+        (meta && Array.isArray(meta.episodeResults)) ? meta.episodeResults :
+        null;
 enterStoryMode(); // hide builder + toolbar while showing results
       
       if (options.view === "full") {
@@ -3701,8 +3708,11 @@ function renderFinaleWinnerStep(step, card) {
     details.appendChild(holder);
 
     // renderTrackRecordTable writes into a container
-    renderTrackRecordTable(holder);
-    wrap.appendChild(details);
+    renderTrackRecordTable(holder,
+        (typeof trackRecordData !== "undefined" && trackRecordData && Array.isArray(trackRecordData.episodes)) ? trackRecordData :
+        (typeof buildTrackRecordFromLog === "function" ? (buildTrackRecordFromLog(lastSeasonLog) || null) : null)
+      );
+wrap.appendChild(details);
   }
 
   card.appendChild(wrap);
@@ -4040,97 +4050,83 @@ function renderFinaleLines(lines, card) {
         container.appendChild(p);
         return;
       }
-    
+
       // Work on a copy so we don't mutate the original meta.
       const episodesArr = data.episodes.slice();
-    
-      // Find the finale episode (by flag; fallback to last element).
-      let finaleIndex = episodesArr.findIndex((ep) => ep && ep.isFinale);
-      if (finaleIndex === -1) {
-        finaleIndex = episodesArr.length - 1;
-      }
-    
-      // Canonical count of *main* episodes (non-finale) should come from the log,
-      // via seasonEpisodeCount. If it's not set, fall back to "everything before finale".
-      let mainCount;
-      if (typeof seasonEpisodeCount === "number" && seasonEpisodeCount > 0) {
-        mainCount = Math.min(seasonEpisodeCount, finaleIndex);
-      } else {
-        mainCount = finaleIndex;
-      }
-      if (mainCount < 0) mainCount = 0;
-    
-      const mainEpisodes = episodesArr.slice(0, mainCount);
-      const finaleEpisode = episodesArr[finaleIndex];
-      const allEpisodes = finaleEpisode
-        ? [...mainEpisodes, finaleEpisode]
-        : mainEpisodes;
-    
+
+      // IMPORTANT:
+      // Only treat a column as the Finale column if the data explicitly marks it (ep.isFinale === true).
+      // This prevents "Final 3 Revealed" tables (which are main-episode only) from auto-spoiling.
+      const hasFinale = episodesArr.some(ep => ep && ep.isFinale);
+
+      const mainEpisodes = hasFinale ? episodesArr.filter(ep => ep && !ep.isFinale) : episodesArr;
+      const finaleEpisode = hasFinale ? episodesArr.find(ep => ep && ep.isFinale) : null;
+      const allEpisodes = hasFinale && finaleEpisode ? [...mainEpisodes, finaleEpisode] : mainEpisodes;
+
       const table = document.createElement("table");
       table.className = "track-record-table";
-    
+
       // ---------- Header ----------
       const thead = document.createElement("thead");
       const headRow = document.createElement("tr");
-    
+
       const thName = document.createElement("th");
       thName.textContent = "Queen";
       thName.className = "track-name";
       headRow.appendChild(thName);
-    
+
       allEpisodes.forEach((ep, idx) => {
         const th = document.createElement("th");
-        const isFinale =
-          (ep && ep.isFinale) || idx === allEpisodes.length - 1;
-        th.textContent =
-          (ep && ep.name) || (isFinale ? "Finale" : "Episode " + (idx + 1));
+        const isFinale = !!(ep && ep.isFinale);
+        th.textContent = (ep && ep.name) ? ep.name : (isFinale ? "Finale" : "Episode " + (idx + 1));
         headRow.appendChild(th);
       });
-    
+
       thead.appendChild(headRow);
       table.appendChild(thead);
-    
+
       // ---------- Body ----------
       const tbody = document.createElement("tbody");
-    
+
       data.queenOrder.forEach((qName, rowIndex) => {
         const row = document.createElement("tr");
-    
+
         const nameCell = document.createElement("td");
         nameCell.textContent = qName;
         nameCell.className = "track-name";
         row.appendChild(nameCell);
-    
+
         allEpisodes.forEach((ep, colIndex) => {
           const cell = document.createElement("td");
-          const isFinale =
-            (ep && ep.isFinale) || colIndex === allEpisodes.length - 1;
-    
+          const isFinale = !!(ep && ep.isFinale);
+
           if (isFinale) {
-            // Finale column: winner + two runners-up coloured by row order
-            let finaleStatus = "";
-            let finaleClass = "status-empty";
-    
-            if (rowIndex === 0) {
-              finaleStatus = "WIN";
-              finaleClass = "status-final-win";
-            } else if (rowIndex === 1) {
-              finaleStatus = "RUN-UP";
-              finaleClass = "status-final-runner1";
-            } else if (rowIndex === 2) {
-              finaleStatus = "RUN-UP";
-              finaleClass = "status-final-runner2";
-            } else {
-              finaleStatus = "";
-              finaleClass = "status-empty";
+            // Finale column: prefer explicit finale placements if present,
+            // otherwise fall back to the (winner, runners-up) display order.
+            const raw = ep && ep.placements && Object.prototype.hasOwnProperty.call(ep.placements, qName)
+              ? ep.placements[qName]
+              : "";
+
+            let status = "";
+            if (raw && typeof raw === "object") status = raw.status || "";
+            else status = raw || "";
+
+            // If status isn't provided, use row order for Top 3 display
+            if (!status) {
+              if (rowIndex === 0) status = "WIN";
+              else if (rowIndex === 1 || rowIndex === 2) status = "RUN-UP";
             }
-    
-            cell.textContent = finaleStatus;
-            cell.className = finaleClass;
+
+            let cls = "status-empty";
+            if (status === "WIN") cls = "status-final-win";
+            else if (status === "RUN-UP") cls = (rowIndex === 1 ? "status-final-runner1" : "status-final-runner2");
+
+            cell.textContent = status || "";
+            cell.className = cls;
             row.appendChild(cell);
             return;
           }
-    
+
           // Normal competitive episode cell
           const rawPlacement =
             ep &&
@@ -4138,21 +4134,20 @@ function renderFinaleLines(lines, card) {
             Object.prototype.hasOwnProperty.call(ep.placements, qName)
               ? ep.placements[qName]
               : "";
-    
+
           let status = "";
           let immune = false;
-    
+
           if (rawPlacement && typeof rawPlacement === "object") {
             status = rawPlacement.status || "";
             immune = !!rawPlacement.immune;
           } else {
             status = rawPlacement || "";
           }
-    
+
           const displayStatus = status === "RTRN" ? "RTRN" : status;
-          cell.innerHTML =
-            displayStatus + (immune ? '<br><small>(IMM)</small>' : "");
-    
+          cell.innerHTML = displayStatus + (immune ? '<br><small>(IMM)</small>' : "");
+
           if (!status) {
             cell.className = "status-empty";
           } else {
@@ -4182,13 +4177,13 @@ function renderFinaleLines(lines, card) {
                 cell.className = "status-empty";
             }
           }
-    
+
           row.appendChild(cell);
         });
-    
+
         tbody.appendChild(row);
       });
-    
+
       table.appendChild(tbody);
       container.appendChild(table);
     }
